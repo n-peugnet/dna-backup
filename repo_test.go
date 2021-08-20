@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func preparResult() {
+func prepareResult() {
 	result := path.Join("test", "result")
 	os.RemoveAll(result)
 	os.MkdirAll(result, 0775)
@@ -75,4 +75,32 @@ func TestReadFiles3(t *testing.T) {
 		path.Join("logs.3", "indexingTreeTest.log"),
 	}
 	chunkCompare(t, dataDir, files, chunkCount)
+}
+
+func TestLoadChunks(t *testing.T) {
+	prepareResult()
+	dataDir := path.Join("test", "data")
+	resultDir := path.Join("test", "result")
+	files1 := make(chan File)
+	files2 := make(chan File)
+	chunks1 := make(chan []byte)
+	chunks2 := make(chan []byte)
+	chunks3 := make(chan []byte)
+	go ListFiles(dataDir, files1)
+	go ListFiles(dataDir, files2)
+	go ReadFiles(files1, chunks1)
+	go ReadFiles(files2, chunks2)
+	StoreChunks(resultDir, chunks1)
+	go LoadChunks(resultDir, chunks3)
+
+	i := 0
+	for c2 := range chunks2 {
+		c3 := <-chunks3
+		if bytes.Compare(c2, c3) != 0 {
+			t.Errorf("Chunk %d does not match file content", i)
+			t.Log(c2)
+			t.Log(c3)
+		}
+		i++
+	}
 }

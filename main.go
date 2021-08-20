@@ -15,5 +15,5 @@ func main() {
 	chunks := make(chan []byte)
 	go ListFiles(path, files)
 	go ReadFiles(files, chunks)
-	DumpChunks(".", chunks)
+	StoreChunks(".", chunks)
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/fs"
@@ -21,9 +19,9 @@ type File struct {
 	Size int64
 }
 
-func ListFiles(path string, files chan File) {
+func ListFiles(path string, files chan<- File) {
 	err := filepath.Walk(path,
-		func(path string, i fs.FileInfo, err error) error {
+		func(p string, i fs.FileInfo, err error) error {
 			if err != nil {
 				log.Println(err)
 				return err
@@ -31,7 +29,7 @@ func ListFiles(path string, files chan File) {
 			if i.IsDir() {
 				return nil
 			}
-			var file = File{path, i.Size()}
+			var file = File{p, i.Size()}
 			files <- file
 			return nil
 		})
@@ -41,7 +39,7 @@ func ListFiles(path string, files chan File) {
 	close(files)
 }
 
-func ReadFiles(files chan File, chunks chan []byte) {
+func ReadFiles(files <-chan File, chunks chan<- []byte) {
 	var buff []byte
 	var prev, read = chunkSize, 0
 
@@ -71,16 +69,37 @@ func ReadFiles(files chan File, chunks chan []byte) {
 	close(chunks)
 }
 
-func PrintChunks(chunks chan []byte) {
+func PrintChunks(chunks <-chan []byte) {
 	for c := range chunks {
 		fmt.Println(c)
 	}
 }
 
-func DumpChunks(dest string, chunks chan []byte) {
+func StoreChunks(dest string, chunks <-chan []byte) {
+	i := 0
 	for c := range chunks {
-		sum := sha1.Sum(c)
-		path := path.Join(dest, hex.EncodeToString(sum[:]))
+		path := path.Join(dest, fmt.Sprintf("%015d", i))
 		os.WriteFile(path, c, 0664)
+		i++
 	}
+}
+
+func LoadChunks(repo string, chunks chan<- []byte) {
+	err := filepath.WalkDir(repo,
+		func(p string, e fs.DirEntry, err error) error {
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			if e.IsDir() {
+				return nil
+			}
+			buff, err := os.ReadFile(p)
+			chunks <- buff
+			return nil
+		})
+	if err != nil {
+		log.Println(err)
+	}
+	close(chunks)
 }
