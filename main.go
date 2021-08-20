@@ -1,19 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
 func main() {
-	path := "."
 
-	if len(os.Args) > 1 {
-		path = os.Args[1]
+	if len(os.Args) != 3 {
+		fmt.Println("usage: dna-backup <source> <dest>")
+		os.Exit(1)
 	}
 
-	files := make(chan File)
-	chunks := make(chan []byte)
-	go ListFiles(path, files)
-	go ReadFiles(files, chunks)
-	StoreChunks(".", chunks)
+	source := os.Args[1]
+	dest := os.Args[2]
+
+	os.MkdirAll(dest, 0775)
+	Commit(source, dest)
 }
