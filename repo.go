@@ -36,9 +36,7 @@ import (
 	"strconv"
 )
 
-const (
-	chunkSize = 8 << 10
-)
+var chunkSize = 8 << 10
 
 type File struct {
 	Path string
@@ -52,13 +50,13 @@ func Commit(source string, repo string) {
 	newChunkPath := path.Join(newPath, "chunks")
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
-	files := make(chan File)
-	newChunks := make(chan []byte)
-	oldChunks := make(chan []byte)
+	newChunks := make(chan []byte, 16)
+	oldChunks := make(chan []byte, 16)
+	files := ListFiles(source)
 	go LoadChunks(repo, oldChunks)
-	go ListFiles(source, files)
 	go ReadFiles(files, newChunks)
 	StoreChunks(newChunkPath, newChunks)
+	fmt.Println(files)
 }
 
 func GetLastVersion(repo string) int {
@@ -83,7 +81,8 @@ func GetLastVersion(repo string) int {
 	return v
 }
 
-func ListFiles(path string, files chan<- File) {
+func ListFiles(path string) []File {
+	var files []File
 	err := filepath.Walk(path,
 		func(p string, i fs.FileInfo, err error) error {
 			if err != nil {
@@ -93,21 +92,20 @@ func ListFiles(path string, files chan<- File) {
 			if i.IsDir() {
 				return nil
 			}
-			var file = File{p, i.Size()}
-			files <- file
+			files = append(files, File{p, i.Size()})
 			return nil
 		})
 	if err != nil {
 		log.Println(err)
 	}
-	close(files)
+	return files
 }
 
-func ReadFiles(files <-chan File, chunks chan<- []byte) {
+func ReadFiles(files []File, chunks chan<- []byte) {
 	var buff []byte
 	var prev, read = chunkSize, 0
 
-	for f := range files {
+	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
 			log.Println(err)

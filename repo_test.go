@@ -15,9 +15,8 @@ func prepareResult() {
 
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
 
-	files := make(chan File)
 	chunks := make(chan []byte)
-	go ListFiles(dataDir, files)
+	files := ListFiles(dataDir)
 	go ReadFiles(files, chunks)
 
 	offset := 0
@@ -81,15 +80,12 @@ func TestLoadChunks(t *testing.T) {
 	prepareResult()
 	dataDir := path.Join("test", "data")
 	resultDir := path.Join("test", "result")
-	files1 := make(chan File)
-	files2 := make(chan File)
-	chunks1 := make(chan []byte)
-	chunks2 := make(chan []byte)
-	chunks3 := make(chan []byte)
-	go ListFiles(dataDir, files1)
-	go ListFiles(dataDir, files2)
-	go ReadFiles(files1, chunks1)
-	go ReadFiles(files2, chunks2)
+	chunks1 := make(chan []byte, 16)
+	chunks2 := make(chan []byte, 16)
+	chunks3 := make(chan []byte, 16)
+	files := ListFiles(dataDir)
+	go ReadFiles(files, chunks1)
+	go ReadFiles(files, chunks2)
 	StoreChunks(resultDir, chunks1)
 	go LoadChunks(resultDir, chunks3)
 
