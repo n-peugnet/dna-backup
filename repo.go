@@ -11,13 +11,13 @@ repo/
 │   │   ├── 000000000000001
 │   │   ├── 000000000000002
 │   │   ├── 000000000000003
-│   ├── dentries
+│   ├── files
 │   └── recipe
 └── 00001/
     ├── chunks/
     │   ├── 000000000000000
     │   ├── 000000000000001
-    ├── dentries
+    ├── files
     └── recipe
 ```
 */
@@ -25,6 +25,7 @@ repo/
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"io"
 	"io/fs"
@@ -48,6 +49,7 @@ func Commit(source string, repo string) {
 	new := latest + 1
 	newPath := path.Join(repo, fmt.Sprintf("%05d", new))
 	newChunkPath := path.Join(newPath, "chunks")
+	newFilesPath := path.Join(newPath, "files")
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
@@ -56,6 +58,7 @@ func Commit(source string, repo string) {
 	go LoadChunks(repo, oldChunks)
 	go ReadFiles(files, newChunks)
 	StoreChunks(newChunkPath, newChunks)
+	StoreFiles(newFilesPath, files)
 	fmt.Println(files)
 }
 
@@ -131,6 +134,22 @@ func ReadFiles(files []File, chunks chan<- []byte) {
 	close(chunks)
 }
 
+func StoreFiles(dest string, files []File) {
+	err := writeFile(dest, files)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func LoadFiles(repo string) []File {
+	files := make([]File, 0)
+	err := readFile(repo, &files)
+	if err != nil {
+		log.Println(err)
+	}
+	return files
+}
+
 func PrintChunks(chunks <-chan []byte) {
 	for c := range chunks {
 		fmt.Println(c)
@@ -164,4 +183,24 @@ func LoadChunks(repo string, chunks chan<- []byte) {
 		log.Println(err)
 	}
 	close(chunks)
+}
+
+func writeFile(filePath string, object interface{}) error {
+	file, err := os.Create(filePath)
+	if err == nil {
+		encoder := gob.NewEncoder(file)
+		encoder.Encode(object)
+	}
+	file.Close()
+	return err
+}
+
+func readFile(filePath string, object interface{}) error {
+	file, err := os.Open(filePath)
+	if err == nil {
+		decoder := gob.NewDecoder(file)
+		err = decoder.Decode(object)
+	}
+	file.Close()
+	return err
 }

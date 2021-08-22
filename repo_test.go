@@ -40,8 +40,8 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 		}
 		if bytes.Compare(c, content) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
-			t.Log(c)
-			t.Log(content)
+			t.Log("Expected: ", c)
+			t.Log("Result:", content)
 		}
 		i++
 	}
@@ -94,9 +94,25 @@ func TestLoadChunks(t *testing.T) {
 		c3 := <-chunks3
 		if bytes.Compare(c2, c3) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
-			t.Log(c2)
-			t.Log(c3)
+			t.Log("Expected: ", c2)
+			t.Log("Result:", c3)
 		}
 		i++
+	}
+}
+
+func TestStoreLoadFiles(t *testing.T) {
+	prepareResult()
+	dataDir := path.Join("test", "data")
+	resultFiles := path.Join("test", "result", "files")
+	files1 := ListFiles(dataDir)
+	StoreFiles(resultFiles, files1)
+	files2 := LoadFiles(resultFiles)
+	for i, f := range files1 {
+		if f != files2[i] {
+			t.Errorf("Loaded file data %d does not match stored one", i)
+			t.Log("Expected: ", f)
+			t.Log("Result: ", files2[i])
+		}
 	}
 }
