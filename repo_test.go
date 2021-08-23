@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 )
 
 func TestMain(m *testing.M) {
@@ -31,8 +34,8 @@ func prepareResult() string {
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
 
 	chunks := make(chan []byte)
-	files := ListFiles(dataDir)
-	go ReadFiles(files, chunks)
+	files := listFiles(dataDir)
+	go readFiles(files, chunks)
 
 	offset := 0
 	buff := make([]byte, chunkSize*chunkCount)
@@ -100,12 +103,12 @@ func TestLoadChunks(t *testing.T) {
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
 	chunks3 := make(chan Chunk, 16)
-	files := ListFiles(dataDir)
-	go ReadFiles(files, chunks1)
-	go ReadFiles(files, chunks2)
-	StoreChunks(resultChunks, chunks1)
+	files := listFiles(dataDir)
+	go readFiles(files, chunks1)
+	go readFiles(files, chunks2)
+	storeChunks(resultChunks, chunks1)
 	versions := []string{resultVersion}
-	go LoadChunks(versions, chunks3)
+	go loadChunks(versions, chunks3)
 
 	i := 0
 	for c2 := range chunks2 {
@@ -123,9 +126,9 @@ func TestStoreLoadFiles(t *testing.T) {
 	resultDir := prepareResult()
 	dataDir := path.Join("test", "data")
 	resultFiles := path.Join(resultDir, "files")
-	files1 := ListFiles(dataDir)
-	StoreFiles(resultFiles, files1)
-	files2 := LoadFiles(resultFiles)
+	files1 := listFiles(dataDir)
+	storeFiles(resultFiles, files1)
+	files2 := loadFiles(resultFiles)
 	for i, f := range files1 {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
@@ -133,4 +136,37 @@ func TestStoreLoadFiles(t *testing.T) {
 			t.Log("Result: ", files2[i])
 		}
 	}
+}
+
+func TestBsdiff(t *testing.T) {
+	resultDir := prepareResult()
+	dataDir := path.Join("test", "data")
+	addedFile := path.Join(dataDir, "logs.2", "slogTest.log")
+	resultVersion := path.Join(resultDir, "00000")
+	resultChunks := path.Join(resultVersion, "chunks")
+	os.MkdirAll(resultChunks, 0775)
+	chunks := make(chan []byte, 16)
+	files := listFiles(dataDir)
+	go readFiles(files, chunks)
+	storeChunks(resultChunks, chunks)
+
+	input, _ := ioutil.ReadFile(path.Join(dataDir, "logs.1", "logTest.log"))
+	ioutil.WriteFile(addedFile, input, 0664)
+
+	newChunks := make(chan []byte, 16)
+	oldChunks := make(chan Chunk, 16)
+	files = listFiles(dataDir)
+	repo := NewRepo(resultDir)
+	versions := repo.loadVersions()
+	go loadChunks(versions, oldChunks)
+	go readFiles(files, newChunks)
+	hashes := hashChunks(oldChunks)
+	recipe := repo.matchChunks(newChunks, hashes)
+	buff := new(bytes.Buffer)
+	bsdiff.Reader(recipe[2], recipe[0], buff)
+	if len(buff.Bytes()) >= chunkSize {
+		t.Errorf("Bsdiff of chunk is too large: %d", len(buff.Bytes()))
+	}
+
+	os.Remove(addedFile)
 }

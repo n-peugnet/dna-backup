@@ -14,7 +14,6 @@ func main() {
 
 	source := os.Args[1]
 	dest := os.Args[2]
-
-	os.MkdirAll(dest, 0775)
-	Commit(source, dest)
+	repo := NewRepo(dest)
+	repo.Commit(source)
 }

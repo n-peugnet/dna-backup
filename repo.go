@@ -25,6 +25,7 @@ repo/
 package main
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"hash"
@@ -39,6 +40,12 @@ import (
 )
 
 var chunkSize = 8 << 10
+var versionFmt = "%05d"
+var chunkIdFmt = "%015d"
+
+type Repo struct {
+	path string
+}
 
 type File struct {
 	Path string
@@ -55,29 +62,34 @@ type Chunk struct {
 	Value []byte
 }
 
-func Commit(source string, repo string) {
-	versions := LoadVersions(repo)
+func NewRepo(path string) *Repo {
+	os.MkdirAll(path, 0775)
+	return &Repo{path}
+}
+
+func (r *Repo) Commit(source string) {
+	versions := r.loadVersions()
 	newVersion := len(versions)
-	newPath := path.Join(repo, fmt.Sprintf("%05d", newVersion))
+	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := path.Join(newPath, "chunks")
-	// newFilesPath := path.Join(newPath, "files")
+	newFilesPath := path.Join(newPath, "files")
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
 	oldChunks := make(chan Chunk, 16)
-	files := ListFiles(source)
-	go LoadChunks(versions, oldChunks)
-	go ReadFiles(files, newChunks)
-	hashes := HashChunks(oldChunks)
-	MatchChunks(newChunks, hashes)
-	// StoreChunks(newChunkPath, newChunks)
-	// StoreFiles(newFilesPath, files)
+	files := listFiles(source)
+	go loadChunks(versions, oldChunks)
+	go readFiles(files, newChunks)
+	// hashes := HashChunks(oldChunks)
+	// MatchChunks(newChunks, hashes)
+	storeChunks(newChunkPath, newChunks)
+	storeFiles(newFilesPath, files)
 	fmt.Println(files)
 }
 
-func LoadVersions(repo string) []string {
+func (r *Repo) loadVersions() []string {
 	versions := make([]string, 0)
-	files, err := os.ReadDir(repo)
+	files, err := os.ReadDir(r.path)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -85,12 +97,12 @@ func LoadVersions(repo string) []string {
 		if !f.IsDir() {
 			continue
 		}
-		versions = append(versions, path.Join(repo, f.Name()))
+		versions = append(versions, path.Join(r.path, f.Name()))
 	}
 	return versions
 }
 
-func ListFiles(path string) []File {
+func listFiles(path string) []File {
 	var files []File
 	err := filepath.Walk(path,
 		func(p string, i fs.FileInfo, err error) error {
@@ -110,7 +122,7 @@ func ListFiles(path string) []File {
 	return files
 }
 
-func ReadFiles(files []File, chunks chan<- []byte) {
+func readFiles(files []File, chunks chan<- []byte) {
 	var buff []byte
 	var prev, read = chunkSize, 0
 
@@ -140,14 +152,14 @@ func ReadFiles(files []File, chunks chan<- []byte) {
 	close(chunks)
 }
 
-func StoreFiles(dest string, files []File) {
+func storeFiles(dest string, files []File) {
 	err := writeFile(dest, files)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func LoadFiles(path string) []File {
+func loadFiles(path string) []File {
 	files := make([]File, 0)
 	err := readFile(path, &files)
 	if err != nil {
@@ -156,16 +168,16 @@ func LoadFiles(path string) []File {
 	return files
 }
 
-func PrintChunks(chunks <-chan []byte) {
+func printChunks(chunks <-chan []byte) {
 	for c := range chunks {
 		fmt.Println(c)
 	}
 }
 
-func StoreChunks(dest string, chunks <-chan []byte) {
+func storeChunks(dest string, chunks <-chan []byte) {
 	i := 0
 	for c := range chunks {
-		path := path.Join(dest, fmt.Sprintf("%015d", i))
+		path := path.Join(dest, fmt.Sprintf(chunkIdFmt, i))
 		err := os.WriteFile(path, c, 0664)
 		if err != nil {
 			log.Println(err)
@@ -174,7 +186,7 @@ func StoreChunks(dest string, chunks <-chan []byte) {
 	}
 }
 
-func LoadChunks(versions []string, chunks chan<- Chunk) {
+func loadChunks(versions []string, chunks chan<- Chunk) {
 	for i, v := range versions {
 		p := path.Join(v, "chunks")
 		entries, err := os.ReadDir(p)
@@ -203,7 +215,7 @@ func LoadChunks(versions []string, chunks chan<- Chunk) {
 	close(chunks)
 }
 
-func HashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
+func hashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
 	hashes := make(map[uint64]ChunkId)
 	hasher := hash.Hash64(rabinkarp64.New())
 	for c := range chunks {
@@ -215,15 +227,17 @@ func HashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
 	return hashes
 }
 
-func MatchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) {
+func (r *Repo) matchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) []io.Reader {
 	hasher := rabinkarp64.New()
 	hasher.Write(<-chunks)
+	recipe := make([]io.Reader, 0)
 
 	var i uint64
-	var offset int
-	var prefill int
-	var postfill int
+	var offset, prefill, postfill int
+	var exists bool
+	var chunkId ChunkId
 	for c := range chunks {
+		buff := make([]byte, 0)
 		// Pre fill the window with the rest of the previous chunk
 		for prefill = 0; prefill < offset; prefill++ {
 			hasher.Roll(c[prefill])
@@ -231,20 +245,37 @@ func MatchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) {
 		// Fill the window with the current chunk and match hash byte by byte
 		for ; offset < len(c); offset++ {
 			h := hasher.Sum64()
-			chunk, exists := hashes[h]
+			chunkId, exists = hashes[h]
 			if exists {
-				fmt.Printf("Found existing chunk: New{id:%d, offset:%d} Old%d\n", i, offset, chunk)
+				// log.Printf("Found existing chunk: New{id:%d, offset:%d} Old%d\n", i, offset, chunkId)
 				break
 			}
 			hasher.Roll(c[offset])
+			buff = append(buff, c[offset])
 		}
 		// Fill the window with the rest of the current chunk if it matched early
 		for postfill = offset; postfill < len(c); postfill++ {
 			hasher.Roll(c[postfill])
 		}
+		if len(buff) > 0 {
+			recipe = append(recipe, bytes.NewReader(buff))
+		}
+		if exists {
+			recipe = append(recipe, chunkId2Reader(chunkId, r.path))
+		}
 		offset %= chunkSize
 		i++
 	}
+	return recipe
+}
+
+func chunkId2Reader(c ChunkId, repo string) io.Reader {
+	p := path.Join(repo, fmt.Sprintf(versionFmt, c.Ver), "chunks", fmt.Sprintf(chunkIdFmt, c.Idx))
+	f, err := os.Open(p)
+	if err != nil {
+		log.Printf("Cannot open chunk %s\n", p)
+	}
+	return f
 }
 
 func writeFile(filePath string, object interface{}) error {
