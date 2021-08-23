@@ -2,15 +2,30 @@ package main
 
 import (
 	"bytes"
+	"log"
 	"os"
 	"path"
 	"testing"
 )
 
-func prepareResult() {
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	shutdown()
+	os.Exit(code)
+}
+
+func setup() {
+	log.SetFlags(log.Lshortfile)
+}
+
+func shutdown() {}
+
+func prepareResult() string {
 	result := path.Join("test", "result")
 	os.RemoveAll(result)
 	os.MkdirAll(result, 0775)
+	return result
 }
 
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
@@ -40,7 +55,7 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 		}
 		if bytes.Compare(c, content) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
-			t.Log("Expected: ", c)
+			t.Log("Expected: ", c[:10], "...")
 			t.Log("Result:", content)
 		}
 		i++
@@ -77,34 +92,37 @@ func TestReadFiles3(t *testing.T) {
 }
 
 func TestLoadChunks(t *testing.T) {
-	prepareResult()
+	resultDir := prepareResult()
 	dataDir := path.Join("test", "data")
-	resultDir := path.Join("test", "result")
+	resultVersion := path.Join(resultDir, "00000")
+	resultChunks := path.Join(resultVersion, "chunks")
+	os.MkdirAll(resultChunks, 0775)
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
-	chunks3 := make(chan []byte, 16)
+	chunks3 := make(chan Chunk, 16)
 	files := ListFiles(dataDir)
 	go ReadFiles(files, chunks1)
 	go ReadFiles(files, chunks2)
-	StoreChunks(resultDir, chunks1)
-	go LoadChunks(resultDir, chunks3)
+	StoreChunks(resultChunks, chunks1)
+	versions := []string{resultVersion}
+	go LoadChunks(versions, chunks3)
 
 	i := 0
 	for c2 := range chunks2 {
 		c3 := <-chunks3
-		if bytes.Compare(c2, c3) != 0 {
+		if bytes.Compare(c2, c3.Value) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
-			t.Log("Expected: ", c2)
-			t.Log("Result:", c3)
+			t.Log("Expected: ", c2[:10], "...")
+			t.Log("Result:", c3.Value)
 		}
 		i++
 	}
 }
 
 func TestStoreLoadFiles(t *testing.T) {
-	prepareResult()
+	resultDir := prepareResult()
 	dataDir := path.Join("test", "data")
-	resultFiles := path.Join("test", "result", "files")
+	resultFiles := path.Join(resultDir, "files")
 	files1 := ListFiles(dataDir)
 	StoreFiles(resultFiles, files1)
 	files2 := LoadFiles(resultFiles)

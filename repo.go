@@ -30,12 +30,10 @@ import (
 	"hash"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 )
@@ -47,18 +45,28 @@ type File struct {
 	Size int64
 }
 
+type ChunkId struct {
+	Ver int
+	Idx uint64
+}
+
+type Chunk struct {
+	Id    ChunkId
+	Value []byte
+}
+
 func Commit(source string, repo string) {
-	latest := GetLastVersion(repo)
-	new := latest + 1
-	newPath := path.Join(repo, fmt.Sprintf("%05d", new))
+	versions := LoadVersions(repo)
+	newVersion := len(versions)
+	newPath := path.Join(repo, fmt.Sprintf("%05d", newVersion))
 	newChunkPath := path.Join(newPath, "chunks")
 	// newFilesPath := path.Join(newPath, "files")
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
-	oldChunks := make(chan []byte, 16)
+	oldChunks := make(chan Chunk, 16)
 	files := ListFiles(source)
-	go LoadChunks(repo, oldChunks)
+	go LoadChunks(versions, oldChunks)
 	go ReadFiles(files, newChunks)
 	hashes := HashChunks(oldChunks)
 	MatchChunks(newChunks, hashes)
@@ -67,9 +75,9 @@ func Commit(source string, repo string) {
 	fmt.Println(files)
 }
 
-func GetLastVersion(repo string) int {
-	v := -1
-	files, err := ioutil.ReadDir(repo)
+func LoadVersions(repo string) []string {
+	versions := make([]string, 0)
+	files, err := os.ReadDir(repo)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -77,16 +85,9 @@ func GetLastVersion(repo string) int {
 		if !f.IsDir() {
 			continue
 		}
-		num, err := strconv.Atoi(f.Name())
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if num > v {
-			v = num
-		}
+		versions = append(versions, path.Join(repo, f.Name()))
 	}
-	return v
+	return versions
 }
 
 func ListFiles(path string) []File {
@@ -146,9 +147,9 @@ func StoreFiles(dest string, files []File) {
 	}
 }
 
-func LoadFiles(repo string) []File {
+func LoadFiles(path string) []File {
 	files := make([]File, 0)
-	err := readFile(repo, &files)
+	err := readFile(path, &files)
 	if err != nil {
 		log.Println(err)
 	}
@@ -165,46 +166,56 @@ func StoreChunks(dest string, chunks <-chan []byte) {
 	i := 0
 	for c := range chunks {
 		path := path.Join(dest, fmt.Sprintf("%015d", i))
-		os.WriteFile(path, c, 0664)
+		err := os.WriteFile(path, c, 0664)
+		if err != nil {
+			log.Println(err)
+		}
 		i++
 	}
 }
 
-func LoadChunks(repo string, chunks chan<- []byte) {
-	err := filepath.WalkDir(repo,
-		func(p string, e fs.DirEntry, err error) error {
-			if err != nil {
-				log.Println(err)
-				return err
-			}
+func LoadChunks(versions []string, chunks chan<- Chunk) {
+	for i, v := range versions {
+		p := path.Join(v, "chunks")
+		entries, err := os.ReadDir(p)
+		if err != nil {
+			log.Printf("Error reading version '%05d' in '%s' chunks: %s", i, v, err)
+		}
+		for j, e := range entries {
 			if e.IsDir() {
-				return nil
+				continue
 			}
-			buff, err := os.ReadFile(p)
-			chunks <- buff
-			return nil
-		})
-	if err != nil {
-		log.Println(err)
+			f := path.Join(p, e.Name())
+			buff, err := os.ReadFile(f)
+			if err != nil {
+				log.Printf("Error reading chunk '%s': %s", f, err.Error())
+			}
+			c := Chunk{
+				Id: ChunkId{
+					Ver: i,
+					Idx: uint64(j),
+				},
+				Value: buff,
+			}
+			chunks <- c
+		}
 	}
 	close(chunks)
 }
 
-func HashChunks(chunks <-chan []byte) map[uint64]uint64 {
-	hashes := make(map[uint64]uint64)
+func HashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
+	hashes := make(map[uint64]ChunkId)
 	hasher := hash.Hash64(rabinkarp64.New())
-	var i uint64 = 0
 	for c := range chunks {
 		hasher.Reset()
-		hasher.Write(c)
+		hasher.Write(c.Value)
 		h := hasher.Sum64()
-		hashes[h] = i
-		i++
+		hashes[h] = c.Id
 	}
 	return hashes
 }
 
-func MatchChunks(chunks <-chan []byte, hashes map[uint64]uint64) {
+func MatchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) {
 	hasher := rabinkarp64.New()
 	hasher.Write(<-chunks)
 
@@ -222,7 +233,7 @@ func MatchChunks(chunks <-chan []byte, hashes map[uint64]uint64) {
 			h := hasher.Sum64()
 			chunk, exists := hashes[h]
 			if exists {
-				fmt.Printf("Found existing chunk. New{id:%d, offset:%d}, Old: %d\n", i, offset, chunk)
+				fmt.Printf("Found existing chunk: New{id:%d, offset:%d} Old%d\n", i, offset, chunk)
 				break
 			}
 			hasher.Roll(c[offset])
