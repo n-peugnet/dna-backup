@@ -27,6 +27,7 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -35,6 +36,8 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+
+	"github.com/chmduquesne/rollinghash/rabinkarp64"
 )
 
 var chunkSize = 8 << 10
@@ -49,7 +52,7 @@ func Commit(source string, repo string) {
 	new := latest + 1
 	newPath := path.Join(repo, fmt.Sprintf("%05d", new))
 	newChunkPath := path.Join(newPath, "chunks")
-	newFilesPath := path.Join(newPath, "files")
+	// newFilesPath := path.Join(newPath, "files")
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
@@ -57,8 +60,10 @@ func Commit(source string, repo string) {
 	files := ListFiles(source)
 	go LoadChunks(repo, oldChunks)
 	go ReadFiles(files, newChunks)
-	StoreChunks(newChunkPath, newChunks)
-	StoreFiles(newFilesPath, files)
+	hashes := HashChunks(oldChunks)
+	MatchChunks(newChunks, hashes)
+	// StoreChunks(newChunkPath, newChunks)
+	// StoreFiles(newFilesPath, files)
 	fmt.Println(files)
 }
 
@@ -183,6 +188,40 @@ func LoadChunks(repo string, chunks chan<- []byte) {
 		log.Println(err)
 	}
 	close(chunks)
+}
+
+func HashChunks(chunks <-chan []byte) map[uint64]uint64 {
+	hashes := make(map[uint64]uint64)
+	hasher := hash.Hash64(rabinkarp64.New())
+	var i uint64 = 0
+	for c := range chunks {
+		hasher.Reset()
+		hasher.Write(c)
+		h := hasher.Sum64()
+		hashes[h] = i
+		i++
+	}
+	return hashes
+}
+
+func MatchChunks(chunks <-chan []byte, hashes map[uint64]uint64) {
+	hasher := rabinkarp64.New()
+	hasher.Write(<-chunks)
+
+	var i uint64 = 0
+	for c := range chunks {
+		for offset, b := range c {
+
+			h := hasher.Sum64()
+			chunk, exists := hashes[h]
+			if exists {
+				fmt.Printf("Found existing chunk. New{id:%d, offset:%d}, Old: %d\n", i, offset, chunk)
+			}
+			// Roll the incoming byte in rolling
+			hasher.Roll(b)
+		}
+		i++
+	}
 }
 
 func writeFile(filePath string, object interface{}) error {
