@@ -208,18 +208,30 @@ func MatchChunks(chunks <-chan []byte, hashes map[uint64]uint64) {
 	hasher := rabinkarp64.New()
 	hasher.Write(<-chunks)
 
-	var i uint64 = 0
+	var i uint64
+	var offset int
+	var prefill int
+	var postfill int
 	for c := range chunks {
-		for offset, b := range c {
-
+		// Pre fill the window with the rest of the previous chunk
+		for prefill = 0; prefill < offset; prefill++ {
+			hasher.Roll(c[prefill])
+		}
+		// Fill the window with the current chunk and match hash byte by byte
+		for ; offset < len(c); offset++ {
 			h := hasher.Sum64()
 			chunk, exists := hashes[h]
 			if exists {
 				fmt.Printf("Found existing chunk. New{id:%d, offset:%d}, Old: %d\n", i, offset, chunk)
+				break
 			}
-			// Roll the incoming byte in rolling
-			hasher.Roll(b)
+			hasher.Roll(c[offset])
 		}
+		// Fill the window with the rest of the current chunk if it matched early
+		for postfill = offset; postfill < len(c); postfill++ {
+			hasher.Roll(c[postfill])
+		}
+		offset %= chunkSize
 		i++
 	}
 }
