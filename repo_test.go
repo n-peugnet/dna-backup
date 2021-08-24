@@ -98,7 +98,7 @@ func TestLoadChunks(t *testing.T) {
 	resultDir := prepareResult()
 	dataDir := path.Join("test", "data")
 	resultVersion := path.Join(resultDir, "00000")
-	resultChunks := path.Join(resultVersion, "chunks")
+	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
@@ -125,7 +125,7 @@ func TestLoadChunks(t *testing.T) {
 func TestStoreLoadFiles(t *testing.T) {
 	resultDir := prepareResult()
 	dataDir := path.Join("test", "data")
-	resultFiles := path.Join(resultDir, "files")
+	resultFiles := path.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
 	storeFiles(resultFiles, files1)
 	files2 := loadFiles(resultFiles)
@@ -143,7 +143,7 @@ func TestBsdiff(t *testing.T) {
 	dataDir := path.Join("test", "data")
 	addedFile := path.Join(dataDir, "logs.2", "slogTest.log")
 	resultVersion := path.Join(resultDir, "00000")
-	resultChunks := path.Join(resultVersion, "chunks")
+	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
 	chunks := make(chan []byte, 16)
 	files := listFiles(dataDir)
@@ -163,7 +163,12 @@ func TestBsdiff(t *testing.T) {
 	hashes := hashChunks(oldChunks)
 	recipe := repo.matchChunks(newChunks, hashes)
 	buff := new(bytes.Buffer)
-	bsdiff.Reader(recipe[2], recipe[0], buff)
+	r2, _ := recipe[2].Reader(repo.path)
+	r0, _ := recipe[0].Reader(repo.path)
+	bsdiff.Reader(r2, r0, buff)
+	if len(buff.Bytes()) < 500 {
+		t.Errorf("Bsdiff of chunk is too small: %d", len(buff.Bytes()))
+	}
 	if len(buff.Bytes()) >= chunkSize {
 		t.Errorf("Bsdiff of chunk is too large: %d", len(buff.Bytes()))
 	}

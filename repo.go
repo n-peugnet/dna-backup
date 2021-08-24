@@ -25,7 +25,6 @@ repo/
 package main
 
 import (
-	"bytes"
 	"encoding/gob"
 	"fmt"
 	"hash"
@@ -39,10 +38,6 @@ import (
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 )
 
-var chunkSize = 8 << 10
-var versionFmt = "%05d"
-var chunkIdFmt = "%015d"
-
 type Repo struct {
 	path string
 }
@@ -50,16 +45,6 @@ type Repo struct {
 type File struct {
 	Path string
 	Size int64
-}
-
-type ChunkId struct {
-	Ver int
-	Idx uint64
-}
-
-type Chunk struct {
-	Id    ChunkId
-	Value []byte
 }
 
 func NewRepo(path string) *Repo {
@@ -71,8 +56,8 @@ func (r *Repo) Commit(source string) {
 	versions := r.loadVersions()
 	newVersion := len(versions)
 	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
-	newChunkPath := path.Join(newPath, "chunks")
-	newFilesPath := path.Join(newPath, "files")
+	newChunkPath := path.Join(newPath, chunksName)
+	newFilesPath := path.Join(newPath, filesName)
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
@@ -188,7 +173,7 @@ func storeChunks(dest string, chunks <-chan []byte) {
 
 func loadChunks(versions []string, chunks chan<- Chunk) {
 	for i, v := range versions {
-		p := path.Join(v, "chunks")
+		p := path.Join(v, chunksName)
 		entries, err := os.ReadDir(p)
 		if err != nil {
 			log.Printf("Error reading version '%05d' in '%s' chunks: %s", i, v, err)
@@ -203,7 +188,7 @@ func loadChunks(versions []string, chunks chan<- Chunk) {
 				log.Printf("Error reading chunk '%s': %s", f, err.Error())
 			}
 			c := Chunk{
-				Id: ChunkId{
+				Id: &ChunkId{
 					Ver: i,
 					Idx: uint64(j),
 				},
@@ -222,15 +207,15 @@ func hashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
 		hasher.Reset()
 		hasher.Write(c.Value)
 		h := hasher.Sum64()
-		hashes[h] = c.Id
+		hashes[h] = *c.Id
 	}
 	return hashes
 }
 
-func (r *Repo) matchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) []io.Reader {
+func (r *Repo) matchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) []Chunk {
 	hasher := rabinkarp64.New()
 	hasher.Write(<-chunks)
-	recipe := make([]io.Reader, 0)
+	recipe := make([]Chunk, 0)
 
 	var i uint64
 	var offset, prefill, postfill int
@@ -258,24 +243,15 @@ func (r *Repo) matchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) []io
 			hasher.Roll(c[postfill])
 		}
 		if len(buff) > 0 {
-			recipe = append(recipe, bytes.NewReader(buff))
+			recipe = append(recipe, Chunk{Value: buff})
 		}
 		if exists {
-			recipe = append(recipe, chunkId2Reader(chunkId, r.path))
+			recipe = append(recipe, Chunk{Id: &chunkId})
 		}
 		offset %= chunkSize
 		i++
 	}
 	return recipe
-}
-
-func chunkId2Reader(c ChunkId, repo string) io.Reader {
-	p := path.Join(repo, fmt.Sprintf(versionFmt, c.Ver), "chunks", fmt.Sprintf(chunkIdFmt, c.Idx))
-	f, err := os.Open(p)
-	if err != nil {
-		log.Printf("Cannot open chunk %s\n", p)
-	}
-	return f
 }
 
 func writeFile(filePath string, object interface{}) error {
