@@ -38,6 +38,10 @@ func (c *Chunk) Reader(repo string) (io.Reader, error) {
 	return nil, &ChunkError{"Uninitialized chunk"}
 }
 
+func (c *Chunk) isStored() bool {
+	return c.Id != nil
+}
+
 type ChunkError struct {
 	err string
 }

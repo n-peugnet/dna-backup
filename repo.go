@@ -57,7 +57,7 @@ func (r *Repo) Commit(source string) {
 	newVersion := len(versions)
 	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := path.Join(newPath, chunksName)
-	newFilesPath := path.Join(newPath, filesName)
+	// newFilesPath := path.Join(newPath, filesName)
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	newChunks := make(chan []byte, 16)
@@ -65,10 +65,11 @@ func (r *Repo) Commit(source string) {
 	files := listFiles(source)
 	go loadChunks(versions, oldChunks)
 	go readFiles(files, newChunks)
-	// hashes := HashChunks(oldChunks)
-	// MatchChunks(newChunks, hashes)
-	storeChunks(newChunkPath, newChunks)
-	storeFiles(newFilesPath, files)
+	hashes := hashChunks(oldChunks)
+	chunks := r.matchChunks(newChunks, hashes)
+	extractNewChunks(chunks)
+	// storeChunks(newChunkPath, newChunks)
+	// storeFiles(newFilesPath, files)
 	fmt.Println(files)
 }
 
@@ -252,6 +253,25 @@ func (r *Repo) matchChunks(chunks <-chan []byte, hashes map[uint64]ChunkId) []Ch
 		i++
 	}
 	return recipe
+}
+
+func extractNewChunks(chunks []Chunk) (ret [][]Chunk) {
+	var i int
+	ret = append(ret, make([]Chunk, 0))
+	for _, c := range chunks {
+		if c.isStored() {
+			if len(ret[i]) != 0 {
+				i++
+				ret = append(ret, make([]Chunk, 0))
+			}
+		} else {
+			ret[i] = append(ret[i], c)
+		}
+	}
+	if len(ret[i]) == 0 {
+		ret = ret[:i]
+	}
+	return
 }
 
 func writeFile(filePath string, object interface{}) error {

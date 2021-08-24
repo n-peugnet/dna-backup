@@ -3,36 +3,15 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
+	"github.com/google/go-cmp/cmp"
 )
 
-func TestMain(m *testing.M) {
-	setup()
-	code := m.Run()
-	shutdown()
-	os.Exit(code)
-}
-
-func setup() {
-	log.SetFlags(log.Lshortfile)
-}
-
-func shutdown() {}
-
-func prepareResult() string {
-	result := path.Join("test", "result")
-	os.RemoveAll(result)
-	os.MkdirAll(result, 0775)
-	return result
-}
-
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
-
 	chunks := make(chan []byte)
 	files := listFiles(dataDir)
 	go readFiles(files, chunks)
@@ -59,7 +38,7 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 		if bytes.Compare(c, content) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
 			t.Log("Expected: ", c[:10], "...")
-			t.Log("Result:", content)
+			t.Log("Actual:", content)
 		}
 		i++
 	}
@@ -95,7 +74,7 @@ func TestReadFiles3(t *testing.T) {
 }
 
 func TestLoadChunks(t *testing.T) {
-	resultDir := prepareResult()
+	resultDir := t.TempDir()
 	dataDir := path.Join("test", "data")
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
@@ -116,14 +95,38 @@ func TestLoadChunks(t *testing.T) {
 		if bytes.Compare(c2, c3.Value) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
 			t.Log("Expected: ", c2[:10], "...")
-			t.Log("Result:", c3.Value)
+			t.Log("Actual:", c3.Value)
 		}
 		i++
 	}
 }
 
+func TestExtractNewChunks(t *testing.T) {
+	chunks := []Chunk{
+		{Value: []byte{'a'}},
+		{Id: &ChunkId{0, 0}},
+		{Value: []byte{'b'}},
+		{Value: []byte{'c'}},
+		{Id: &ChunkId{0, 1}},
+	}
+	newChunks := extractNewChunks(chunks)
+	if len(newChunks) != 2 {
+		t.Error("New chunks should contain 2 slices")
+		t.Log("Actual: ", newChunks)
+	}
+	if len(newChunks[1]) != 2 {
+		t.Error("New chunks second slice should contain 2 chunks")
+		t.Log("Actual: ", newChunks[0])
+	}
+	if !cmp.Equal(newChunks[1][0], chunks[2]) {
+		t.Error("New chunks do not match")
+		t.Log("Expected: ", chunks[2])
+		t.Log("Actual: ", newChunks[1][0])
+	}
+}
+
 func TestStoreLoadFiles(t *testing.T) {
-	resultDir := prepareResult()
+	resultDir := t.TempDir()
 	dataDir := path.Join("test", "data")
 	resultFiles := path.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
@@ -133,13 +136,13 @@ func TestStoreLoadFiles(t *testing.T) {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
 			t.Log("Expected: ", f)
-			t.Log("Result: ", files2[i])
+			t.Log("Actual: ", files2[i])
 		}
 	}
 }
 
 func TestBsdiff(t *testing.T) {
-	resultDir := prepareResult()
+	resultDir := t.TempDir()
 	dataDir := path.Join("test", "data")
 	addedFile := path.Join(dataDir, "logs.2", "slogTest.log")
 	resultVersion := path.Join(resultDir, "00000")
