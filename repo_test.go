@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,9 +13,11 @@ import (
 )
 
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
+	reader, writer := io.Pipe()
 	chunks := make(chan []byte)
 	files := listFiles(dataDir)
-	go readFiles(files, chunks)
+	go concatFiles(files, writer)
+	go chunkStream(reader, chunks)
 
 	offset := 0
 	buff := make([]byte, chunkSize*chunkCount)
@@ -79,12 +82,16 @@ func TestLoadChunks(t *testing.T) {
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
+	reader1, writer1 := io.Pipe()
+	reader2, writer2 := io.Pipe()
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
 	chunks3 := make(chan Chunk, 16)
 	files := listFiles(dataDir)
-	go readFiles(files, chunks1)
-	go readFiles(files, chunks2)
+	go concatFiles(files, writer1)
+	go concatFiles(files, writer2)
+	go chunkStream(reader1, chunks1)
+	go chunkStream(reader2, chunks2)
 	storeChunks(resultChunks, chunks1)
 	versions := []string{resultVersion}
 	go loadChunks(versions, chunks3)
@@ -130,8 +137,8 @@ func TestStoreLoadFiles(t *testing.T) {
 	dataDir := path.Join("test", "data")
 	resultFiles := path.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
-	storeFiles(resultFiles, files1)
-	files2 := loadFiles(resultFiles)
+	storeFileList(resultFiles, files1)
+	files2 := loadFileList(resultFiles)
 	for i, f := range files1 {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
@@ -148,21 +155,25 @@ func TestBsdiff(t *testing.T) {
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
+	reader, writer := io.Pipe()
 	chunks := make(chan []byte, 16)
 	files := listFiles(dataDir)
-	go readFiles(files, chunks)
+	go concatFiles(files, writer)
+	go chunkStream(reader, chunks)
 	storeChunks(resultChunks, chunks)
 
 	input, _ := ioutil.ReadFile(path.Join(dataDir, "logs.1", "logTest.log"))
 	ioutil.WriteFile(addedFile, input, 0664)
 
+	reader, writer = io.Pipe()
 	newChunks := make(chan []byte, 16)
 	oldChunks := make(chan Chunk, 16)
 	files = listFiles(dataDir)
 	repo := NewRepo(resultDir)
 	versions := repo.loadVersions()
 	go loadChunks(versions, oldChunks)
-	go readFiles(files, newChunks)
+	go concatFiles(files, writer)
+	go chunkStream(reader, newChunks)
 	hashes := hashChunks(oldChunks)
 	recipe := repo.matchChunks(newChunks, hashes)
 	buff := new(bytes.Buffer)
