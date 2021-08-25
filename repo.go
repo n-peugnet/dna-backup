@@ -25,6 +25,7 @@ repo/
 package main
 
 import (
+	"bufio"
 	"encoding/gob"
 	"fmt"
 	"hash"
@@ -111,14 +112,16 @@ func listFiles(path string) []File {
 }
 
 func readFiles(files []File, stream io.WriteCloser) {
+	buff := bufio.NewWriterSize(stream, 16*chunkSize)
 	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
 			log.Printf("Error reading file '%s': %s\n", f.Path, err)
 			continue
 		}
-		io.Copy(stream, file)
+		io.Copy(buff, file)
 	}
+	buff.Flush()
 	stream.Close()
 }
 
