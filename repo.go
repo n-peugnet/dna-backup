@@ -60,11 +60,13 @@ func (r *Repo) Commit(source string) {
 	// newFilesPath := path.Join(newPath, filesName)
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
+	reader, writer := io.Pipe()
 	newChunks := make(chan []byte, 16)
 	oldChunks := make(chan Chunk, 16)
 	files := listFiles(source)
 	go loadChunks(versions, oldChunks)
-	go readFiles(files, newChunks)
+	go readFiles(files, writer)
+	go chunkStream(reader, newChunks)
 	hashes := hashChunks(oldChunks)
 	chunks := r.matchChunks(newChunks, hashes)
 	extractNewChunks(chunks)
@@ -108,33 +110,41 @@ func listFiles(path string) []File {
 	return files
 }
 
-func readFiles(files []File, chunks chan<- []byte) {
-	var buff []byte
-	var prev, read = chunkSize, 0
-
+func readFiles(files []File, stream io.WriteCloser) {
 	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Error reading file '%s': %s\n", f.Path, err)
 			continue
 		}
-		for err != io.EOF {
-			if prev == chunkSize {
-				buff = make([]byte, chunkSize)
-				prev, err = file.Read(buff)
-			} else {
-				read, err = file.Read(buff[prev:])
-				prev += read
-			}
-			if err != nil && err != io.EOF {
-				log.Println(err)
-			}
-			if prev == chunkSize {
-				chunks <- buff
-			}
+		io.Copy(stream, file)
+	}
+	stream.Close()
+}
+
+func chunkStream(stream io.Reader, chunks chan<- []byte) {
+	var buff []byte
+	var prev, read = chunkSize, 0
+	var err error
+
+	for err != io.EOF {
+		if prev == chunkSize {
+			buff = make([]byte, chunkSize)
+			prev, err = stream.Read(buff)
+		} else {
+			read, err = stream.Read(buff[prev:])
+			prev += read
+		}
+		if err != nil && err != io.EOF {
+			log.Println(err)
+		}
+		if prev == chunkSize {
+			chunks <- buff
 		}
 	}
-	chunks <- buff
+	if prev != chunkSize {
+		chunks <- buff
+	}
 	close(chunks)
 }
 
