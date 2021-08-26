@@ -1,0 +1,98 @@
+b = 0 (ParallelLoader.java:150)
+2019-06-05T18:37 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T18:37 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T18:37 [INFO] Parsing terminé !! temps écoulé = 1.23 s (ParallelLoader.java:217)
+2019-06-05T18:37 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T18:38 [DEBUG] TableHandler.flushAllIndexOnDisk : size = 0 (Table.java:334)
+2019-06-05T18:38 [INFO] SerialStructure.writeStructure : OK ! (SerialStructure.java:54)
+2019-06-05T18:38 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T18:38 [INFO][MEMORY] 498,154 (ParallelLoader.java:114)
+2019-06-05T18:38 [INFO] Loader : nombre de résultats (total) lus = 400000   temps écoulé = 0.031 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T18:38 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T18:38 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T18:38 [INFO] Parsing terminé !! temps écoulé = 1.10 s (ParallelLoader.java:217)
+2019-06-05T18:38 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T18:39 [DEBUG] TableHandler.flushAllIndexOnDisk : size = 0 (Table.java:334)
+2019-06-05T18:39 [INFO] SerialStructure.writeStructure : OK ! (SerialStructure.java:54)
+2019-06-05T18:40 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T18:40 [INFO][MEMORY] 493,228 (ParallelLoader.java:114)
+2019-06-05T18:40 [INFO] Loader : nombre de résultats (total) lus = 500000   temps écoulé = 0.032 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T18:40 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T18:40 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T18:40 [INFO] Parsing terminé !! temps écoulé = 1.02 s (ParallelLoader.java:217)
+2019-06-05T18:40 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:14 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque. (SerialStructure.java:73)
+2019-06-05T20:14 [ERROR] null (SerialStructure.java:74)
+2019-06-05T20:15 [DEBUG] TableHandler.flushAllIndexOnDisk : size = 0 (Table.java:334)
+2019-06-05T20:15 [INFO] SerialStructure.writeStructure : OK ! (SerialStructure.java:54)
+2019-06-05T20:15 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T20:15 [INFO][MEMORY] 188,768 (ParallelLoader.java:114)
+2019-06-05T20:15 [INFO] Loader : nombre de résultats (total) lus = 100000   temps écoulé = 0.301 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T20:15 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T20:15 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T20:15 [INFO] Parsing terminé !! temps écoulé = 2.42 s (ParallelLoader.java:217)
+2019-06-05T20:15 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:15 [DEBUG] TableHandler.flushAllIndexOnDisk : size = 0 (Table.java:334)
+2019-06-05T20:15 [INFO] SerialStructure.writeStructure : OK ! (SerialStructure.java:54)
+2019-06-05T20:16 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T20:16 [INFO][MEMORY] 457,918 (ParallelLoader.java:114)
+2019-06-05T20:16 [INFO] Loader : nombre de résultats (total) lus = 200000   temps écoulé = 0.049 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T20:16 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T20:16 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T20:16 [INFO] Parsing terminé !! temps écoulé = 1.34 s (ParallelLoader.java:217)
+2019-06-05T20:16 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:19 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T20:19 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T20:19 [INFO][MEMORY] 180,323 (ParallelLoader.java:114)
+2019-06-05T20:19 [INFO] Loader : nombre de résultats (total) lus = 100000   temps écoulé = 0.178 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T20:19 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T20:19 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T20:19 [INFO] Parsing terminé !! temps écoulé = 1.92 s (ParallelLoader.java:217)
+2019-06-05T20:19 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:24 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T20:25 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T20:43 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T20:43 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T20:43 [INFO][MEMORY] 179,894 (ParallelLoader.java:114)
+2019-06-05T20:43 [INFO] Loader : nombre de résultats (total) lus = 100000   temps écoulé = 0.133 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T20:43 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T20:43 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T20:43 [INFO] Parsing terminé !! temps écoulé = 2.14 s (ParallelLoader.java:217)
+2019-06-05T20:43 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:50 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T20:50 [INFO] SerialStructure.loadStructure : OK ! (SerialStructure.java:71)
+2019-06-05T21:56 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T21:56 [ERROR] null
+2019-06-05T22:41 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T22:41 [ERROR] null
+2019-06-05T22:42 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T22:42 [ERROR] null
+2019-06-05T22:42 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T22:42 [ERROR] null
+2019-06-05T22:42 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T22:42 [ERROR] null
+2019-06-05T23:03 [ERROR] SerialStructure.loadStructure :  impossible de charger la structure du disque.
+2019-06-05T23:03 [ERROR] null
+2019-06-05T23:04 [INFO] SerialStructure.writeStructure : OK !
+2019-06-05T23:04 [INFO] totalLength = 0
+2019-06-05T23:04 [INFO] totalLength = 0
+2019-06-05T23:04 [INFO] PARSE : memusage init = 
+2019-06-05T23:04 [INFO][MEMORY] 111,311
+2019-06-05T23:04 [INFO] Loader : nombre de résultats (total) lus = 100000   temps écoulé = 0.256 sactiveThreadNb = 0
+2019-06-05T23:04 [WARNING] Fail to save entry number 0: incorrect data
+2019-06-05T23:04 [INFO] Parsing terminé !! temps écoulé = 2.57 s
+2019-06-05T23:04 [INFO] PARSE : Nombre de lignes (local) = 100000
+2019-06-05T23:04 [INFO] totalLength = 99999
+2019-06-05T23:04 [INFO] totalLength = 99999
+2019-06-05T00:03 [ERROR] config.json (No such file or directory) (Database.java:33)
+2019-06-05T00:03 [INFO][MEMORY] Mem usage  début -  2,459 (ParallelLoaderTest.java:56)
+2019-06-05T20:12 [INFO] Parsing de csvName = testdata/SMALL_100_000_yellow_tripdata_2015-04.csv (IndexMemDicStorageTests.java:180)
+2019-06-05T20:12 [INFO] PARSE : memusage init =  (ParallelLoader.java:112)
+2019-06-05T20:12 [INFO][MEMORY] 27,443 (ParallelLoader.java:114)
+2019-06-05T20:12 [INFO] Loader : nombre de résultats (total) lus = 100000   temps écoulé = 0.214 sactiveThreadNb = 0 (ParallelLoader.java:150)
+2019-06-05T20:12 [ERROR] debugCount = 0 (ParallelLoader.java:203)
+2019-06-05T20:12 [WARNING] Fail to save entry number 0: incorrect data (ParallelLoaderRunnable.java:287)
+2019-06-05T20:12 [INFO] Parsing terminé !! temps écoulé = 1.44 s (ParallelLoader.java:217)
+2019-06-05T20:12 [INFO] PARSE : Nombre de lignes (local) = 100000 (ParallelLoader.java:218)
+2019-06-05T20:12 [INFO][TIMER] TEMPS TOTAL PRIS PAR TOUS LES PARSINGS: 1.45 s (IndexMemDicStorageTests.java:183)
+2019-06-05T20:12 [INFO][TIME

@@ -54,34 +54,35 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 }
 
 func TestReadFiles1(t *testing.T) {
-	chunkCount := 1
-	dataDir := path.Join("test", "data", "logs.1")
+	chunkCount := 590/chunkSize + 1
+	dataDir := path.Join("test", "data", "logs", "1")
 	files := []string{"logTest.log"}
 	chunkCompare(t, dataDir, files, chunkCount)
 }
 
 func TestReadFiles2(t *testing.T) {
-	chunkCount := 3
-	dataDir := path.Join("test", "data", "logs.2")
+	chunkCount := 22899/chunkSize + 1
+	dataDir := path.Join("test", "data", "logs", "2")
 	files := []string{"csvParserTest.log", "slipdb.log"}
 	chunkCompare(t, dataDir, files, chunkCount)
 }
 
 func TestReadFiles3(t *testing.T) {
-	chunkCount := 15
-	dataDir := path.Join("test", "data")
+	chunkCount := 119398/chunkSize + 1
+	dataDir := path.Join("test", "data", "logs")
 	files := []string{
-		path.Join("logs.1", "logTest.log"),
-		path.Join("logs.2", "csvParserTest.log"),
-		path.Join("logs.2", "slipdb.log"),
-		path.Join("logs.3", "indexingTreeTest.log"),
+		path.Join("1", "logTest.log"),
+		path.Join("2", "csvParserTest.log"),
+		path.Join("2", "slipdb.log"),
+		path.Join("3", "indexingTreeTest.log"),
 	}
 	chunkCompare(t, dataDir, files, chunkCount)
 }
 
 func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("test", "data")
+	dataDir := path.Join("test", "data", "logs")
+	repo := NewRepo(resultDir)
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
@@ -97,7 +98,7 @@ func TestLoadChunks(t *testing.T) {
 	go chunkStream(reader2, chunks2)
 	storeChunks(resultChunks, chunks1)
 	versions := []string{resultVersion}
-	go loadChunks(versions, chunks3)
+	go repo.loadChunks(versions, chunks3)
 
 	i := 0
 	for c2 := range chunks2 {
@@ -137,7 +138,7 @@ func TestExtractNewChunks(t *testing.T) {
 
 func TestStoreLoadFiles(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("test", "data")
+	dataDir := path.Join("test", "data", "logs")
 	resultFiles := path.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
@@ -156,8 +157,8 @@ func TestStoreLoadFiles(t *testing.T) {
 
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("test", "data")
-	addedFile := path.Join(dataDir, "logs.2", "slogTest.log")
+	dataDir := path.Join("test", "data", "logs")
+	addedFile := path.Join(dataDir, "2", "slogTest.log")
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
@@ -168,7 +169,7 @@ func TestBsdiff(t *testing.T) {
 	go chunkStream(reader, chunks)
 	storeChunks(resultChunks, chunks)
 
-	input, _ := ioutil.ReadFile(path.Join(dataDir, "logs.1", "logTest.log"))
+	input, _ := ioutil.ReadFile(path.Join(dataDir, "1", "logTest.log"))
 	ioutil.WriteFile(addedFile, input, 0664)
 
 	reader, writer = io.Pipe()
@@ -176,13 +177,13 @@ func TestBsdiff(t *testing.T) {
 	files = listFiles(dataDir)
 	repo := NewRepo(resultDir)
 	versions := repo.loadVersions()
-	go loadChunks(versions, oldChunks)
+	go repo.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
 	hashes := hashChunks(oldChunks)
 	recipe := repo.matchStream(reader, hashes)
 	buff := new(bytes.Buffer)
-	r2, _ := recipe[2].Reader(repo.path)
-	r0, _ := recipe[0].Reader(repo.path)
+	r2, _ := recipe[2].Reader()
+	r0, _ := recipe[0].Reader()
 	bsdiff.Reader(r2, r0, buff)
 	if len(buff.Bytes()) < 500 {
 		t.Errorf("Bsdiff of chunk is too small: %d", len(buff.Bytes()))

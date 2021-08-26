@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -14,26 +15,40 @@ type ChunkId struct {
 	Idx uint64
 }
 
-func (i *ChunkId) Reader(repo string) io.Reader {
+func (i *ChunkId) Reader(repo string) ChunkReader {
 	p := path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
 	f, err := os.Open(p)
 	if err != nil {
 		log.Printf("Cannot open chunk %s\n", p)
 	}
-	return f
+	return bufio.NewReaderSize(f, chunkSize)
+}
+
+type ChunkReader interface {
+	io.Reader
+	io.ByteReader
 }
 
 type Chunk struct {
+	Repo  *Repo
 	Id    *ChunkId
 	Value []byte
 }
 
-func (c *Chunk) Reader(repo string) (io.Reader, error) {
+func (c *Chunk) Read(buff []byte) (int, error) {
+	r, err := c.Reader()
+	if err != nil {
+		return 0, err
+	}
+	return r.Read(buff)
+}
+
+func (c *Chunk) Reader() (ChunkReader, error) {
 	if c.Value != nil {
 		return bytes.NewReader(c.Value), nil
 	}
 	if c.Id != nil {
-		return c.Id.Reader(repo), nil
+		return c.Id.Reader(c.Repo.path), nil
 	}
 	return nil, &ChunkError{"Uninitialized chunk"}
 }
