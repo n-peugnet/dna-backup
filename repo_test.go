@@ -40,7 +40,10 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 		}
 		if bytes.Compare(c, content) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
-			t.Log("Expected: ", c[:10], "...")
+			// for i, b := range c {
+			// 	fmt.Printf("E: %d, A: %d\n", b, content[i])
+			// }
+			t.Log("Expected: ", c[:10], "...", c[chunkSize-10:])
 			t.Log("Actual:", content)
 		}
 		i++
@@ -139,6 +142,9 @@ func TestStoreLoadFiles(t *testing.T) {
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
 	files2 := loadFileList(resultFiles)
+	if len(files1) != 4 {
+		t.Errorf("Incorrect number of files: %d, should be %d\n", len(files1), 4)
+	}
 	for i, f := range files1 {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
@@ -166,16 +172,14 @@ func TestBsdiff(t *testing.T) {
 	ioutil.WriteFile(addedFile, input, 0664)
 
 	reader, writer = io.Pipe()
-	newChunks := make(chan []byte, 16)
 	oldChunks := make(chan Chunk, 16)
 	files = listFiles(dataDir)
 	repo := NewRepo(resultDir)
 	versions := repo.loadVersions()
 	go loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
-	go chunkStream(reader, newChunks)
 	hashes := hashChunks(oldChunks)
-	recipe := repo.matchChunks(newChunks, hashes)
+	recipe := repo.matchStream(reader, hashes)
 	buff := new(bytes.Buffer)
 	r2, _ := recipe[2].Reader(repo.path)
 	r0, _ := recipe[0].Reader(repo.path)
