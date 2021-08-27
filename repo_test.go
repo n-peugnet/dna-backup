@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"testing"
@@ -179,8 +180,8 @@ func TestBsdiff(t *testing.T) {
 	versions := repo.loadVersions()
 	go repo.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
-	hashes := hashChunks(oldChunks)
-	recipe := repo.matchStream(reader, hashes)
+	fingerprints, sketches := hashChunks(oldChunks)
+	recipe := repo.matchStream(reader, fingerprints)
 	buff := new(bytes.Buffer)
 	r2, _ := recipe[2].Reader()
 	r0, _ := recipe[0].Reader()
@@ -190,6 +191,11 @@ func TestBsdiff(t *testing.T) {
 	}
 	if len(buff.Bytes()) >= chunkSize {
 		t.Errorf("Bsdiff of chunk is too large: %d", len(buff.Bytes()))
+	}
+	newChunks := extractNewChunks(recipe)
+	log.Println("Checking new chunks:", len(newChunks[0]))
+	for _, c := range newChunks {
+		findSimilarChunks(c, sketches)
 	}
 
 	os.Remove(addedFile)

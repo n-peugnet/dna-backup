@@ -39,6 +39,9 @@ import (
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 )
 
+type FingerprintMap map[uint64]*ChunkId
+type SketchMap map[uint64][]*ChunkId
+
 type Repo struct {
 	path string
 }
@@ -66,8 +69,8 @@ func (r *Repo) Commit(source string) {
 	files := listFiles(source)
 	go r.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
-	hashes := hashChunks(oldChunks)
-	chunks := r.matchStream(reader, hashes)
+	fingerprints, _ := hashChunks(oldChunks)
+	chunks := r.matchStream(reader, fingerprints)
 	extractNewChunks(chunks)
 	// storeChunks(newChunkPath, newChunks)
 	// storeFiles(newFilesPath, files)
@@ -163,12 +166,6 @@ func loadFileList(path string) []File {
 	return files
 }
 
-func printChunks(chunks <-chan []byte) {
-	for c := range chunks {
-		fmt.Println(c)
-	}
-}
-
 func storeChunks(dest string, chunks <-chan []byte) {
 	i := 0
 	for c := range chunks {
@@ -211,16 +208,38 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- Chunk) {
 	close(chunks)
 }
 
-func hashChunks(chunks <-chan Chunk) map[uint64]ChunkId {
-	hashes := make(map[uint64]ChunkId)
+// hashChunks calculates the hashes for a channel of chunks.
+//
+// For each chunk, both a fingerprint (hash over the full content) and a sketch
+// (resemblance hash based on maximal values of regions) are calculated and
+// stored in an hashmap which are then returned.
+func hashChunks(chunks <-chan Chunk) (FingerprintMap, SketchMap) {
+	fingerprints := make(FingerprintMap)
+	sketches := make(SketchMap)
 	hasher := hash.Hash64(rabinkarp64.New())
 	for c := range chunks {
 		hasher.Reset()
 		hasher.Write(c.Value)
 		h := hasher.Sum64()
-		hashes[h] = *c.Id
+		fingerprints[h] = c.Id
+		sketch, _ := SketchChunk(c, 32, 3, 4)
+		for _, s := range sketch {
+			sketches[s] = append(sketches[s], c.Id)
+		}
 	}
-	return hashes
+	return fingerprints, sketches
+}
+
+func findSimilarChunks(chunks []Chunk, sketches SketchMap) {
+	for _, c := range chunks {
+		sketch, _ := SketchChunk(c, 32, 3, 4)
+		for _, s := range sketch {
+			chunkId, exists := sketches[s]
+			if exists {
+				log.Println("Found similar chunks: ", chunkId)
+			}
+		}
+	}
 }
 
 func readChunk(stream io.Reader) ([]byte, error) {
@@ -229,7 +248,7 @@ func readChunk(stream io.Reader) ([]byte, error) {
 	return buff, err
 }
 
-func (r *Repo) matchStream(stream io.Reader, hashes map[uint64]ChunkId) []Chunk {
+func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chunk {
 	var b byte
 	var chunks []Chunk
 	bufStream := bufio.NewReaderSize(stream, chunkSize)
@@ -240,17 +259,17 @@ func (r *Repo) matchStream(stream io.Reader, hashes map[uint64]ChunkId) []Chunk 
 	}
 	hasher := rabinkarp64.New()
 	hasher.Write(buff)
-	buff = buff[0:0]
+	buff = make([]byte, 0, chunkSize)
 	for err != io.EOF {
 		h := hasher.Sum64()
-		chunkId, exists := hashes[h]
+		chunkId, exists := fingerprints[h]
 		if exists {
 			if len(buff) > 0 {
 				log.Printf("Add new partial chunk of size: %d\n", len(buff))
-				chunks = append(chunks, Chunk{Repo: r, Value: buff})
+				chunks = append(chunks, Chunk{Repo: r, Value: buff[:chunkSize]})
 			}
 			log.Printf("Add existing chunk: %d\n", chunkId)
-			chunks = append(chunks, Chunk{Repo: r, Id: &chunkId})
+			chunks = append(chunks, Chunk{Repo: r, Id: chunkId})
 			buff = make([]byte, 0, chunkSize)
 			for i := 0; i < chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()

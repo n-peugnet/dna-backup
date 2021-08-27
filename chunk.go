@@ -45,9 +45,11 @@ func (c *Chunk) Read(buff []byte) (int, error) {
 
 func (c *Chunk) Reader() (ChunkReader, error) {
 	if c.Value != nil {
+		log.Printf("Chunk %d: Reading from in-memory value\n", c.Id)
 		return bytes.NewReader(c.Value), nil
 	}
 	if c.Id != nil {
+		log.Printf("Chunk %d: Reading from file\n", c.Id)
 		return c.Id.Reader(c.Repo.path), nil
 	}
 	return nil, &ChunkError{"Uninitialized chunk"}

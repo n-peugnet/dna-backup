@@ -20,7 +20,7 @@ func TestSketchChunk(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			expected := []uint64{429857165471867, 6595034117354675, 8697818304802825}
+			expected := Sketch{429857165471867, 6595034117354675, 8697818304802825}
 			if !cmp.Equal(sketch, expected) {
 				t.Errorf("Sketch does not match, expected: %d, actual: %d", expected, sketch)
 			}
