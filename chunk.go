@@ -10,6 +10,20 @@ import (
 	"path"
 )
 
+type ChunkReader interface {
+	io.Reader
+	io.ByteReader
+}
+
+type Chunk interface {
+	Reader() ChunkReader
+}
+
+type StoredChunk interface {
+	Chunk
+	Id() *ChunkId
+}
+
 type ChunkId struct {
 	Ver int
 	Idx uint64
@@ -24,45 +38,50 @@ func (i *ChunkId) Reader(repo string) ChunkReader {
 	return bufio.NewReaderSize(f, chunkSize)
 }
 
-type ChunkReader interface {
-	io.Reader
-	io.ByteReader
+func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
+	return &LoadedChunk{id: id, value: value}
 }
 
-type Chunk struct {
-	Repo  *Repo
-	Id    *ChunkId
-	Value []byte
+type LoadedChunk struct {
+	id    *ChunkId
+	value []byte
 }
 
-func (c *Chunk) Read(buff []byte) (int, error) {
-	r, err := c.Reader()
-	if err != nil {
-		return 0, err
-	}
-	return r.Read(buff)
+func (c *LoadedChunk) Id() *ChunkId {
+	return c.id
 }
 
-func (c *Chunk) Reader() (ChunkReader, error) {
-	if c.Value != nil {
-		log.Printf("Chunk %d: Reading from in-memory value\n", c.Id)
-		return bytes.NewReader(c.Value), nil
-	}
-	if c.Id != nil {
-		log.Printf("Chunk %d: Reading from file\n", c.Id)
-		return c.Id.Reader(c.Repo.path), nil
-	}
-	return nil, &ChunkError{"Uninitialized chunk"}
+func (c *LoadedChunk) Reader() ChunkReader {
+	// log.Printf("Chunk %d: Reading from in-memory value\n", c.id)
+	return bytes.NewReader(c.value)
 }
 
-func (c *Chunk) isStored() bool {
-	return c.Id != nil
+func NewChunkFile(repo *Repo, id *ChunkId) *ChunkFile {
+	return &ChunkFile{repo: repo, id: id}
 }
 
-type ChunkError struct {
-	err string
+type ChunkFile struct {
+	repo *Repo
+	id   *ChunkId
 }
 
-func (e *ChunkError) Error() string {
-	return fmt.Sprintf("Chunk error: %s", e.err)
+func (c *ChunkFile) Id() *ChunkId {
+	return c.id
+}
+
+func (c *ChunkFile) Reader() ChunkReader {
+	// log.Printf("Chunk %d: Reading from file\n", c.id)
+	return c.id.Reader(c.repo.path)
+}
+
+func NewTempChunk(value []byte) *TempChunk {
+	return &TempChunk{value: value}
+}
+
+type TempChunk struct {
+	value []byte
+}
+
+func (c *TempChunk) Reader() ChunkReader {
+	return bytes.NewReader(c.value)
 }

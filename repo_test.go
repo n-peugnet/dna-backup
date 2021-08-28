@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 	"path"
+	"reflect"
 	"testing"
 
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
-	"github.com/google/go-cmp/cmp"
 )
 
 func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount int) {
@@ -91,7 +91,7 @@ func TestLoadChunks(t *testing.T) {
 	reader2, writer2 := io.Pipe()
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
-	chunks3 := make(chan Chunk, 16)
+	chunks3 := make(chan StoredChunk, 16)
 	files := listFiles(dataDir)
 	go concatFiles(files, writer1)
 	go concatFiles(files, writer2)
@@ -104,10 +104,14 @@ func TestLoadChunks(t *testing.T) {
 	i := 0
 	for c2 := range chunks2 {
 		c3 := <-chunks3
-		if bytes.Compare(c2, c3.Value) != 0 {
+		buff, err := io.ReadAll(c3.Reader())
+		if err != nil {
+			t.Errorf("Error reading from chunk %d: %s\n", c3, err)
+		}
+		if bytes.Compare(c2, buff) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
 			t.Log("Expected: ", c2[:10], "...")
-			t.Log("Actual:", c3.Value)
+			t.Log("Actual:", buff)
 		}
 		i++
 	}
@@ -115,11 +119,11 @@ func TestLoadChunks(t *testing.T) {
 
 func TestExtractNewChunks(t *testing.T) {
 	chunks := []Chunk{
-		{Value: []byte{'a'}},
-		{Id: &ChunkId{0, 0}},
-		{Value: []byte{'b'}},
-		{Value: []byte{'c'}},
-		{Id: &ChunkId{0, 1}},
+		&TempChunk{value: []byte{'a'}},
+		&LoadedChunk{id: &ChunkId{0, 0}},
+		&TempChunk{value: []byte{'b'}},
+		&TempChunk{value: []byte{'c'}},
+		&LoadedChunk{id: &ChunkId{0, 1}},
 	}
 	newChunks := extractNewChunks(chunks)
 	if len(newChunks) != 2 {
@@ -130,7 +134,7 @@ func TestExtractNewChunks(t *testing.T) {
 		t.Error("New chunks second slice should contain 2 chunks")
 		t.Log("Actual: ", newChunks[0])
 	}
-	if !cmp.Equal(newChunks[1][0], chunks[2]) {
+	if !reflect.DeepEqual(newChunks[1][0], chunks[2]) {
 		t.Error("New chunks do not match")
 		t.Log("Expected: ", chunks[2])
 		t.Log("Actual: ", newChunks[1][0])
@@ -170,11 +174,12 @@ func TestBsdiff(t *testing.T) {
 	go chunkStream(reader, chunks)
 	storeChunks(resultChunks, chunks)
 
-	input, _ := ioutil.ReadFile(path.Join(dataDir, "1", "logTest.log"))
+	input := []byte("hello")
 	ioutil.WriteFile(addedFile, input, 0664)
+	defer os.Remove(addedFile)
 
 	reader, writer = io.Pipe()
-	oldChunks := make(chan Chunk, 16)
+	oldChunks := make(chan StoredChunk, 16)
 	files = listFiles(dataDir)
 	repo := NewRepo(resultDir)
 	versions := repo.loadVersions()
@@ -183,20 +188,19 @@ func TestBsdiff(t *testing.T) {
 	fingerprints, sketches := hashChunks(oldChunks)
 	recipe := repo.matchStream(reader, fingerprints)
 	buff := new(bytes.Buffer)
-	r2, _ := recipe[2].Reader()
-	r0, _ := recipe[0].Reader()
+	r2 := recipe[2].Reader()
+	r0 := recipe[0].Reader()
 	bsdiff.Reader(r2, r0, buff)
-	if len(buff.Bytes()) < 500 {
-		t.Errorf("Bsdiff of chunk is too small: %d", len(buff.Bytes()))
+	log.Println("Diff size:", buff.Len())
+	if buff.Len() < 500 {
+		t.Errorf("Bsdiff of chunk is too small: %d", buff.Len())
 	}
-	if len(buff.Bytes()) >= chunkSize {
-		t.Errorf("Bsdiff of chunk is too large: %d", len(buff.Bytes()))
+	if buff.Len() >= chunkSize {
+		t.Errorf("Bsdiff of chunk is too large: %d", buff.Len())
 	}
 	newChunks := extractNewChunks(recipe)
 	log.Println("Checking new chunks:", len(newChunks[0]))
 	for _, c := range newChunks {
 		findSimilarChunks(c, sketches)
 	}
-
-	os.Remove(addedFile)
 }

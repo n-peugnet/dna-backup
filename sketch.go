@@ -20,10 +20,7 @@ func SketchChunk(chunk Chunk, wSize int, sfCount int, fCount int) (Sketch, error
 	superfeatures := make([]uint64, 0, sfCount)
 	features := make([]uint64, 0, fCount)
 	buff := make([]byte, fBytes*fCount)
-	r, err := chunk.Reader()
-	if err != nil {
-		return nil, err
-	}
+	r := chunk.Reader()
 	hasher := rabinkarp64.New()
 	for sf := 0; sf < sfCount; sf++ {
 		features = features[:0]
