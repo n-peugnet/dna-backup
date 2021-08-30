@@ -242,6 +242,7 @@ func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
 		for _, id := range chunkIds {
 			count := similarChunks[*id]
 			count += 1
+			log.Printf("Found %d %d time(s)", id, count)
 			if count > max {
 				similarChunk = id
 			}

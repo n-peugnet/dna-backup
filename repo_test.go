@@ -187,22 +187,22 @@ func TestBsdiff(t *testing.T) {
 	go concatFiles(files, writer)
 	fingerprints, sketches := hashChunks(oldChunks)
 	recipe := repo.matchStream(reader, fingerprints)
-	buff := new(bytes.Buffer)
-	r2 := recipe[2].Reader()
-	r0 := recipe[0].Reader()
-	bsdiff.Reader(r2, r0, buff)
-	log.Println("Diff size:", buff.Len())
-	if buff.Len() < 500 {
-		t.Errorf("Bsdiff of chunk is too small: %d", buff.Len())
-	}
-	if buff.Len() >= chunkSize {
-		t.Errorf("Bsdiff of chunk is too large: %d", buff.Len())
-	}
 	newChunks := extractNewChunks(recipe)
 	log.Println("Checking new chunks:", len(newChunks[0]))
 	for _, chunks := range newChunks {
 		for _, c := range chunks {
-			log.Println(findSimilarChunk(c, sketches))
+			id, exists := findSimilarChunk(c, sketches)
+			log.Println(id, exists)
+			if exists {
+				patch := new(bytes.Buffer)
+				stored := id.Reader(repo.path)
+				new := c.Reader()
+				bsdiff.Reader(stored, new, patch)
+				log.Println("Patch size:", patch.Len())
+				if patch.Len() >= chunkSize/10 {
+					t.Errorf("Bsdiff of chunk is too large: %d", patch.Len())
+				}
+			}
 		}
 	}
 }
