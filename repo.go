@@ -296,7 +296,11 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 			buff = make([]byte, 0, chunkSize)
 			for i := 0; i < chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()
+				buff = append(buff, b)
 				hasher.Roll(b)
+			}
+			if err == nil {
+				buff = make([]byte, 0, chunkSize)
 			}
 			continue
 		}
@@ -312,7 +316,8 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 		}
 	}
 	if len(buff) > 0 {
-		chunks = append(chunks, NewTempChunk(buff))
+		log.Printf("Add new partial chunk of size: %d\n", len(buff))
+		chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
 	}
 	return chunks
 }
