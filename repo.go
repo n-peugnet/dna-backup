@@ -223,10 +223,23 @@ func hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
 		fingerprints[h] = c.Id()
 		sketch, _ := SketchChunk(c, 32, 3, 4)
 		for _, s := range sketch {
-			sketches[s] = append(sketches[s], c.Id())
+			prev := sketches[s]
+			if contains(prev, c.Id()) {
+				continue
+			}
+			sketches[s] = append(prev, c.Id())
 		}
 	}
 	return fingerprints, sketches
+}
+
+func contains(s []*ChunkId, id *ChunkId) bool {
+	for _, v := range s {
+		if v == id {
+			return true
+		}
+	}
+	return false
 }
 
 func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
