@@ -282,32 +282,34 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 	}
 	hasher := rabinkarp64.New()
 	hasher.Write(buff)
-	buff = make([]byte, 0, chunkSize)
+	buff = make([]byte, 0, chunkSize*2)
 	for err != io.EOF {
 		h := hasher.Sum64()
 		chunkId, exists := fingerprints[h]
 		if exists {
-			if len(buff) > 0 {
-				log.Printf("Add new partial chunk of size: %d\n", len(buff))
-				chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
+			if len(buff) > chunkSize && len(buff) < chunkSize*2 {
+				size := len(buff) - chunkSize
+				log.Println("Add new partial chunk of size:", size)
+				tmp := make([]byte, 0, chunkSize)
+				tmp = append(tmp, buff[:size]...)
+				chunks = append(chunks, NewTempChunk(tmp[:chunkSize]))
 			}
 			log.Printf("Add existing chunk: %d\n", chunkId)
 			chunks = append(chunks, NewChunkFile(r, chunkId))
-			buff = make([]byte, 0, chunkSize)
+			buff = make([]byte, 0, chunkSize*2)
 			for i := 0; i < chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()
 				buff = append(buff, b)
 				hasher.Roll(b)
 			}
-			if err == nil {
-				buff = make([]byte, 0, chunkSize)
-			}
 			continue
 		}
-		if len(buff) == chunkSize {
+		if len(buff) == chunkSize*2 {
 			log.Println("Add new chunk")
-			chunks = append(chunks, NewTempChunk(buff))
-			buff = make([]byte, 0, chunkSize)
+			chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
+			tmp := buff[chunkSize:]
+			buff = make([]byte, 0, chunkSize*2)
+			buff = append(buff, tmp...)
 		}
 		b, err = bufStream.ReadByte()
 		if err != io.EOF {
@@ -315,9 +317,14 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 			buff = append(buff, b)
 		}
 	}
-	if len(buff) > 0 {
-		log.Printf("Add new partial chunk of size: %d\n", len(buff))
+	if len(buff) > chunkSize {
+		log.Println("Add new chunk")
 		chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
+		log.Println("Add new partial chunk of size:", len(buff)-chunkSize)
+		chunks = append(chunks, NewTempChunk(buff[chunkSize:chunkSize*2]))
+	} else if len(buff) > 0 {
+		log.Println("Add new partial chunk of size:", len(buff))
+		chunks = append(chunks, NewTempChunk(buff[chunkSize:chunkSize*2]))
 	}
 	return chunks
 }
