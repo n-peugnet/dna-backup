@@ -221,7 +221,7 @@ func hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
 		io.Copy(hasher, c.Reader())
 		h := hasher.Sum64()
 		fingerprints[h] = c.Id()
-		sketch, _ := SketchChunk(c, 32, 3, 4)
+		sketch, _ := SketchChunk(c, sketchWSize, sketchSfCount, sketchFCount)
 		for _, s := range sketch {
 			prev := sketches[s]
 			if contains(prev, c.Id()) {
@@ -246,7 +246,7 @@ func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
-	sketch, _ := SketchChunk(chunk, 32, 3, 4)
+	sketch, _ := SketchChunk(chunk, sketchWSize, sketchSfCount, sketchFCount)
 	for _, s := range sketch {
 		chunkIds, exists := sketches[s]
 		if !exists {
