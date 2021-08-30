@@ -229,17 +229,26 @@ func hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
 	return fingerprints, sketches
 }
 
-func findSimilarChunks(chunks []Chunk, sketches SketchMap) {
-	for i, c := range chunks {
-		log.Println("New chunk:", i)
-		sketch, _ := SketchChunk(c, 32, 3, 4)
-		for _, s := range sketch {
-			chunkId, exists := sketches[s]
-			if exists {
-				log.Println("Found similar chunks: ", chunkId)
+func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
+	var similarChunks = make(map[ChunkId]int)
+	var max int
+	var similarChunk *ChunkId
+	sketch, _ := SketchChunk(chunk, 32, 3, 4)
+	for _, s := range sketch {
+		chunkIds, exists := sketches[s]
+		if !exists {
+			continue
+		}
+		for _, id := range chunkIds {
+			count := similarChunks[*id]
+			count += 1
+			if count > max {
+				similarChunk = id
 			}
+			similarChunks[*id] = count
 		}
 	}
+	return similarChunk, similarChunk != nil
 }
 
 func readChunk(stream io.Reader) ([]byte, error) {

@@ -2,6 +2,7 @@ priority 1
 ----------
 - join non-deduplicated chunks
   - choose when and how to
+- read from repo
 
 priority 2
 ----------

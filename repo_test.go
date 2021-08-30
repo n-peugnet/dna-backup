@@ -200,7 +200,9 @@ func TestBsdiff(t *testing.T) {
 	}
 	newChunks := extractNewChunks(recipe)
 	log.Println("Checking new chunks:", len(newChunks[0]))
-	for _, c := range newChunks {
-		findSimilarChunks(c, sketches)
+	for _, chunks := range newChunks {
+		for _, c := range chunks {
+			log.Println(findSimilarChunk(c, sketches))
+		}
 	}
 }
