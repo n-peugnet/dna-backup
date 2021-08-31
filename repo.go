@@ -265,24 +265,18 @@ func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
 	return similarChunk, similarChunk != nil
 }
 
-func readChunk(stream io.Reader) ([]byte, error) {
-	buff := make([]byte, chunkSize)
-	_, err := io.ReadFull(stream, buff)
-	return buff, err
-}
-
 func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chunk {
 	var b byte
 	var chunks []Chunk
 	bufStream := bufio.NewReaderSize(stream, chunkSize)
-	buff, err := readChunk(bufStream)
-	if err == io.EOF {
-		chunks = append(chunks, NewTempChunk(buff))
+	buff := make([]byte, 0, chunkSize*2)
+	n, err := io.ReadFull(stream, buff[:chunkSize])
+	if n < chunkSize {
+		chunks = append(chunks, NewTempChunk(buff[:n]))
 		return chunks
 	}
 	hasher := rabinkarp64.New()
-	hasher.Write(buff)
-	buff = make([]byte, 0, chunkSize*2)
+	hasher.Write(buff[:n])
 	for err != io.EOF {
 		h := hasher.Sum64()
 		chunkId, exists := fingerprints[h]
@@ -297,8 +291,8 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 			buff = make([]byte, 0, chunkSize*2)
 			for i := 0; i < chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()
-				buff = append(buff, b)
 				hasher.Roll(b)
+				buff = append(buff, b)
 			}
 			continue
 		}
