@@ -127,7 +127,7 @@ func TestExtractNewChunks(t *testing.T) {
 		&TempChunk{value: []byte{'c'}},
 		&LoadedChunk{id: &ChunkId{0, 1}},
 	}
-	newChunks := extractTempChunks(chunks)
+	newChunks := extractTempChunks(mergeTempChunks(chunks))
 	assertLen(t, 2, newChunks, "New chunks:")
 	assertChunkContent(t, []byte{'a'}, newChunks[0], "First new:")
 	assertChunkContent(t, []byte{'b', 'c'}, newChunks[1], "Second New:")
@@ -177,7 +177,7 @@ func TestBsdiff(t *testing.T) {
 	go concatFiles(files, writer)
 	fingerprints, sketches := hashChunks(oldChunks)
 	recipe := repo.matchStream(reader, fingerprints)
-	newChunks := extractTempChunks(recipe)
+	newChunks := extractTempChunks(mergeTempChunks(recipe))
 	assertLen(t, 2, newChunks, "New chunks:")
 	for _, c := range newChunks {
 		id, exists := findSimilarChunk(c, sketches)
@@ -198,7 +198,7 @@ func TestBsdiff(t *testing.T) {
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
 	s := reflect.ValueOf(actual)
 	if s.Len() != expected {
-		t.Error(prefix, "incorrect length, expected:", expected, ", actual:", s.Len())
+		t.Fatal(prefix, "incorrect length, expected:", expected, ", actual:", s.Len())
 	}
 }
 

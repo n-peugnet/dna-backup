@@ -321,10 +321,10 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 	return chunks
 }
 
-// extractTempChunks extracts temporary chunks from an array of chunks.
+// mergeTempChunks joins temporary partial chunks from an array of chunks if possible.
 // If a chunk is smaller than the size required to calculate a super-feature,
 // it is then appended to the previous consecutive temporary chunk if it exists.
-func extractTempChunks(chunks []Chunk) (ret []Chunk) {
+func mergeTempChunks(chunks []Chunk) (ret []Chunk) {
 	var prev *TempChunk
 	var curr *TempChunk
 	for _, c := range chunks {
@@ -335,6 +335,7 @@ func extractTempChunks(chunks []Chunk) (ret []Chunk) {
 			} else if curr != nil {
 				ret = append(ret, curr)
 			}
+			ret = append(ret, c)
 			curr = nil
 			prev = nil
 		} else {
@@ -347,6 +348,16 @@ func extractTempChunks(chunks []Chunk) (ret []Chunk) {
 	}
 	if curr != nil {
 		ret = append(ret, curr)
+	}
+	return
+}
+
+func extractTempChunks(chunks []Chunk) (ret []*TempChunk) {
+	for _, c := range chunks {
+		tmp, isTmp := c.(*TempChunk)
+		if isTmp {
+			ret = append(ret, tmp)
+		}
 	}
 	return
 }
