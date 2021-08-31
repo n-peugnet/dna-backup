@@ -145,7 +145,7 @@ func chunkStream(stream io.Reader, chunks chan<- []byte) {
 		}
 	}
 	if prev != chunkSize {
-		chunks <- buff
+		chunks <- buff[:prev]
 	}
 	close(chunks)
 }
@@ -290,9 +290,7 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 			if len(buff) > chunkSize && len(buff) < chunkSize*2 {
 				size := len(buff) - chunkSize
 				log.Println("Add new partial chunk of size:", size)
-				tmp := make([]byte, 0, chunkSize)
-				tmp = append(tmp, buff[:size]...)
-				chunks = append(chunks, NewTempChunk(tmp[:chunkSize]))
+				chunks = append(chunks, NewTempChunk(buff[:size]))
 			}
 			log.Printf("Add existing chunk: %d\n", chunkId)
 			chunks = append(chunks, NewChunkFile(r, chunkId))
@@ -321,10 +319,10 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 		log.Println("Add new chunk")
 		chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
 		log.Println("Add new partial chunk of size:", len(buff)-chunkSize)
-		chunks = append(chunks, NewTempChunk(buff[chunkSize:chunkSize*2]))
+		chunks = append(chunks, NewTempChunk(buff[chunkSize:]))
 	} else if len(buff) > 0 {
 		log.Println("Add new partial chunk of size:", len(buff))
-		chunks = append(chunks, NewTempChunk(buff[chunkSize:chunkSize*2]))
+		chunks = append(chunks, NewTempChunk(buff))
 	}
 	return chunks
 }

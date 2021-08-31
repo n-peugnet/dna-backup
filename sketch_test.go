@@ -24,6 +24,16 @@ func TestSketchChunk(t *testing.T) {
 				t.Errorf("Sketch does not match, expected: %d, actual: %d", expected, sketch)
 			}
 		}
+		if i == 14 {
+			sketch, err := SketchChunk(c, 32, 3, 4)
+			if err != nil {
+				t.Error(err)
+			}
+			expected := Sketch{658454504014104}
+			if !reflect.DeepEqual(sketch, expected) {
+				t.Errorf("Sketch does not match, expected: %d, actual: %d", expected, sketch)
+			}
+		}
 		i++
 	}
 }

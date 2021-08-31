@@ -35,16 +35,18 @@ func chunkCompare(t *testing.T, dataDir string, testFiles []string, chunkCount i
 
 	i := 0
 	for c := range chunks {
-		content := buff[i*chunkSize : (i+1)*chunkSize]
-		if len(c) != chunkSize {
-			t.Errorf("Chunk %d is not of chunkSize: %d", i, chunkSize)
+		start := i * chunkSize
+		end := (i + 1) * chunkSize
+		if end > offset {
+			end = offset
 		}
+		content := buff[start:end]
 		if bytes.Compare(c, content) != 0 {
 			t.Errorf("Chunk %d does not match file content", i)
 			// for i, b := range c {
 			// 	fmt.Printf("E: %d, A: %d\n", b, content[i])
 			// }
-			t.Log("Expected: ", c[:10], "...", c[chunkSize-10:])
+			t.Log("Expected: ", c[:10], "...", c[end%chunkSize-10:])
 			t.Log("Actual:", content)
 		}
 		i++

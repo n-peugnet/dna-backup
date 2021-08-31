@@ -17,6 +17,7 @@ type ChunkReader interface {
 
 type Chunk interface {
 	Reader() ChunkReader
+	Len() int
 }
 
 type StoredChunk interface {
@@ -29,11 +30,15 @@ type ChunkId struct {
 	Idx uint64
 }
 
+func (i *ChunkId) Path(repo string) string {
+	return path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
+}
+
 func (i *ChunkId) Reader(repo string) ChunkReader {
-	p := path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
-	f, err := os.Open(p)
+	path := i.Path(repo)
+	f, err := os.Open(path)
 	if err != nil {
-		log.Printf("Cannot open chunk %s\n", p)
+		log.Println("Cannot open chunk: ", path)
 	}
 	return bufio.NewReaderSize(f, chunkSize)
 }
@@ -56,6 +61,10 @@ func (c *LoadedChunk) Reader() ChunkReader {
 	return bytes.NewReader(c.value)
 }
 
+func (c *LoadedChunk) Len() int {
+	return len(c.value)
+}
+
 func NewChunkFile(repo *Repo, id *ChunkId) *ChunkFile {
 	return &ChunkFile{repo: repo, id: id}
 }
@@ -74,6 +83,15 @@ func (c *ChunkFile) Reader() ChunkReader {
 	return c.id.Reader(c.repo.path)
 }
 
+func (c *ChunkFile) Len() int {
+	path := c.id.Path(c.repo.path)
+	info, err := os.Stat(path)
+	if err != nil {
+		log.Println("Chunk: could not stat file:", path)
+	}
+	return int(info.Size())
+}
+
 func NewTempChunk(value []byte) *TempChunk {
 	return &TempChunk{value: value}
 }
@@ -84,4 +102,8 @@ type TempChunk struct {
 
 func (c *TempChunk) Reader() ChunkReader {
 	return bytes.NewReader(c.value)
+}
+
+func (c *TempChunk) Len() int {
+	return len(c.value)
 }
