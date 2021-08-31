@@ -15,7 +15,7 @@ _Classical go_
 go build
 
 # Test
-go test
+go test -v
 
 # Run
 ./dna-backup <source-dir> <repository>

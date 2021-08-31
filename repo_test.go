@@ -127,20 +127,10 @@ func TestExtractNewChunks(t *testing.T) {
 		&TempChunk{value: []byte{'c'}},
 		&LoadedChunk{id: &ChunkId{0, 1}},
 	}
-	newChunks := extractNewChunks(chunks)
-	if len(newChunks) != 2 {
-		t.Error("New chunks should contain 2 slices")
-		t.Log("Actual: ", newChunks)
-	}
-	if len(newChunks[1]) != 2 {
-		t.Error("New chunks second slice should contain 2 chunks")
-		t.Log("Actual: ", newChunks[0])
-	}
-	if !reflect.DeepEqual(newChunks[1][0], chunks[2]) {
-		t.Error("New chunks do not match")
-		t.Log("Expected: ", chunks[2])
-		t.Log("Actual: ", newChunks[1][0])
-	}
+	newChunks := extractTempChunks(chunks)
+	assertLen(t, 2, newChunks, "New chunks:")
+	assertChunkContent(t, []byte{'a'}, newChunks[0], "First new:")
+	assertChunkContent(t, []byte{'b', 'c'}, newChunks[1], "Second New:")
 }
 
 func TestStoreLoadFiles(t *testing.T) {
@@ -150,9 +140,7 @@ func TestStoreLoadFiles(t *testing.T) {
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
 	files2 := loadFileList(resultFiles)
-	if len(files1) != 4 {
-		t.Errorf("Incorrect number of files: %d, should be %d\n", len(files1), 4)
-	}
+	assertLen(t, 4, files1, "Files:")
 	for i, f := range files1 {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
@@ -189,22 +177,44 @@ func TestBsdiff(t *testing.T) {
 	go concatFiles(files, writer)
 	fingerprints, sketches := hashChunks(oldChunks)
 	recipe := repo.matchStream(reader, fingerprints)
-	newChunks := extractNewChunks(recipe)
-	log.Println("Checking new chunks:", len(newChunks[0]))
-	for _, chunks := range newChunks {
-		for _, c := range chunks {
-			id, exists := findSimilarChunk(c, sketches)
-			log.Println(id, exists)
-			if exists {
-				patch := new(bytes.Buffer)
-				stored := id.Reader(repo.path)
-				new := c.Reader()
-				bsdiff.Reader(stored, new, patch)
-				log.Println("Patch size:", patch.Len())
-				if patch.Len() >= chunkSize/10 {
-					t.Errorf("Bsdiff of chunk is too large: %d", patch.Len())
-				}
+	newChunks := extractTempChunks(recipe)
+	assertLen(t, 2, newChunks, "New chunks:")
+	for _, c := range newChunks {
+		id, exists := findSimilarChunk(c, sketches)
+		log.Println(id, exists)
+		if exists {
+			patch := new(bytes.Buffer)
+			stored := id.Reader(repo.path)
+			new := c.Reader()
+			bsdiff.Reader(stored, new, patch)
+			log.Println("Patch size:", patch.Len())
+			if patch.Len() >= chunkSize/10 {
+				t.Errorf("Bsdiff of chunk is too large: %d", patch.Len())
 			}
 		}
 	}
+}
+
+func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
+	s := reflect.ValueOf(actual)
+	if s.Len() != expected {
+		t.Error(prefix, "incorrect length, expected:", expected, ", actual:", s.Len())
+	}
+}
+
+func assertSameSlice(t *testing.T, expected []byte, actual []byte, prefix string) {
+	assertLen(t, len(expected), actual, prefix)
+	for i := 0; i < len(expected); i++ {
+		if expected[i] != actual[i] {
+			t.Fatal(prefix, "incorrect value", i, ", expected:", expected[i], ", actual:", actual[i])
+		}
+	}
+}
+
+func assertChunkContent(t *testing.T, expected []byte, c Chunk, prefix string) {
+	buf, err := io.ReadAll(c.Reader())
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertSameSlice(t, expected, buf, prefix+" Chunk content")
 }

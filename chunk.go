@@ -107,3 +107,11 @@ func (c *TempChunk) Reader() ChunkReader {
 func (c *TempChunk) Len() int {
 	return len(c.value)
 }
+
+func (c *TempChunk) AppendFrom(r io.Reader) {
+	buff, err := io.ReadAll(r)
+	if err != nil {
+		println("Chunk: error appending to temp chunk:", err)
+	}
+	c.value = append(c.value, buff...)
+}

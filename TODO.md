@@ -1,8 +1,7 @@
 priority 1
 ----------
-- join non-deduplicated chunks
-  - choose when and how to
 - delta encode chunks
+- match stream against chunks from itself
 - read from repo
 
 priority 2

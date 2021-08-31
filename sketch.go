@@ -16,7 +16,7 @@ const fBytes = 8
 // sfCount: the number of super-features, and fCount: the number of feature
 // per super-feature
 func SketchChunk(chunk Chunk, wSize int, sfCount int, fCount int) (Sketch, error) {
-	var fSize = chunkSize / (sfCount * fCount)
+	var fSize = FeatureSize(chunkSize, sfCount, fCount)
 	superfeatures := make([]uint64, 0, sfCount)
 	features := make([]uint64, 0, fCount*sfCount)
 	buff := make([]byte, fBytes*fCount)
@@ -48,4 +48,12 @@ func SketchChunk(chunk Chunk, wSize int, sfCount int, fCount int) (Sketch, error
 		superfeatures = append(superfeatures, hasher.Sum64())
 	}
 	return superfeatures, nil
+}
+
+func SuperFeatureSize(chunkSize int, sfCount int, fCount int) int {
+	return FeatureSize(chunkSize, sfCount, fCount) * sfCount
+}
+
+func FeatureSize(chunkSize int, sfCount int, fCount int) int {
+	return chunkSize / (sfCount * fCount)
 }

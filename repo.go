@@ -71,7 +71,7 @@ func (r *Repo) Commit(source string) {
 	go concatFiles(files, writer)
 	fingerprints, _ := hashChunks(oldChunks)
 	chunks := r.matchStream(reader, fingerprints)
-	extractNewChunks(chunks)
+	extractTempChunks(chunks)
 	// storeChunks(newChunkPath, newChunks)
 	// storeFiles(newFilesPath, files)
 	fmt.Println(files)
@@ -327,24 +327,32 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 	return chunks
 }
 
-// extractNewChunks extracts new chunks from an array of chunks and
-// returns them in an array of consecutive new chunk's array
-func extractNewChunks(chunks []Chunk) (ret [][]Chunk) {
-	var i int
-	ret = append(ret, nil)
+// extractTempChunks extracts temporary chunks from an array of chunks.
+// If a chunk is smaller than the size required to calculate a super-feature,
+// it is then appended to the previous consecutive temporary chunk if it exists.
+func extractTempChunks(chunks []Chunk) (ret []Chunk) {
+	var prev *TempChunk
+	var curr *TempChunk
 	for _, c := range chunks {
-		_, isTmp := c.(*TempChunk)
+		tmp, isTmp := c.(*TempChunk)
 		if !isTmp {
-			if len(ret[i]) != 0 {
-				i++
-				ret = append(ret, nil)
+			if prev != nil && curr.Len() <= SuperFeatureSize(chunkSize, sketchSfCount, sketchFCount) {
+				prev.AppendFrom(curr.Reader())
+			} else if curr != nil {
+				ret = append(ret, curr)
 			}
+			curr = nil
+			prev = nil
 		} else {
-			ret[i] = append(ret[i], c)
+			prev = curr
+			curr = tmp
+			if prev != nil {
+				ret = append(ret, prev)
+			}
 		}
 	}
-	if len(ret[i]) == 0 {
-		ret = ret[:i]
+	if curr != nil {
+		ret = append(ret, curr)
 	}
 	return
 }
