@@ -150,32 +150,44 @@ func TestStoreLoadFiles(t *testing.T) {
 	}
 }
 
+func prepareChunks(dataDir string, resultDir string, streamFunc func([]File, io.WriteCloser)) {
+	resultVersion := path.Join(resultDir, "00000")
+	resultChunks := path.Join(resultVersion, chunksName)
+	os.MkdirAll(resultChunks, 0775)
+	reader := getDataStream(dataDir, streamFunc)
+	chunks := make(chan []byte, 16)
+	go chunkStream(reader, chunks)
+	storeChunks(resultChunks, chunks)
+}
+
+func getDataStream(dataDir string, streamFunc func([]File, io.WriteCloser)) io.Reader {
+	reader, writer := io.Pipe()
+	files := listFiles(dataDir)
+	go streamFunc(files, writer)
+	return reader
+}
+
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := path.Join("test", "data", "logs")
 	addedFile := path.Join(dataDir, "2", "slogTest.log")
-	resultVersion := path.Join(resultDir, "00000")
-	resultChunks := path.Join(resultVersion, chunksName)
-	os.MkdirAll(resultChunks, 0775)
-	reader, writer := io.Pipe()
-	chunks := make(chan []byte, 16)
-	files := listFiles(dataDir)
-	go concatFiles(files, writer)
-	go chunkStream(reader, chunks)
-	storeChunks(resultChunks, chunks)
+	// Store initial chunks
+	prepareChunks(dataDir, resultDir, concatFiles)
 
+	// Modify data
 	input := []byte("hello")
 	ioutil.WriteFile(addedFile, input, 0664)
 	defer os.Remove(addedFile)
 
-	reader, writer = io.Pipe()
+	// Load previously stored chunks
 	oldChunks := make(chan StoredChunk, 16)
-	files = listFiles(dataDir)
 	repo := NewRepo(resultDir)
 	versions := repo.loadVersions()
 	go repo.loadChunks(versions, oldChunks)
-	go concatFiles(files, writer)
 	fingerprints, sketches := hashChunks(oldChunks)
+
+	// Read new data
+	reader := getDataStream(dataDir, concatFiles)
 	recipe := repo.matchStream(reader, fingerprints)
 	newChunks := extractTempChunks(mergeTempChunks(recipe))
 	assertLen(t, 2, newChunks, "New chunks:")
