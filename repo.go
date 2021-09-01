@@ -48,6 +48,8 @@ type Repo struct {
 	sketchWSize   int
 	sketchSfCount int
 	sketchFCount  int
+	differ        Differ
+	patcher       Patcher
 }
 
 type File struct {
@@ -63,7 +65,17 @@ func NewRepo(path string) *Repo {
 		sketchWSize:   32,
 		sketchSfCount: 3,
 		sketchFCount:  4,
+		differ:        &Bsdiff{},
+		patcher:       &Bsdiff{},
 	}
+}
+
+func (r *Repo) Differ() Differ {
+	return r.differ
+}
+
+func (r *Repo) Patcher() Patcher {
+	return r.patcher
 }
 
 func (r *Repo) Commit(source string) {
@@ -273,6 +285,12 @@ func (r *Repo) findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool
 		}
 	}
 	return similarChunk, similarChunk != nil
+}
+
+// TODO: encode stream
+func (r *Repo) encodeStream(stream io.Reader, fingerprints FingerprintMap, sketches SketchMap) []Chunk {
+	chunks := r.matchStream(stream, fingerprints)
+	return chunks
 }
 
 func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chunk {

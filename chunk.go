@@ -115,3 +115,20 @@ func (c *TempChunk) AppendFrom(r io.Reader) {
 	}
 	c.value = append(c.value, buff...)
 }
+
+type DeltaChunk struct {
+	repo   *Repo
+	source *ChunkId
+	patch  []byte
+	size   int
+}
+
+func (c *DeltaChunk) Reader() ChunkReader {
+	var buff bytes.Buffer
+	c.repo.Patcher().Patch(c.source.Reader(c.repo), &buff, bytes.NewReader(c.patch))
+	return &buff
+}
+
+func (c *DeltaChunk) Len() int {
+	return c.size
+}
