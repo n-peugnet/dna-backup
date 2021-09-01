@@ -15,7 +15,7 @@ func TestSketchChunk(t *testing.T) {
 	var i int
 	for c := range chunks {
 		if i < 1 {
-			sketch, err := SketchChunk(c, 32, 3, 4)
+			sketch, err := SketchChunk(c, 8<<10, 32, 3, 4)
 			if err != nil {
 				t.Error(err)
 			}
@@ -25,7 +25,7 @@ func TestSketchChunk(t *testing.T) {
 			}
 		}
 		if i == 14 {
-			sketch, err := SketchChunk(c, 32, 3, 4)
+			sketch, err := SketchChunk(c, 8<<10, 32, 3, 4)
 			if err != nil {
 				t.Error(err)
 			}

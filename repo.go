@@ -43,7 +43,11 @@ type FingerprintMap map[uint64]*ChunkId
 type SketchMap map[uint64][]*ChunkId
 
 type Repo struct {
-	path string
+	path          string
+	chunkSize     int
+	sketchWSize   int
+	sketchSfCount int
+	sketchFCount  int
 }
 
 type File struct {
@@ -53,7 +57,13 @@ type File struct {
 
 func NewRepo(path string) *Repo {
 	os.MkdirAll(path, 0775)
-	return &Repo{path}
+	return &Repo{
+		path:          path,
+		chunkSize:     8 << 10,
+		sketchWSize:   32,
+		sketchSfCount: 3,
+		sketchFCount:  4,
+	}
 }
 
 func (r *Repo) Commit(source string) {
@@ -69,7 +79,7 @@ func (r *Repo) Commit(source string) {
 	files := listFiles(source)
 	go r.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
-	fingerprints, _ := hashChunks(oldChunks)
+	fingerprints, _ := r.hashChunks(oldChunks)
 	chunks := r.matchStream(reader, fingerprints)
 	extractTempChunks(chunks)
 	// storeChunks(newChunkPath, newChunks)
@@ -124,14 +134,14 @@ func concatFiles(files []File, stream io.WriteCloser) {
 	stream.Close()
 }
 
-func chunkStream(stream io.Reader, chunks chan<- []byte) {
+func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
 	var buff []byte
-	var prev, read = chunkSize, 0
+	var prev, read = r.chunkSize, 0
 	var err error
 
 	for err != io.EOF {
-		if prev == chunkSize {
-			buff = make([]byte, chunkSize)
+		if prev == r.chunkSize {
+			buff = make([]byte, r.chunkSize)
 			prev, err = stream.Read(buff)
 		} else {
 			read, err = stream.Read(buff[prev:])
@@ -140,11 +150,11 @@ func chunkStream(stream io.Reader, chunks chan<- []byte) {
 		if err != nil && err != io.EOF {
 			log.Println(err)
 		}
-		if prev == chunkSize {
+		if prev == r.chunkSize {
 			chunks <- buff
 		}
 	}
-	if prev != chunkSize {
+	if prev != r.chunkSize {
 		chunks <- buff[:prev]
 	}
 	close(chunks)
@@ -212,7 +222,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- StoredChunk) {
 // For each chunk, both a fingerprint (hash over the full content) and a sketch
 // (resemblance hash based on maximal values of regions) are calculated and
 // stored in an hashmap which are then returned.
-func hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
+func (r *Repo) hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
 	fingerprints := make(FingerprintMap)
 	sketches := make(SketchMap)
 	hasher := hash.Hash64(rabinkarp64.New())
@@ -221,7 +231,7 @@ func hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
 		io.Copy(hasher, c.Reader())
 		h := hasher.Sum64()
 		fingerprints[h] = c.Id()
-		sketch, _ := SketchChunk(c, sketchWSize, sketchSfCount, sketchFCount)
+		sketch, _ := SketchChunk(c, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 		for _, s := range sketch {
 			prev := sketches[s]
 			if contains(prev, c.Id()) {
@@ -242,11 +252,11 @@ func contains(s []*ChunkId, id *ChunkId) bool {
 	return false
 }
 
-func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
+func (r *Repo) findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
-	sketch, _ := SketchChunk(chunk, sketchWSize, sketchSfCount, sketchFCount)
+	sketch, _ := SketchChunk(chunk, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	for _, s := range sketch {
 		chunkIds, exists := sketches[s]
 		if !exists {
@@ -268,10 +278,10 @@ func findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
 func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chunk {
 	var b byte
 	var chunks []Chunk
-	bufStream := bufio.NewReaderSize(stream, chunkSize)
-	buff := make([]byte, 0, chunkSize*2)
-	n, err := io.ReadFull(stream, buff[:chunkSize])
-	if n < chunkSize {
+	bufStream := bufio.NewReaderSize(stream, r.chunkSize)
+	buff := make([]byte, 0, r.chunkSize*2)
+	n, err := io.ReadFull(stream, buff[:r.chunkSize])
+	if n < r.chunkSize {
 		chunks = append(chunks, NewTempChunk(buff[:n]))
 		return chunks
 	}
@@ -281,26 +291,26 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 		h := hasher.Sum64()
 		chunkId, exists := fingerprints[h]
 		if exists {
-			if len(buff) > chunkSize && len(buff) < chunkSize*2 {
-				size := len(buff) - chunkSize
+			if len(buff) > r.chunkSize && len(buff) < r.chunkSize*2 {
+				size := len(buff) - r.chunkSize
 				log.Println("Add new partial chunk of size:", size)
 				chunks = append(chunks, NewTempChunk(buff[:size]))
 			}
 			log.Printf("Add existing chunk: %d\n", chunkId)
 			chunks = append(chunks, NewChunkFile(r, chunkId))
-			buff = make([]byte, 0, chunkSize*2)
-			for i := 0; i < chunkSize && err == nil; i++ {
+			buff = make([]byte, 0, r.chunkSize*2)
+			for i := 0; i < r.chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()
 				hasher.Roll(b)
 				buff = append(buff, b)
 			}
 			continue
 		}
-		if len(buff) == chunkSize*2 {
+		if len(buff) == r.chunkSize*2 {
 			log.Println("Add new chunk")
-			chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
-			tmp := buff[chunkSize:]
-			buff = make([]byte, 0, chunkSize*2)
+			chunks = append(chunks, NewTempChunk(buff[:r.chunkSize]))
+			tmp := buff[r.chunkSize:]
+			buff = make([]byte, 0, r.chunkSize*2)
 			buff = append(buff, tmp...)
 		}
 		b, err = bufStream.ReadByte()
@@ -309,11 +319,11 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 			buff = append(buff, b)
 		}
 	}
-	if len(buff) > chunkSize {
+	if len(buff) > r.chunkSize {
 		log.Println("Add new chunk")
-		chunks = append(chunks, NewTempChunk(buff[:chunkSize]))
-		log.Println("Add new partial chunk of size:", len(buff)-chunkSize)
-		chunks = append(chunks, NewTempChunk(buff[chunkSize:]))
+		chunks = append(chunks, NewTempChunk(buff[:r.chunkSize]))
+		log.Println("Add new partial chunk of size:", len(buff)-r.chunkSize)
+		chunks = append(chunks, NewTempChunk(buff[r.chunkSize:]))
 	} else if len(buff) > 0 {
 		log.Println("Add new partial chunk of size:", len(buff))
 		chunks = append(chunks, NewTempChunk(buff))
@@ -324,13 +334,13 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap) []Chun
 // mergeTempChunks joins temporary partial chunks from an array of chunks if possible.
 // If a chunk is smaller than the size required to calculate a super-feature,
 // it is then appended to the previous consecutive temporary chunk if it exists.
-func mergeTempChunks(chunks []Chunk) (ret []Chunk) {
+func (r *Repo) mergeTempChunks(chunks []Chunk) (ret []Chunk) {
 	var prev *TempChunk
 	var curr *TempChunk
 	for _, c := range chunks {
 		tmp, isTmp := c.(*TempChunk)
 		if !isTmp {
-			if prev != nil && curr.Len() <= SuperFeatureSize(chunkSize, sketchSfCount, sketchFCount) {
+			if prev != nil && curr.Len() <= SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount) {
 				prev.AppendFrom(curr.Reader())
 			} else if curr != nil {
 				ret = append(ret, curr)

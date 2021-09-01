@@ -34,13 +34,13 @@ func (i *ChunkId) Path(repo string) string {
 	return path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
 }
 
-func (i *ChunkId) Reader(repo string) ChunkReader {
-	path := i.Path(repo)
+func (i *ChunkId) Reader(repo *Repo) ChunkReader {
+	path := i.Path(repo.path)
 	f, err := os.Open(path)
 	if err != nil {
 		log.Println("Cannot open chunk: ", path)
 	}
-	return bufio.NewReaderSize(f, chunkSize)
+	return bufio.NewReaderSize(f, repo.chunkSize)
 }
 
 func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
@@ -80,7 +80,7 @@ func (c *ChunkFile) Id() *ChunkId {
 
 func (c *ChunkFile) Reader() ChunkReader {
 	// log.Printf("Chunk %d: Reading from file\n", c.id)
-	return c.id.Reader(c.repo.path)
+	return c.id.Reader(c.repo)
 }
 
 func (c *ChunkFile) Len() int {

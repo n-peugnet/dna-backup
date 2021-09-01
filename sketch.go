@@ -15,7 +15,7 @@ const fBytes = 8
 // SketchChunk produces a sketch for a chunk based on wSize: the window size,
 // sfCount: the number of super-features, and fCount: the number of feature
 // per super-feature
-func SketchChunk(chunk Chunk, wSize int, sfCount int, fCount int) (Sketch, error) {
+func SketchChunk(chunk Chunk, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
 	var fSize = FeatureSize(chunkSize, sfCount, fCount)
 	superfeatures := make([]uint64, 0, sfCount)
 	features := make([]uint64, 0, fCount*sfCount)
