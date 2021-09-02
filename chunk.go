@@ -20,9 +20,14 @@ type Chunk interface {
 	Len() int
 }
 
-type StoredChunk interface {
+type IdentifiedChunk interface {
 	Chunk
 	Id() *ChunkId
+}
+
+type BufferedChunk interface {
+	Chunk
+	Bytes() []byte
 }
 
 type ChunkId struct {
@@ -65,25 +70,29 @@ func (c *LoadedChunk) Len() int {
 	return len(c.value)
 }
 
-func NewChunkFile(repo *Repo, id *ChunkId) *ChunkFile {
-	return &ChunkFile{repo: repo, id: id}
+func (c *LoadedChunk) Bytes() []byte {
+	return c.value
 }
 
-type ChunkFile struct {
+func NewStoredFile(repo *Repo, id *ChunkId) *StoredChunk {
+	return &StoredChunk{repo: repo, id: id}
+}
+
+type StoredChunk struct {
 	repo *Repo
 	id   *ChunkId
 }
 
-func (c *ChunkFile) Id() *ChunkId {
+func (c *StoredChunk) Id() *ChunkId {
 	return c.id
 }
 
-func (c *ChunkFile) Reader() ChunkReader {
+func (c *StoredChunk) Reader() ChunkReader {
 	// log.Printf("Chunk %d: Reading from file\n", c.id)
 	return c.id.Reader(c.repo)
 }
 
-func (c *ChunkFile) Len() int {
+func (c *StoredChunk) Len() int {
 	path := c.id.Path(c.repo.path)
 	info, err := os.Stat(path)
 	if err != nil {

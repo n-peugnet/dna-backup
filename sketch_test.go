@@ -8,7 +8,7 @@ import (
 
 func TestSketchChunk(t *testing.T) {
 	dataDir := path.Join("test", "data", "repo_8k")
-	chunks := make(chan StoredChunk, 16)
+	chunks := make(chan IdentifiedChunk, 16)
 	repo := NewRepo(dataDir)
 	versions := repo.loadVersions()
 	go repo.loadChunks(versions, chunks)

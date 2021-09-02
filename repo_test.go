@@ -94,7 +94,7 @@ func TestLoadChunks(t *testing.T) {
 	reader2, writer2 := io.Pipe()
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
-	chunks3 := make(chan StoredChunk, 16)
+	chunks3 := make(chan IdentifiedChunk, 16)
 	files := listFiles(dataDir)
 	go concatFiles(files, writer1)
 	go concatFiles(files, writer2)
@@ -185,14 +185,15 @@ func TestBsdiff(t *testing.T) {
 	defer os.Remove(addedFile2)
 
 	// Load previously stored chunks
-	oldChunks := make(chan StoredChunk, 16)
+	oldChunks := make(chan IdentifiedChunk, 16)
 	versions := repo.loadVersions()
+	newVersion := len(versions)
 	go repo.loadChunks(versions, oldChunks)
 	repo.hashChunks(oldChunks)
 
 	// Read new data
 	reader := getDataStream(dataDir, concatFiles)
-	recipe := repo.matchStream(reader)
+	recipe := repo.matchStream(reader, newVersion)
 	newChunks := extractDeltaChunks(repo.mergeTempChunks(recipe))
 	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
