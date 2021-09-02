@@ -51,6 +51,8 @@ type Repo struct {
 	sketchFCount  int
 	differ        Differ
 	patcher       Patcher
+	fingerprints  FingerprintMap
+	sketches      SketchMap
 }
 
 type File struct {
@@ -68,6 +70,8 @@ func NewRepo(path string) *Repo {
 		sketchFCount:  4,
 		differ:        &Bsdiff{},
 		patcher:       &Bsdiff{},
+		fingerprints:  make(FingerprintMap),
+		sketches:      make(SketchMap),
 	}
 }
 
@@ -92,8 +96,8 @@ func (r *Repo) Commit(source string) {
 	files := listFiles(source)
 	go r.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
-	fingerprints, sketches := r.hashChunks(oldChunks)
-	chunks := r.matchStream(reader, fingerprints, sketches)
+	r.hashChunks(oldChunks)
+	chunks := r.matchStream(reader)
 	extractTempChunks(chunks)
 	// storeChunks(newChunkPath, newChunks)
 	// storeFiles(newFilesPath, files)
@@ -238,26 +242,24 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- StoredChunk) {
 //
 // For each chunk, both a fingerprint (hash over the full content) and a sketch
 // (resemblance hash based on maximal values of regions) are calculated and
-// stored in an hashmap which are then returned.
-func (r *Repo) hashChunks(chunks <-chan StoredChunk) (FingerprintMap, SketchMap) {
-	fingerprints := make(FingerprintMap)
-	sketches := make(SketchMap)
+// stored in an hashmap.
+func (r *Repo) hashChunks(chunks <-chan StoredChunk) {
 	hasher := hash.Hash64(rabinkarp64.New())
 	for c := range chunks {
 		hasher.Reset()
 		io.Copy(hasher, c.Reader())
 		h := hasher.Sum64()
-		fingerprints[h] = c.Id()
+		r.fingerprints[h] = c.Id()
 		sketch, _ := SketchChunk(c, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 		for _, s := range sketch {
-			prev := sketches[s]
+			prev := r.sketches[s]
 			if contains(prev, c.Id()) {
 				continue
 			}
-			sketches[s] = append(prev, c.Id())
+			r.sketches[s] = append(prev, c.Id())
 		}
 	}
-	return fingerprints, sketches
+	return
 }
 
 func contains(s []*ChunkId, id *ChunkId) bool {
@@ -269,13 +271,13 @@ func contains(s []*ChunkId, id *ChunkId) bool {
 	return false
 }
 
-func (r *Repo) findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool) {
+func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
 	sketch, _ := SketchChunk(chunk, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	for _, s := range sketch {
-		chunkIds, exists := sketches[s]
+		chunkIds, exists := r.sketches[s]
 		if !exists {
 			continue
 		}
@@ -292,8 +294,8 @@ func (r *Repo) findSimilarChunk(chunk Chunk, sketches SketchMap) (*ChunkId, bool
 	return similarChunk, similarChunk != nil
 }
 
-func (r *Repo) tryDeltaEncodeChunk(temp *TempChunk, sketches SketchMap) (Chunk, bool) {
-	id, found := r.findSimilarChunk(temp, sketches)
+func (r *Repo) tryDeltaEncodeChunk(temp *TempChunk) (Chunk, bool) {
+	id, found := r.findSimilarChunk(temp)
 	if found {
 		var buff bytes.Buffer
 		if err := r.differ.Diff(id.Reader(r), temp.Reader(), &buff); err != nil {
@@ -311,25 +313,25 @@ func (r *Repo) tryDeltaEncodeChunk(temp *TempChunk, sketches SketchMap) (Chunk, 
 	return temp, false
 }
 
-func (r *Repo) tryDeltaEncodeChunks(prev *TempChunk, curr *TempChunk, sketches SketchMap) []Chunk {
+func (r *Repo) tryDeltaEncodeChunks(prev *TempChunk, curr *TempChunk) []Chunk {
 	if prev == nil {
-		c, _ := r.tryDeltaEncodeChunk(curr, sketches)
+		c, _ := r.tryDeltaEncodeChunk(curr)
 		return []Chunk{c}
 	} else if curr.Len() < r.chunkMinLen() {
-		c, success := r.tryDeltaEncodeChunk(NewTempChunk(append(prev.Bytes(), curr.Bytes()...)), sketches)
+		c, success := r.tryDeltaEncodeChunk(NewTempChunk(append(prev.Bytes(), curr.Bytes()...)))
 		if success {
 			return []Chunk{c}
 		} else {
 			return []Chunk{prev, curr}
 		}
 	} else {
-		prevD, _ := r.tryDeltaEncodeChunk(prev, sketches)
-		currD, _ := r.tryDeltaEncodeChunk(curr, sketches)
+		prevD, _ := r.tryDeltaEncodeChunk(prev)
+		currD, _ := r.tryDeltaEncodeChunk(curr)
 		return []Chunk{prevD, currD}
 	}
 }
 
-func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap, sketches SketchMap) []Chunk {
+func (r *Repo) matchStream(stream io.Reader) []Chunk {
 	var b byte
 	var chunks []Chunk
 	var prev *TempChunk
@@ -344,16 +346,16 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap, sketch
 	hasher.Write(buff[:n])
 	for err != io.EOF {
 		h := hasher.Sum64()
-		chunkId, exists := fingerprints[h]
+		chunkId, exists := r.fingerprints[h]
 		if exists {
 			if len(buff) > r.chunkSize && len(buff) < r.chunkSize*2 {
 				size := len(buff) - r.chunkSize
 				log.Println("Add new partial chunk of size:", size)
 				temp := NewTempChunk(buff[:size])
-				chunks = append(chunks, r.tryDeltaEncodeChunks(prev, temp, sketches)...)
+				chunks = append(chunks, r.tryDeltaEncodeChunks(prev, temp)...)
 				prev = nil
 			} else if prev != nil {
-				c, _ := r.tryDeltaEncodeChunk(prev, sketches)
+				c, _ := r.tryDeltaEncodeChunk(prev)
 				chunks = append(chunks, c)
 				prev = nil
 			}
@@ -370,7 +372,7 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap, sketch
 		if len(buff) == r.chunkSize*2 {
 			log.Println("Add new chunk")
 			if prev != nil {
-				chunk, _ := r.tryDeltaEncodeChunk(prev, sketches)
+				chunk, _ := r.tryDeltaEncodeChunk(prev)
 				chunks = append(chunks, chunk)
 			}
 			prev = NewTempChunk(buff[:r.chunkSize])
@@ -395,7 +397,7 @@ func (r *Repo) matchStream(stream io.Reader, fingerprints FingerprintMap, sketch
 			log.Println("Add new partial chunk of size:", len(buff))
 			temp = NewTempChunk(buff)
 		}
-		chunks = append(chunks, r.tryDeltaEncodeChunks(prev, temp, sketches)...)
+		chunks = append(chunks, r.tryDeltaEncodeChunks(prev, temp)...)
 	}
 	return chunks
 }

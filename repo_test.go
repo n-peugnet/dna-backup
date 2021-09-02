@@ -188,11 +188,11 @@ func TestBsdiff(t *testing.T) {
 	oldChunks := make(chan StoredChunk, 16)
 	versions := repo.loadVersions()
 	go repo.loadChunks(versions, oldChunks)
-	fingerprints, sketches := repo.hashChunks(oldChunks)
+	repo.hashChunks(oldChunks)
 
 	// Read new data
 	reader := getDataStream(dataDir, concatFiles)
-	recipe := repo.matchStream(reader, fingerprints, sketches)
+	recipe := repo.matchStream(reader)
 	newChunks := extractDeltaChunks(repo.mergeTempChunks(recipe))
 	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
