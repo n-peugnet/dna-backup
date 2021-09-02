@@ -26,18 +26,16 @@ func streamFilesTar(files []File, stream io.WriteCloser) {
 			continue
 		}
 		if err := tarStream.WriteHeader(hdr); err != nil {
-			log.Printf("Error writing tar header to stream for file '%s': %s\n", f.Path, err)
-			continue
+			log.Panicf("Error writing tar header to stream for file '%s': %s\n", f.Path, err)
 		}
 		if _, err := io.Copy(tarStream, file); err != nil {
-			log.Printf("Error writing file to stream '%s': %s\n", f.Path, err)
-			continue
+			log.Panicf("Error writing file to stream '%s': %s\n", f.Path, err)
 		}
 	}
 	if err := tarStream.Close(); err != nil {
-		log.Fatal("Error closing tar stream:", err)
+		log.Panic("Error closing tar stream:", err)
 	}
 	if err := stream.Close(); err != nil {
-		log.Fatal("Error closing stream:", err)
+		log.Panic("Error closing stream:", err)
 	}
 }

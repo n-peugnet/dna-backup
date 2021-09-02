@@ -108,6 +108,10 @@ func (c *TempChunk) Len() int {
 	return len(c.value)
 }
 
+func (c *TempChunk) Bytes() []byte {
+	return c.value
+}
+
 func (c *TempChunk) AppendFrom(r io.Reader) {
 	buff, err := io.ReadAll(r)
 	if err != nil {
@@ -129,6 +133,7 @@ func (c *DeltaChunk) Reader() ChunkReader {
 	return &buff
 }
 
+// TODO: Maybe return the size of the patch instead ?
 func (c *DeltaChunk) Len() int {
 	return c.size
 }

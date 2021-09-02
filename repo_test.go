@@ -9,8 +9,6 @@ import (
 	"path"
 	"reflect"
 	"testing"
-
-	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 )
 
 func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, chunkCount int) {
@@ -175,14 +173,16 @@ func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
 	dataDir := path.Join("test", "data", "logs")
-	addedFile := path.Join(dataDir, "2", "slogTest.log")
+	addedFile1 := path.Join(dataDir, "2", "slogTest.log")
+	addedFile2 := path.Join(dataDir, "3", "slogTest.log")
 	// Store initial chunks
 	prepareChunks(dataDir, repo, concatFiles)
 
 	// Modify data
-	input := []byte("hello")
-	ioutil.WriteFile(addedFile, input, 0664)
-	defer os.Remove(addedFile)
+	ioutil.WriteFile(addedFile1, []byte("hello"), 0664)
+	defer os.Remove(addedFile1)
+	ioutil.WriteFile(addedFile2, make([]byte, 4000), 0664)
+	defer os.Remove(addedFile2)
 
 	// Load previously stored chunks
 	oldChunks := make(chan StoredChunk, 16)
@@ -192,21 +192,13 @@ func TestBsdiff(t *testing.T) {
 
 	// Read new data
 	reader := getDataStream(dataDir, concatFiles)
-	recipe := repo.matchStream(reader, fingerprints)
-	newChunks := extractTempChunks(repo.mergeTempChunks(recipe))
-	assertLen(t, 2, newChunks, "New chunks:")
+	recipe := repo.matchStream(reader, fingerprints, sketches)
+	newChunks := extractDeltaChunks(repo.mergeTempChunks(recipe))
+	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
-		id, exists := repo.findSimilarChunk(c, sketches)
-		log.Println(id, exists)
-		if exists {
-			patch := new(bytes.Buffer)
-			stored := id.Reader(repo)
-			new := c.Reader()
-			bsdiff.Reader(stored, new, patch)
-			log.Println("Patch size:", patch.Len())
-			if patch.Len() >= repo.chunkSize/10 {
-				t.Errorf("Bsdiff of chunk is too large: %d", patch.Len())
-			}
+		log.Println("Patch size:", len(c.patch))
+		if len(c.patch) >= repo.chunkSize/10 {
+			t.Errorf("Bsdiff of chunk is too large: %d", len(c.patch))
 		}
 	}
 }
