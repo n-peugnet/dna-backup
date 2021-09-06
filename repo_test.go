@@ -204,6 +204,13 @@ func TestBsdiff(t *testing.T) {
 	}
 }
 
+func TestCommit(t *testing.T) {
+	dest := t.TempDir()
+	source := path.Join("test", "data")
+	repo := NewRepo(dest)
+	repo.Commit(source)
+}
+
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
 	s := reflect.ValueOf(actual)
 	if s.Len() != expected {

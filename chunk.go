@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,6 +23,11 @@ type IdentifiedChunk interface {
 type BufferedChunk interface {
 	Chunk
 	Bytes() []byte
+}
+
+type StorerChunk interface {
+	Chunk
+	Store(path string) error
 }
 
 type ChunkId struct {
@@ -66,6 +72,10 @@ func (c *LoadedChunk) Len() int {
 
 func (c *LoadedChunk) Bytes() []byte {
 	return c.value
+}
+
+func (c *LoadedChunk) Store(path string) error {
+	return storeChunk(c.Reader(), c.id.Path(path))
 }
 
 func NewStoredFile(repo *Repo, id *ChunkId) *StoredChunk {
@@ -139,4 +149,19 @@ func (c *DeltaChunk) Reader() io.ReadSeeker {
 // TODO: Maybe return the size of the patch instead ?
 func (c *DeltaChunk) Len() int {
 	return c.size
+}
+
+func storeChunk(r io.Reader, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error creating chunk for '%s'; %s\n", path, err))
+	}
+	n, err := io.Copy(file, r)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err))
+	}
+	if err := file.Close(); err != nil {
+		return errors.New(fmt.Sprintf("Error closing chunk for '%s': %s\n", path, err))
+	}
+	return nil
 }

@@ -99,7 +99,8 @@ func (r *Repo) Commit(source string) {
 	newVersion := len(versions)
 	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := path.Join(newPath, chunksName)
-	// newFilesPath := path.Join(newPath, filesName)
+	newFilesPath := path.Join(newPath, filesName)
+	newRecipePath := path.Join(newPath, recipeName)
 	os.Mkdir(newPath, 0775)
 	os.Mkdir(newChunkPath, 0775)
 	reader, writer := io.Pipe()
@@ -108,10 +109,9 @@ func (r *Repo) Commit(source string) {
 	go r.loadChunks(versions, oldChunks)
 	go concatFiles(files, writer)
 	r.hashChunks(oldChunks)
-	chunks := r.matchStream(reader, newVersion)
-	extractTempChunks(chunks)
-	// storeChunks(newChunkPath, newChunks)
-	// storeFiles(newFilesPath, files)
+	recipe := r.matchStream(reader, newVersion)
+	storeRecipe(newRecipePath, recipe)
+	storeFileList(newFilesPath, files)
 	fmt.Println(files)
 }
 
@@ -331,6 +331,8 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 	return temp, false
 }
 
+// encodeTempChunk first tries to delta-encode the given chunk before attributing
+// it an Id and saving it into the fingerprints and sketches maps.
 func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (chunk Chunk, isDelta bool) {
 	chunk, isDelta = r.tryDeltaEncodeChunk(temp)
 	if isDelta {
@@ -343,6 +345,7 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		ic := NewLoadedChunk(id, temp.Bytes())
 		hasher := rabinkarp64.NewFromPol(r.pol)
 		r.hashAndStoreChunk(ic, hasher)
+		ic.Store(r.path)
 		log.Println("Add new chunk", id)
 		return ic, false
 	}
@@ -350,6 +353,10 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 	return
 }
 
+// encodeTempChunks encodes the current temporary chunks based on the value of the previous one.
+// Temporary chunks can be partial. If the current chunk is smaller than the size of a
+// super-feature and there exists a previous chunk, then both are merged before attempting
+// to delta-encode them.
 func (r *Repo) encodeTempChunks(prev BufferedChunk, curr BufferedChunk, version int, last *uint64) []Chunk {
 	if reflect.ValueOf(prev).IsNil() {
 		c, _ := r.encodeTempChunk(curr, version, last)
@@ -433,6 +440,13 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 		chunks = append(chunks, r.encodeTempChunks(prev, temp, version, &last)...)
 	}
 	return chunks
+}
+
+func storeRecipe(dest string, recipe []Chunk) {
+	err := writeFile(dest, recipe)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // mergeTempChunks joins temporary partial chunks from an array of chunks if possible.
