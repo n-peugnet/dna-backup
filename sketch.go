@@ -22,7 +22,7 @@ const fBytes = 8
 // SketchChunk produces a sketch for a chunk based on wSize: the window size,
 // sfCount: the number of super-features, and fCount: the number of feature
 // per super-feature
-func SketchChunk(chunk Chunk, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
+func SketchChunk(chunk Chunk, pol rabinkarp64.Pol, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
 	var wg sync.WaitGroup
 	var fSize = FeatureSize(chunkSize, sfCount, fCount)
 	superfeatures := make([]uint64, 0, sfCount)
@@ -37,9 +37,9 @@ func SketchChunk(chunk Chunk, chunkSize int, wSize int, sfCount int, fCount int)
 		}
 		features = append(features, 0)
 		wg.Add(1)
-		go calcFeature(&wg, &fBuff, wSize, fSize, &features[f])
+		go calcFeature(&wg, pol, &fBuff, wSize, fSize, &features[f])
 	}
-	hasher := rabinkarp64.New()
+	hasher := rabinkarp64.NewFromPol(pol)
 	wg.Wait()
 	for sf := 0; sf < len(features)/fCount; sf++ {
 		for i := 0; i < fCount; i++ {
@@ -52,9 +52,9 @@ func SketchChunk(chunk Chunk, chunkSize int, wSize int, sfCount int, fCount int)
 	return superfeatures, nil
 }
 
-func calcFeature(wg *sync.WaitGroup, r ReadByteReader, wSize int, fSize int, result *uint64) {
+func calcFeature(wg *sync.WaitGroup, p rabinkarp64.Pol, r ReadByteReader, wSize int, fSize int, result *uint64) {
 	defer wg.Done()
-	hasher := rabinkarp64.New()
+	hasher := rabinkarp64.NewFromPol(p)
 	n, err := io.CopyN(hasher, r, int64(wSize))
 	if err != nil {
 		log.Println(n, err)

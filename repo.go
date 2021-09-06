@@ -49,6 +49,7 @@ type Repo struct {
 	sketchWSize   int
 	sketchSfCount int
 	sketchFCount  int
+	pol           rabinkarp64.Pol
 	differ        Differ
 	patcher       Patcher
 	fingerprints  FingerprintMap
@@ -61,13 +62,22 @@ type File struct {
 }
 
 func NewRepo(path string) *Repo {
-	os.MkdirAll(path, 0775)
+	err := os.MkdirAll(path, 0775)
+	// if err != nil {
+	// 	log.Panicln(err)
+	// }
+	var seed int64 = 1
+	p, err := rabinkarp64.RandomPolynomial(seed)
+	if err != nil {
+		log.Panicln(err)
+	}
 	return &Repo{
 		path:          path,
 		chunkSize:     8 << 10,
 		sketchWSize:   32,
 		sketchSfCount: 3,
 		sketchFCount:  4,
+		pol:           p,
 		differ:        &Bsdiff{},
 		patcher:       &Bsdiff{},
 		fingerprints:  make(FingerprintMap),
@@ -244,7 +254,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 // (resemblance hash based on maximal values of regions) are calculated and
 // stored in an hashmap.
 func (r *Repo) hashChunks(chunks <-chan IdentifiedChunk) {
-	hasher := rabinkarp64.New()
+	hasher := rabinkarp64.NewFromPol(r.pol)
 	for c := range chunks {
 		r.hashAndStoreChunk(c, hasher)
 	}
@@ -254,7 +264,7 @@ func (r *Repo) hashAndStoreChunk(chunk IdentifiedChunk, hasher hash.Hash64) {
 	hasher.Reset()
 	io.Copy(hasher, chunk.Reader())
 	fingerprint := hasher.Sum64()
-	sketch, _ := SketchChunk(chunk, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	sketch, _ := SketchChunk(chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	r.storeChunkId(chunk.Id(), fingerprint, sketch)
 }
 
@@ -282,7 +292,7 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
-	sketch, _ := SketchChunk(chunk, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	sketch, _ := SketchChunk(chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	for _, s := range sketch {
 		chunkIds, exists := r.sketches[s]
 		if !exists {
@@ -329,7 +339,7 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		*last++
 		id := &ChunkId{Ver: version, Idx: *last}
 		ic := NewLoadedChunk(id, temp.Bytes())
-		hasher := rabinkarp64.New()
+		hasher := rabinkarp64.NewFromPol(r.pol)
 		r.hashAndStoreChunk(ic, hasher)
 		log.Println("Add new chunk", id)
 		return ic, false
@@ -368,7 +378,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 		chunks = append(chunks, NewTempChunk(buff[:n]))
 		return chunks
 	}
-	hasher := rabinkarp64.New()
+	hasher := rabinkarp64.NewFromPol(r.pol)
 	hasher.Write(buff[:n])
 	for err != io.EOF {
 		h := hasher.Sum64()
