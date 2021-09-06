@@ -36,6 +36,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 )
@@ -219,6 +220,7 @@ func storeChunks(dest string, chunks <-chan []byte) {
 	}
 }
 
+// TODO: use atoi for chunkid
 func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 	for i, v := range versions {
 		p := path.Join(v, chunksName)
@@ -336,8 +338,8 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		return
 	}
 	if chunk.Len() == r.chunkSize {
-		*last++
 		id := &ChunkId{Ver: version, Idx: *last}
+		*last++
 		ic := NewLoadedChunk(id, temp.Bytes())
 		hasher := rabinkarp64.NewFromPol(r.pol)
 		r.hashAndStoreChunk(ic, hasher)
@@ -349,7 +351,7 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 }
 
 func (r *Repo) encodeTempChunks(prev BufferedChunk, curr BufferedChunk, version int, last *uint64) []Chunk {
-	if prev == nil {
+	if reflect.ValueOf(prev).IsNil() {
 		c, _ := r.encodeTempChunk(curr, version, last)
 		return []Chunk{c}
 	} else if curr.Len() < r.chunkMinLen() {
@@ -371,7 +373,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 	var chunks []Chunk
 	var prev *TempChunk
 	var last uint64
-	bufStream := bufio.NewReaderSize(stream, r.chunkSize)
+	bufStream := bufio.NewReaderSize(stream, r.chunkSize*2)
 	buff := make([]byte, 0, r.chunkSize*2)
 	n, err := io.ReadFull(stream, buff[:r.chunkSize])
 	if n < r.chunkSize {
