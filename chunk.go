@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -10,13 +9,8 @@ import (
 	"path"
 )
 
-type ChunkReader interface {
-	io.Reader
-	io.ByteReader
-}
-
 type Chunk interface {
-	Reader() ChunkReader
+	Reader() io.ReadSeeker
 	Len() int
 }
 
@@ -39,13 +33,13 @@ func (i *ChunkId) Path(repo string) string {
 	return path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
 }
 
-func (i *ChunkId) Reader(repo *Repo) ChunkReader {
+func (i *ChunkId) Reader(repo *Repo) io.ReadSeeker {
 	path := i.Path(repo.path)
 	f, err := os.Open(path)
 	if err != nil {
 		log.Println("Cannot open chunk: ", path)
 	}
-	return bufio.NewReaderSize(f, repo.chunkSize)
+	return f
 }
 
 func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
@@ -61,7 +55,7 @@ func (c *LoadedChunk) Id() *ChunkId {
 	return c.id
 }
 
-func (c *LoadedChunk) Reader() ChunkReader {
+func (c *LoadedChunk) Reader() io.ReadSeeker {
 	// log.Printf("Chunk %d: Reading from in-memory value\n", c.id)
 	return bytes.NewReader(c.value)
 }
@@ -87,7 +81,7 @@ func (c *StoredChunk) Id() *ChunkId {
 	return c.id
 }
 
-func (c *StoredChunk) Reader() ChunkReader {
+func (c *StoredChunk) Reader() io.ReadSeeker {
 	// log.Printf("Chunk %d: Reading from file\n", c.id)
 	return c.id.Reader(c.repo)
 }
@@ -109,7 +103,7 @@ type TempChunk struct {
 	value []byte
 }
 
-func (c *TempChunk) Reader() ChunkReader {
+func (c *TempChunk) Reader() io.ReadSeeker {
 	return bytes.NewReader(c.value)
 }
 
@@ -136,10 +130,10 @@ type DeltaChunk struct {
 	size   int
 }
 
-func (c *DeltaChunk) Reader() ChunkReader {
+func (c *DeltaChunk) Reader() io.ReadSeeker {
 	var buff bytes.Buffer
 	c.repo.Patcher().Patch(c.source.Reader(c.repo), &buff, bytes.NewReader(c.patch))
-	return &buff
+	return bytes.NewReader(buff.Bytes())
 }
 
 // TODO: Maybe return the size of the patch instead ?
