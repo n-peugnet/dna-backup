@@ -13,10 +13,25 @@ priority 1
             store in sketchMap
     ```
 - [ ] read from repo
-    - [ ] store recipe
-    - [ ] load recipe
+    - [x] store recipe
+    - [x] load recipe
     - [ ] read chunks in-order into a stream
+    - [ ] read individual files
 - [ ] properly store informations to be DNA encoded
+    - [ ] tar source to keep files metadata ?
+    - [ ] store chunks compressed
+        - [ ] compress before storing
+        - [ ] uncompress before loading
+    - [ ] store compressed chunks into tracks ok trackSize (1024o)
+- [ ] add chunk cache that would look like this:
+    ```go
+    type ChunkCache map[ChunkId][]byte // Do we really want to only keep the chunk content ?
+
+    type Cache interface {
+        Get(id ChunkId) Chunk
+        Set(id ChunkId, Chunk)
+    }
+    ```
 
 priority 2
 ----------
