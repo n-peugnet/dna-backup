@@ -22,7 +22,7 @@ priority 1
     - [ ] store chunks compressed
         - [ ] compress before storing
         - [ ] uncompress before loading
-    - [ ] store compressed chunks into tracks ok trackSize (1024o)
+    - [ ] store compressed chunks into tracks of trackSize (1024o)
 - [ ] add chunk cache that would look like this:
     ```go
     type ChunkCache map[ChunkId][]byte // Do we really want to only keep the chunk content ?
@@ -37,3 +37,13 @@ priority 2
 ----------
 - [ ] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
 - [ ] refactor matchStream as right now it is quite complex
+- [ ] better test for `Repo.matchStream`
+- [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in fact just `TempChunks` for now)
+- [ ] option to commit without deltas to save new base chunks
+
+réunion 7/09
+------------
+- [ ] save recipe consecutive chunks as extents
+- [ ] store recipe and files incrementally
+- [ ] compress recipe
+- [ ] make size comparision between recipe and chunks with some datasets

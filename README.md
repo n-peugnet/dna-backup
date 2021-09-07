@@ -18,5 +18,5 @@ go build
 go test -v
 
 # Run
-./dna-backup <source-dir> <repository>
+go run . <source-dir> <repository>
 ```
