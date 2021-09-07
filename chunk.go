@@ -17,7 +17,7 @@ type Chunk interface {
 
 type IdentifiedChunk interface {
 	Chunk
-	Id() *ChunkId
+	GetId() *ChunkId
 }
 
 type BufferedChunk interface {
@@ -49,16 +49,16 @@ func (i *ChunkId) Reader(repo *Repo) io.ReadSeeker {
 }
 
 func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
-	return &LoadedChunk{id: id, value: value}
+	return &LoadedChunk{Id: id, value: value}
 }
 
 type LoadedChunk struct {
-	id    *ChunkId
+	Id    *ChunkId
 	value []byte
 }
 
-func (c *LoadedChunk) Id() *ChunkId {
-	return c.id
+func (c *LoadedChunk) GetId() *ChunkId {
+	return c.Id
 }
 
 func (c *LoadedChunk) Reader() io.ReadSeeker {
@@ -75,29 +75,29 @@ func (c *LoadedChunk) Bytes() []byte {
 }
 
 func (c *LoadedChunk) Store(path string) error {
-	return storeChunk(c.Reader(), c.id.Path(path))
+	return storeChunk(c.Reader(), c.Id.Path(path))
 }
 
-func NewStoredFile(repo *Repo, id *ChunkId) *StoredChunk {
-	return &StoredChunk{repo: repo, id: id}
+func NewStoredChunk(repo *Repo, id *ChunkId) *StoredChunk {
+	return &StoredChunk{repo: repo, Id: id}
 }
 
 type StoredChunk struct {
 	repo *Repo
-	id   *ChunkId
+	Id   *ChunkId
 }
 
-func (c *StoredChunk) Id() *ChunkId {
-	return c.id
+func (c *StoredChunk) GetId() *ChunkId {
+	return c.Id
 }
 
 func (c *StoredChunk) Reader() io.ReadSeeker {
 	// log.Printf("Chunk %d: Reading from file\n", c.id)
-	return c.id.Reader(c.repo)
+	return c.Id.Reader(c.repo)
 }
 
 func (c *StoredChunk) Len() int {
-	path := c.id.Path(c.repo.path)
+	path := c.Id.Path(c.repo.path)
 	info, err := os.Stat(path)
 	if err != nil {
 		log.Println("Chunk: could not stat file:", path)
@@ -106,23 +106,23 @@ func (c *StoredChunk) Len() int {
 }
 
 func NewTempChunk(value []byte) *TempChunk {
-	return &TempChunk{value: value}
+	return &TempChunk{Value: value}
 }
 
 type TempChunk struct {
-	value []byte
+	Value []byte
 }
 
 func (c *TempChunk) Reader() io.ReadSeeker {
-	return bytes.NewReader(c.value)
+	return bytes.NewReader(c.Value)
 }
 
 func (c *TempChunk) Len() int {
-	return len(c.value)
+	return len(c.Value)
 }
 
 func (c *TempChunk) Bytes() []byte {
-	return c.value
+	return c.Value
 }
 
 func (c *TempChunk) AppendFrom(r io.Reader) {
@@ -130,25 +130,25 @@ func (c *TempChunk) AppendFrom(r io.Reader) {
 	if err != nil {
 		println("Chunk: error appending to temp chunk:", err)
 	}
-	c.value = append(c.value, buff...)
+	c.Value = append(c.Value, buff...)
 }
 
 type DeltaChunk struct {
 	repo   *Repo
-	source *ChunkId
-	patch  []byte
-	size   int
+	Source *ChunkId
+	Patch  []byte
+	Size   int
 }
 
 func (c *DeltaChunk) Reader() io.ReadSeeker {
 	var buff bytes.Buffer
-	c.repo.Patcher().Patch(c.source.Reader(c.repo), &buff, bytes.NewReader(c.patch))
+	c.repo.Patcher().Patch(c.Source.Reader(c.repo), &buff, bytes.NewReader(c.Patch))
 	return bytes.NewReader(buff.Bytes())
 }
 
 // TODO: Maybe return the size of the patch instead ?
 func (c *DeltaChunk) Len() int {
-	return c.size
+	return c.Size
 }
 
 func storeChunk(r io.Reader, path string) error {

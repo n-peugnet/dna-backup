@@ -193,17 +193,31 @@ func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
 }
 
 func storeFileList(dest string, files []File) {
-	err := writeFile(dest, files)
+	file, err := os.Create(dest)
+	if err == nil {
+		encoder := gob.NewEncoder(file)
+		err = encoder.Encode(files)
+	}
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
+	}
+	if err = file.Close(); err != nil {
+		log.Panicln(err)
 	}
 }
 
 func loadFileList(path string) []File {
 	var files []File
-	err := readFile(path, &files)
+	file, err := os.Open(path)
+	if err == nil {
+		decoder := gob.NewDecoder(file)
+		err = decoder.Decode(&files)
+	}
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
+	}
+	if err = file.Close(); err != nil {
+		log.Panicln(err)
 	}
 	return files
 }
@@ -267,7 +281,7 @@ func (r *Repo) hashAndStoreChunk(chunk IdentifiedChunk, hasher hash.Hash64) {
 	io.Copy(hasher, chunk.Reader())
 	fingerprint := hasher.Sum64()
 	sketch, _ := SketchChunk(chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
-	r.storeChunkId(chunk.Id(), fingerprint, sketch)
+	r.storeChunkId(chunk.GetId(), fingerprint, sketch)
 }
 
 func (r *Repo) storeChunkId(id *ChunkId, fingerprint uint64, sketch []uint64) {
@@ -322,9 +336,9 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 		} else {
 			return &DeltaChunk{
 				repo:   r,
-				source: id,
-				patch:  buff.Bytes(),
-				size:   temp.Len(),
+				Source: id,
+				Patch:  buff.Bytes(),
+				Size:   temp.Len(),
 			}, true
 		}
 	}
@@ -404,7 +418,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 				prev = nil
 			}
 			log.Printf("Add existing chunk: %d\n", chunkId)
-			chunks = append(chunks, NewStoredFile(r, chunkId))
+			chunks = append(chunks, NewStoredChunk(r, chunkId))
 			buff = make([]byte, 0, r.chunkSize*2)
 			for i := 0; i < r.chunkSize && err == nil; i++ {
 				b, err = bufStream.ReadByte()
@@ -443,10 +457,50 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 }
 
 func storeRecipe(dest string, recipe []Chunk) {
-	err := writeFile(dest, recipe)
-	if err != nil {
-		log.Println(err)
+	gob.Register(&LoadedChunk{})
+	gob.Register(&StoredChunk{})
+	gob.Register(&TempChunk{})
+	gob.Register(&DeltaChunk{})
+	file, err := os.Create(dest)
+	if err == nil {
+		encoder := gob.NewEncoder(file)
+		for _, c := range recipe {
+			if err = encoder.Encode(&c); err != nil {
+				log.Panicln(err)
+			}
+		}
 	}
+	if err != nil {
+		log.Panicln(err)
+	}
+	if err = file.Close(); err != nil {
+		log.Panicln(err)
+	}
+}
+
+func loadRecipe(path string) []Chunk {
+	var recipe []Chunk
+	gob.Register(&LoadedChunk{})
+	gob.Register(&StoredChunk{})
+	gob.Register(&TempChunk{})
+	gob.Register(&DeltaChunk{})
+	file, err := os.Open(path)
+	if err == nil {
+		decoder := gob.NewDecoder(file)
+		for i := 0; err == nil; i++ {
+			var c Chunk
+			if err = decoder.Decode(&c); err == nil {
+				recipe = append(recipe, c)
+			}
+		}
+	}
+	if err != nil && err != io.EOF {
+		log.Panicln(err)
+	}
+	if err = file.Close(); err != nil {
+		log.Panicln(err)
+	}
+	return recipe
 }
 
 // mergeTempChunks joins temporary partial chunks from an array of chunks if possible.
@@ -498,24 +552,4 @@ func extractDeltaChunks(chunks []Chunk) (ret []*DeltaChunk) {
 		}
 	}
 	return
-}
-
-func writeFile(filePath string, object interface{}) error {
-	file, err := os.Create(filePath)
-	if err == nil {
-		encoder := gob.NewEncoder(file)
-		encoder.Encode(object)
-	}
-	file.Close()
-	return err
-}
-
-func readFile(filePath string, object interface{}) error {
-	file, err := os.Open(filePath)
-	if err == nil {
-		decoder := gob.NewDecoder(file)
-		err = decoder.Decode(object)
-	}
-	file.Close()
-	return err
 }

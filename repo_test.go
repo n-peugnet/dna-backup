@@ -123,11 +123,11 @@ func TestLoadChunks(t *testing.T) {
 func TestExtractNewChunks(t *testing.T) {
 	repo := NewRepo("")
 	chunks := []Chunk{
-		&TempChunk{value: []byte{'a'}},
-		&LoadedChunk{id: &ChunkId{0, 0}},
-		&TempChunk{value: []byte{'b'}},
-		&TempChunk{value: []byte{'c'}},
-		&LoadedChunk{id: &ChunkId{0, 1}},
+		&TempChunk{Value: []byte{'a'}},
+		&LoadedChunk{Id: &ChunkId{0, 0}},
+		&TempChunk{Value: []byte{'b'}},
+		&TempChunk{Value: []byte{'c'}},
+		&LoadedChunk{Id: &ChunkId{0, 1}},
 	}
 	newChunks := extractTempChunks(repo.mergeTempChunks(chunks))
 	assertLen(t, 2, newChunks, "New chunks:")
@@ -197,9 +197,9 @@ func TestBsdiff(t *testing.T) {
 	newChunks := extractDeltaChunks(repo.mergeTempChunks(recipe))
 	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
-		log.Println("Patch size:", len(c.patch))
-		if len(c.patch) >= repo.chunkSize/10 {
-			t.Errorf("Bsdiff of chunk is too large: %d", len(c.patch))
+		log.Println("Patch size:", len(c.Patch))
+		if len(c.Patch) >= repo.chunkSize/10 {
+			t.Errorf("Bsdiff of chunk is too large: %d", len(c.Patch))
 		}
 	}
 }
@@ -209,6 +209,8 @@ func TestCommit(t *testing.T) {
 	source := path.Join("test", "data")
 	repo := NewRepo(dest)
 	repo.Commit(source)
+	recipe := loadRecipe(path.Join(dest, "00000", recipeName))
+	log.Println(recipe)
 }
 
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
