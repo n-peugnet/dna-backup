@@ -39,6 +39,7 @@ import (
 	"reflect"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
+	"github.com/n-peugnet/dna-backup/cache"
 )
 
 type FingerprintMap map[uint64]*ChunkId
@@ -55,6 +56,7 @@ type Repo struct {
 	patcher       Patcher
 	fingerprints  FingerprintMap
 	sketches      SketchMap
+	chunkCache    cache.Cacher
 }
 
 type File struct {
@@ -83,6 +85,7 @@ func NewRepo(path string) *Repo {
 		patcher:       &Bsdiff{},
 		fingerprints:  make(FingerprintMap),
 		sketches:      make(SketchMap),
+		chunkCache:    cache.NewFifoCache(1000),
 	}
 }
 
@@ -220,6 +223,21 @@ func loadFileList(path string) []File {
 		log.Panicln(err)
 	}
 	return files
+}
+
+// GetChunk loads a chunk from the repo.
+// If the chunk is in cache, get it from cache, else read it from drive.
+func (r *Repo) GetChunk(id *ChunkId) *LoadedChunk {
+	var err error
+	value, exists := r.chunkCache.Get(id)
+	if !exists {
+		value, err = io.ReadAll(id.Reader(r))
+		if err != nil {
+			log.Panicf("Could not read from chunk %d: %s", id, err)
+		}
+		r.chunkCache.Set(id, value)
+	}
+	return NewLoadedChunk(id, value)
 }
 
 func storeChunks(dest string, chunks <-chan []byte) {
