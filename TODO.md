@@ -23,15 +23,7 @@ priority 1
         - [ ] compress before storing
         - [ ] uncompress before loading
     - [ ] store compressed chunks into tracks of trackSize (1024o)
-- [ ] add chunk cache that would look like this:
-    ```go
-    type ChunkCache map[ChunkId][]byte // Do we really want to only keep the chunk content ?
-
-    type Cache interface {
-        Get(id ChunkId) Chunk
-        Set(id ChunkId, Chunk)
-    }
-    ```
+- [x] add chunk cache... what was it for again ??
 
 priority 2
 ----------

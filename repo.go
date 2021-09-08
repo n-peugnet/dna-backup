@@ -28,6 +28,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -225,19 +226,39 @@ func loadFileList(path string) []File {
 	return files
 }
 
-// GetChunk loads a chunk from the repo.
+func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
+	path := id.Path(r.path)
+	file, err := os.Create(path)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error creating chunk for '%s'; %s\n", path, err))
+	}
+	n, err := io.Copy(file, reader)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err))
+	}
+	if err := file.Close(); err != nil {
+		return errors.New(fmt.Sprintf("Error closing chunk for '%s': %s\n", path, err))
+	}
+	return nil
+}
+
+// LoadChunkContent loads a chunk from the repo.
 // If the chunk is in cache, get it from cache, else read it from drive.
-func (r *Repo) GetChunk(id *ChunkId) *LoadedChunk {
-	var err error
+func (r *Repo) LoadChunkContent(id *ChunkId) io.ReadSeeker {
 	value, exists := r.chunkCache.Get(id)
 	if !exists {
-		value, err = io.ReadAll(id.Reader(r))
+		path := id.Path(r.path)
+		f, err := os.Open(path)
 		if err != nil {
-			log.Panicf("Could not read from chunk %d: %s", id, err)
+			log.Printf("Cannot open chunk '%s': %s\n", path, err)
+		}
+		value, err = io.ReadAll(f)
+		if err != nil {
+			log.Panicf("Could not read from chunk '%s': %s\n", path, err)
 		}
 		r.chunkCache.Set(id, value)
 	}
-	return NewLoadedChunk(id, value)
+	return bytes.NewReader(value)
 }
 
 func storeChunks(dest string, chunks <-chan []byte) {
@@ -349,7 +370,7 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 	id, found := r.findSimilarChunk(temp)
 	if found {
 		var buff bytes.Buffer
-		if err := r.differ.Diff(id.Reader(r), temp.Reader(), &buff); err != nil {
+		if err := r.differ.Diff(r.LoadChunkContent(id), temp.Reader(), &buff); err != nil {
 			log.Println("Error trying delta encode chunk:", temp, "with source:", id, ":", err)
 		} else {
 			return &DeltaChunk{
@@ -377,9 +398,9 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		ic := NewLoadedChunk(id, temp.Bytes())
 		hasher := rabinkarp64.NewFromPol(r.pol)
 		r.hashAndStoreChunk(ic, hasher)
-		ic.Store(r.path)
+		r.StoreChunkContent(id, ic.Reader())
 		log.Println("Add new chunk", id)
-		return ic, false
+		return NewStoredChunk(r, id), false
 	}
 	log.Println("Add new partial chunk of size:", chunk.Len())
 	return

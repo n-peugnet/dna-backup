@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -25,11 +24,6 @@ type BufferedChunk interface {
 	Bytes() []byte
 }
 
-type StorerChunk interface {
-	Chunk
-	Store(path string) error
-}
-
 type ChunkId struct {
 	Ver int
 	Idx uint64
@@ -37,15 +31,6 @@ type ChunkId struct {
 
 func (i *ChunkId) Path(repo string) string {
 	return path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
-}
-
-func (i *ChunkId) Reader(repo *Repo) io.ReadSeeker {
-	path := i.Path(repo.path)
-	f, err := os.Open(path)
-	if err != nil {
-		log.Println("Cannot open chunk: ", path)
-	}
-	return f
 }
 
 func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
@@ -74,10 +59,6 @@ func (c *LoadedChunk) Bytes() []byte {
 	return c.value
 }
 
-func (c *LoadedChunk) Store(path string) error {
-	return storeChunk(c.Reader(), c.Id.Path(path))
-}
-
 func NewStoredChunk(repo *Repo, id *ChunkId) *StoredChunk {
 	return &StoredChunk{repo: repo, Id: id}
 }
@@ -93,7 +74,7 @@ func (c *StoredChunk) GetId() *ChunkId {
 
 func (c *StoredChunk) Reader() io.ReadSeeker {
 	// log.Printf("Chunk %d: Reading from file\n", c.id)
-	return c.Id.Reader(c.repo)
+	return c.repo.LoadChunkContent(c.Id)
 }
 
 func (c *StoredChunk) Len() int {
@@ -142,26 +123,11 @@ type DeltaChunk struct {
 
 func (c *DeltaChunk) Reader() io.ReadSeeker {
 	var buff bytes.Buffer
-	c.repo.Patcher().Patch(c.Source.Reader(c.repo), &buff, bytes.NewReader(c.Patch))
+	c.repo.Patcher().Patch(c.repo.LoadChunkContent(c.Source), &buff, bytes.NewReader(c.Patch))
 	return bytes.NewReader(buff.Bytes())
 }
 
 // TODO: Maybe return the size of the patch instead ?
 func (c *DeltaChunk) Len() int {
 	return c.Size
-}
-
-func storeChunk(r io.Reader, path string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error creating chunk for '%s'; %s\n", path, err))
-	}
-	n, err := io.Copy(file, r)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err))
-	}
-	if err := file.Close(); err != nil {
-		return errors.New(fmt.Sprintf("Error closing chunk for '%s': %s\n", path, err))
-	}
-	return nil
 }
