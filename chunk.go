@@ -24,6 +24,11 @@ type BufferedChunk interface {
 	Bytes() []byte
 }
 
+type RepoChunk interface {
+	Chunk
+	SetRepo(r *Repo)
+}
+
 type ChunkId struct {
 	Ver int
 	Idx uint64
@@ -70,6 +75,10 @@ type StoredChunk struct {
 
 func (c *StoredChunk) GetId() *ChunkId {
 	return c.Id
+}
+
+func (c *StoredChunk) SetRepo(r *Repo) {
+	c.repo = r
 }
 
 func (c *StoredChunk) Reader() io.ReadSeeker {
@@ -119,6 +128,10 @@ type DeltaChunk struct {
 	Source *ChunkId
 	Patch  []byte
 	Size   int
+}
+
+func (c *DeltaChunk) SetRepo(r *Repo) {
+	c.repo = r
 }
 
 func (c *DeltaChunk) Reader() io.ReadSeeker {

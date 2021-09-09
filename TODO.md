@@ -12,10 +12,10 @@ priority 1
             store in fingerprintMap
             store in sketchMap
     ```
-- [ ] read from repo
+- [ ] read from repo (Restore function)
     - [x] store recipe
     - [x] load recipe
-    - [ ] read chunks in-order into a stream
+    - [x] read chunks in-order into a stream
     - [ ] read individual files
 - [ ] properly store informations to be DNA encoded
     - [ ] tar source to keep files metadata ?

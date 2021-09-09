@@ -101,13 +101,13 @@ func (r *Repo) Patcher() Patcher {
 
 func (r *Repo) Commit(source string) {
 	versions := r.loadVersions()
-	newVersion := len(versions)
+	newVersion := len(versions) // TODO: add newVersion functino
 	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := path.Join(newPath, chunksName)
 	newFilesPath := path.Join(newPath, filesName)
 	newRecipePath := path.Join(newPath, recipeName)
-	os.Mkdir(newPath, 0775)
-	os.Mkdir(newChunkPath, 0775)
+	os.Mkdir(newPath, 0775)      // TODO: handle errors
+	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
 	reader, writer := io.Pipe()
 	oldChunks := make(chan IdentifiedChunk, 16)
 	files := listFiles(source)
@@ -118,6 +118,28 @@ func (r *Repo) Commit(source string) {
 	storeRecipe(newRecipePath, recipe)
 	storeFileList(newFilesPath, files)
 	fmt.Println(files)
+}
+
+func (r *Repo) Restore(destination string) {
+	versions := r.loadVersions()
+	latest := versions[len(versions)-1]
+	latestFilesPath := path.Join(latest, filesName)
+	latestRecipePath := path.Join(latest, recipeName)
+	files := loadFileList(latestFilesPath)
+	recipe := loadRecipe(latestRecipePath)
+	reader, writer := io.Pipe()
+	go r.restoreStream(writer, recipe)
+	bufReader := bufio.NewReaderSize(reader, r.chunkSize*2)
+	for _, file := range files {
+		filePath := path.Join(destination, file.Path)
+		dir := filepath.Dir(filePath)
+		os.MkdirAll(dir, 0775)      // TODO: handle errors
+		f, _ := os.Create(filePath) // TODO: handle errors
+		n, err := io.CopyN(f, bufReader, file.Size)
+		if err != nil {
+			log.Printf("Error storing file content for '%s', written %d/%d bytes: %s\n", filePath, n, file.Size, err)
+		}
+	}
 }
 
 func (r *Repo) loadVersions() []string {
@@ -468,8 +490,19 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 	return chunks
 }
 
+func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
+	for _, c := range recipe {
+		if rc, isRepo := c.(RepoChunk); isRepo {
+			rc.SetRepo(r)
+		}
+		if n, err := io.Copy(stream, c.Reader()); err != nil {
+			log.Printf("Error copying to stream, read %d bytes from chunk: %s\n", n, err)
+		}
+	}
+	stream.Close()
+}
+
 func storeRecipe(dest string, recipe []Chunk) {
-	gob.Register(&LoadedChunk{})
 	gob.Register(&StoredChunk{})
 	gob.Register(&TempChunk{})
 	gob.Register(&DeltaChunk{})
@@ -492,7 +525,6 @@ func storeRecipe(dest string, recipe []Chunk) {
 
 func loadRecipe(path string) []Chunk {
 	var recipe []Chunk
-	gob.Register(&LoadedChunk{})
 	gob.Register(&StoredChunk{})
 	gob.Register(&TempChunk{})
 	gob.Register(&DeltaChunk{})

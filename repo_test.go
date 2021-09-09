@@ -230,11 +230,42 @@ func TestBsdiff(t *testing.T) {
 
 func TestCommit(t *testing.T) {
 	dest := t.TempDir()
-	source := "testdata"
+	source := path.Join("testdata", "logs")
 	repo := NewRepo(dest)
 	repo.Commit(source)
 	recipe := loadRecipe(path.Join(dest, "00000", recipeName))
 	log.Println(recipe)
+}
+
+func TestRestore(t *testing.T) {
+	dest := t.TempDir()
+	source := path.Join("testdata", "repo_8k")
+	repo := NewRepo(source)
+	repo.Restore(dest)
+	destFiles := listFiles(dest)
+	sourceFiles := listFiles(path.Join("testdata", "logs"))
+	sfCount := len(sourceFiles)
+	if sfCount <= 0 {
+		t.Fatalf("No source files: %d", sfCount)
+	}
+	dfCount := len(destFiles)
+	if sfCount != dfCount {
+		t.Fatalf("Incorrect number for destination files: %d, should be %d", dfCount, sfCount)
+	}
+	for i, sf := range sourceFiles {
+		sfContent, err := os.ReadFile(sf.Path)
+		if err != nil {
+			t.Fatalf("Error reading from source file '%s': %s", sf.Path, err)
+		}
+		df := destFiles[i]
+		dfContent, err := os.ReadFile(df.Path)
+		if err != nil {
+			t.Fatalf("Error reading from source file '%s': %s", df.Path, err)
+		}
+		if bytes.Compare(sfContent, dfContent) != 0 {
+			t.Errorf("File content of '%s' does not match '%s'", df.Path, sf.Path)
+		}
+	}
 }
 
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
