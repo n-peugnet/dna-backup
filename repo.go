@@ -454,6 +454,10 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 	if len(buff) > 0 {
 		var temp *TempChunk
 		if len(buff) > r.chunkSize {
+			if prev != nil {
+				chunk, _ := r.encodeTempChunk(prev, version, &last)
+				chunks = append(chunks, chunk)
+			}
 			prev = NewTempChunk(buff[:r.chunkSize])
 			temp = NewTempChunk(buff[r.chunkSize:])
 		} else {
