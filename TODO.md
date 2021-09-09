@@ -27,7 +27,7 @@ priority 1
 
 priority 2
 ----------
-- [ ] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
+- [x] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
 - [ ] refactor matchStream as right now it is quite complex
 - [ ] better test for `Repo.matchStream`
 - [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in fact just `TempChunks` for now)

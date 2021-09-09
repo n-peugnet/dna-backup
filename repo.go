@@ -171,32 +171,6 @@ func (r *Repo) chunkMinLen() int {
 	return sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount)
 }
 
-func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
-	var buff []byte
-	var prev, read = r.chunkSize, 0
-	var err error
-
-	for err != io.EOF {
-		if prev == r.chunkSize {
-			buff = make([]byte, r.chunkSize)
-			prev, err = stream.Read(buff)
-		} else {
-			read, err = stream.Read(buff[prev:])
-			prev += read
-		}
-		if err != nil && err != io.EOF {
-			log.Println(err)
-		}
-		if prev == r.chunkSize {
-			chunks <- buff
-		}
-	}
-	if prev != r.chunkSize {
-		chunks <- buff[:prev]
-	}
-	close(chunks)
-}
-
 func storeFileList(dest string, files []File) {
 	file, err := os.Create(dest)
 	if err == nil {
@@ -245,7 +219,7 @@ func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
 
 // LoadChunkContent loads a chunk from the repo.
 // If the chunk is in cache, get it from cache, else read it from drive.
-func (r *Repo) LoadChunkContent(id *ChunkId) io.ReadSeeker {
+func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 	value, exists := r.chunkCache.Get(id)
 	if !exists {
 		path := id.Path(r.path)
@@ -260,18 +234,6 @@ func (r *Repo) LoadChunkContent(id *ChunkId) io.ReadSeeker {
 		r.chunkCache.Set(id, value)
 	}
 	return bytes.NewReader(value)
-}
-
-func storeChunks(dest string, chunks <-chan []byte) {
-	i := 0
-	for c := range chunks {
-		path := path.Join(dest, fmt.Sprintf(chunkIdFmt, i))
-		err := os.WriteFile(path, c, 0664)
-		if err != nil {
-			log.Println(err)
-		}
-		i++
-	}
 }
 
 // TODO: use atoi for chunkid
