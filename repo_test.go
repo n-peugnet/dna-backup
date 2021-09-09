@@ -159,21 +159,6 @@ func TestLoadChunks(t *testing.T) {
 	}
 }
 
-func TestExtractNewChunks(t *testing.T) {
-	repo := NewRepo("")
-	chunks := []Chunk{
-		&TempChunk{Value: []byte{'a'}},
-		&LoadedChunk{Id: &ChunkId{0, 0}},
-		&TempChunk{Value: []byte{'b'}},
-		&TempChunk{Value: []byte{'c'}},
-		&LoadedChunk{Id: &ChunkId{0, 1}},
-	}
-	newChunks := extractTempChunks(repo.mergeTempChunks(chunks))
-	assertLen(t, 2, newChunks, "New chunks:")
-	assertChunkContent(t, []byte{'a'}, newChunks[0], "First new:")
-	assertChunkContent(t, []byte{'b', 'c'}, newChunks[1], "Second New:")
-}
-
 func TestStoreLoadFiles(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := path.Join("testdata", "logs")
@@ -233,7 +218,7 @@ func TestBsdiff(t *testing.T) {
 	// Read new data
 	reader := getDataStream(dataDir, concatFiles)
 	recipe := repo.matchStream(reader, newVersion)
-	newChunks := extractDeltaChunks(repo.mergeTempChunks(recipe))
+	newChunks := extractDeltaChunks(recipe)
 	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
 		log.Println("Patch size:", len(c.Patch))

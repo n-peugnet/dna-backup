@@ -511,47 +511,6 @@ func loadRecipe(path string) []Chunk {
 	return recipe
 }
 
-// mergeTempChunks joins temporary partial chunks from an array of chunks if possible.
-// If a chunk is smaller than the size required to calculate a super-feature,
-// it is then appended to the previous consecutive temporary chunk if it exists.
-func (r *Repo) mergeTempChunks(chunks []Chunk) (ret []Chunk) {
-	var prev *TempChunk
-	var curr *TempChunk
-	for _, c := range chunks {
-		tmp, isTmp := c.(*TempChunk)
-		if !isTmp {
-			if prev != nil && curr.Len() <= sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount) {
-				prev.AppendFrom(curr.Reader())
-			} else if curr != nil {
-				ret = append(ret, curr)
-			}
-			ret = append(ret, c)
-			curr = nil
-			prev = nil
-		} else {
-			prev = curr
-			curr = tmp
-			if prev != nil {
-				ret = append(ret, prev)
-			}
-		}
-	}
-	if curr != nil {
-		ret = append(ret, curr)
-	}
-	return
-}
-
-func extractTempChunks(chunks []Chunk) (ret []*TempChunk) {
-	for _, c := range chunks {
-		tmp, isTmp := c.(*TempChunk)
-		if isTmp {
-			ret = append(ret, tmp)
-		}
-	}
-	return
-}
-
 func extractDeltaChunks(chunks []Chunk) (ret []*DeltaChunk) {
 	for _, c := range chunks {
 		tmp, isDelta := c.(*DeltaChunk)
