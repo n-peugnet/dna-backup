@@ -1,4 +1,4 @@
-package main
+package sketch
 
 import (
 	"bytes"
@@ -22,18 +22,23 @@ const fBytes = 8
 // SketchChunk produces a sketch for a chunk based on wSize: the window size,
 // sfCount: the number of super-features, and fCount: the number of feature
 // per super-feature
-func SketchChunk(chunk Chunk, pol rabinkarp64.Pol, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
+func SketchChunk(r io.Reader, pol rabinkarp64.Pol, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
 	var wg sync.WaitGroup
 	var fSize = FeatureSize(chunkSize, sfCount, fCount)
+	var chunk bytes.Buffer
 	superfeatures := make([]uint64, 0, sfCount)
 	features := make([]uint64, 0, fCount*sfCount)
 	sfBuff := make([]byte, fBytes*fCount)
-	r := chunk.Reader()
-	for f := 0; f < chunk.Len()/fSize; f++ {
+	chunkLen, err := chunk.ReadFrom(r)
+	if err != nil {
+		log.Panicln(chunkLen, err)
+	}
+	for f := 0; f < int(chunkLen)/fSize; f++ {
 		var fBuff bytes.Buffer
-		n, err := io.CopyN(&fBuff, r, int64(fSize))
+		n, err := io.CopyN(&fBuff, &chunk, int64(fSize))
 		if err != nil {
 			log.Println(n, err)
+			continue
 		}
 		features = append(features, 0)
 		wg.Add(1)

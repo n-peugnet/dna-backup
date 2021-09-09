@@ -15,7 +15,7 @@ _Classical go_
 go build
 
 # Test
-go test -v
+go test ./...
 
 # Run
 go run . <source-dir> <repository>

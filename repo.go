@@ -41,6 +41,7 @@ import (
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/cache"
+	"github.com/n-peugnet/dna-backup/sketch"
 )
 
 type FingerprintMap map[uint64]*ChunkId
@@ -167,7 +168,7 @@ func concatFiles(files []File, stream io.WriteCloser) {
 }
 
 func (r *Repo) chunkMinLen() int {
-	return SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount)
+	return sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount)
 }
 
 func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
@@ -319,7 +320,7 @@ func (r *Repo) hashAndStoreChunk(chunk IdentifiedChunk, hasher hash.Hash64) {
 	hasher.Reset()
 	io.Copy(hasher, chunk.Reader())
 	fingerprint := hasher.Sum64()
-	sketch, _ := SketchChunk(chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	sketch, _ := sketch.SketchChunk(chunk.Reader(), r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	r.storeChunkId(chunk.GetId(), fingerprint, sketch)
 }
 
@@ -347,7 +348,7 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
-	sketch, _ := SketchChunk(chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	sketch, _ := sketch.SketchChunk(chunk.Reader(), r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	for _, s := range sketch {
 		chunkIds, exists := r.sketches[s]
 		if !exists {
@@ -557,7 +558,7 @@ func (r *Repo) mergeTempChunks(chunks []Chunk) (ret []Chunk) {
 	for _, c := range chunks {
 		tmp, isTmp := c.(*TempChunk)
 		if !isTmp {
-			if prev != nil && curr.Len() <= SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount) {
+			if prev != nil && curr.Len() <= sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount) {
 				prev.AppendFrom(curr.Reader())
 			} else if curr != nil {
 				ret = append(ret, curr)

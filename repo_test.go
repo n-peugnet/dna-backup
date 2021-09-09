@@ -57,7 +57,7 @@ func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, 
 func TestReadFiles1(t *testing.T) {
 	repo := NewRepo("")
 	chunkCount := 590/repo.chunkSize + 1
-	dataDir := path.Join("test", "data", "logs", "1")
+	dataDir := path.Join("testdata", "logs", "1")
 	files := []string{"logTest.log"}
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
@@ -65,7 +65,7 @@ func TestReadFiles1(t *testing.T) {
 func TestReadFiles2(t *testing.T) {
 	repo := NewRepo("")
 	chunkCount := 22899/repo.chunkSize + 1
-	dataDir := path.Join("test", "data", "logs", "2")
+	dataDir := path.Join("testdata", "logs", "2")
 	files := []string{"csvParserTest.log", "slipdb.log"}
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
@@ -73,7 +73,7 @@ func TestReadFiles2(t *testing.T) {
 func TestReadFiles3(t *testing.T) {
 	repo := NewRepo("")
 	chunkCount := 119398/repo.chunkSize + 1
-	dataDir := path.Join("test", "data", "logs")
+	dataDir := path.Join("testdata", "logs")
 	files := []string{
 		path.Join("1", "logTest.log"),
 		path.Join("2", "csvParserTest.log"),
@@ -85,7 +85,7 @@ func TestReadFiles3(t *testing.T) {
 
 func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("test", "data", "logs")
+	dataDir := path.Join("testdata", "logs")
 	repo := NewRepo(resultDir)
 	resultVersion := path.Join(resultDir, "00000")
 	resultChunks := path.Join(resultVersion, chunksName)
@@ -137,7 +137,7 @@ func TestExtractNewChunks(t *testing.T) {
 
 func TestStoreLoadFiles(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("test", "data", "logs")
+	dataDir := path.Join("testdata", "logs")
 	resultFiles := path.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
@@ -172,7 +172,7 @@ func getDataStream(dataDir string, streamFunc func([]File, io.WriteCloser)) io.R
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
-	dataDir := path.Join("test", "data", "logs")
+	dataDir := path.Join("testdata", "logs")
 	addedFile1 := path.Join(dataDir, "2", "slogTest.log")
 	addedFile2 := path.Join(dataDir, "3", "slogTest.log")
 	// Store initial chunks
@@ -206,7 +206,7 @@ func TestBsdiff(t *testing.T) {
 
 func TestCommit(t *testing.T) {
 	dest := t.TempDir()
-	source := path.Join("test", "data")
+	source := "testdata"
 	repo := NewRepo(dest)
 	repo.Commit(source)
 	recipe := loadRecipe(path.Join(dest, "00000", recipeName))
