@@ -231,41 +231,70 @@ func TestBsdiff(t *testing.T) {
 func TestCommit(t *testing.T) {
 	dest := t.TempDir()
 	source := path.Join("testdata", "logs")
+	expected := path.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
 	repo.Commit(source)
-	recipe := loadRecipe(path.Join(dest, "00000", recipeName))
-	log.Println(recipe)
+	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
 }
 
 func TestRestore(t *testing.T) {
 	dest := t.TempDir()
 	source := path.Join("testdata", "repo_8k")
+	expected := path.Join("testdata", "logs")
 	repo := NewRepo(source)
 	repo.Restore(dest)
-	destFiles := listFiles(dest)
-	sourceFiles := listFiles(path.Join("testdata", "logs"))
-	sfCount := len(sourceFiles)
-	if sfCount <= 0 {
-		t.Fatalf("No source files: %d", sfCount)
+	assertSameTree(t, assertSameFile, expected, dest, "Restore")
+}
+
+func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actual string, prefix string), expected string, actual string, prefix string) {
+	actualFiles := listFiles(actual)
+	expectedFiles := listFiles(expected)
+	efCount := len(expectedFiles)
+	if efCount <= 0 {
+		t.Fatalf("No expected files: %d", efCount)
 	}
-	dfCount := len(destFiles)
-	if sfCount != dfCount {
-		t.Fatalf("Incorrect number for destination files: %d, should be %d", dfCount, sfCount)
+	afCount := len(actualFiles)
+	if efCount != afCount {
+		t.Fatalf("Incorrect number of files: %d, should be %d", afCount, efCount)
 	}
-	for i, sf := range sourceFiles {
-		sfContent, err := os.ReadFile(sf.Path)
-		if err != nil {
-			t.Fatalf("Error reading from source file '%s': %s", sf.Path, err)
+	for i, ef := range expectedFiles {
+		af := actualFiles[i]
+		efRelPath := ef.Path[len(expected):]
+		afRelPath := af.Path[len(actual):]
+		if efRelPath != afRelPath {
+			t.Fatalf("File path '%s' does not match '%s'", afRelPath, efRelPath)
 		}
-		df := destFiles[i]
-		dfContent, err := os.ReadFile(df.Path)
-		if err != nil {
-			t.Fatalf("Error reading from source file '%s': %s", df.Path, err)
-		}
-		if bytes.Compare(sfContent, dfContent) != 0 {
-			t.Errorf("File content of '%s' does not match '%s'", df.Path, sf.Path)
-		}
+		apply(t, ef.Path, af.Path, prefix)
 	}
+}
+
+func assertCompatibleRepoFile(t *testing.T, expected string, actual string, prefix string) {
+	if path.Base(expected) == filesName {
+		eFiles := loadFileList(expected)
+		aFiles := loadFileList(actual)
+		assertLen(t, len(eFiles), aFiles, prefix)
+		for i := 0; i < len(eFiles); i++ {
+			if eFiles[i] != aFiles[i] {
+				t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFiles[i])
+			}
+		}
+	} else if path.Base(expected) == recipeName {
+		// TODO: check recipies equality
+	} else {
+		assertSameFile(t, expected, actual, prefix)
+	}
+}
+
+func assertSameFile(t *testing.T, expected string, actual string, prefix string) {
+	efContent, err := os.ReadFile(expected)
+	if err != nil {
+		t.Fatalf("%s Error reading from expected file '%s': %s", prefix, expected, err)
+	}
+	afContent, err := os.ReadFile(actual)
+	if err != nil {
+		t.Fatalf("%s Error reading from expected file '%s': %s", prefix, actual, err)
+	}
+	assertSameSlice(t, efContent, afContent, prefix+" files")
 }
 
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {

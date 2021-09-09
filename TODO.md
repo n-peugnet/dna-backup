@@ -24,12 +24,13 @@ priority 1
         - [ ] uncompress before loading
     - [ ] store compressed chunks into tracks of trackSize (1024o)
 - [x] add chunk cache... what was it for again ??
+- [x] better tests for `(*Repo).Commit`
 
 priority 2
 ----------
 - [x] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
 - [ ] refactor matchStream as right now it is quite complex
-- [ ] better test for `Repo.matchStream`
+- [x] better test for `(*Repo).matchStream`
 - [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in fact just `TempChunks` for now)
 - [ ] option to commit without deltas to save new base chunks
 

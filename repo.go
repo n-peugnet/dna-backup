@@ -38,10 +38,12 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/cache"
 	"github.com/n-peugnet/dna-backup/sketch"
+	"github.com/n-peugnet/dna-backup/utils"
 )
 
 type FingerprintMap map[uint64]*ChunkId
@@ -100,6 +102,7 @@ func (r *Repo) Patcher() Patcher {
 }
 
 func (r *Repo) Commit(source string) {
+	source = utils.TrimTrailingSeparator(source)
 	versions := r.loadVersions()
 	newVersion := len(versions) // TODO: add newVersion functino
 	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
@@ -116,7 +119,7 @@ func (r *Repo) Commit(source string) {
 	r.hashChunks(oldChunks)
 	recipe := r.matchStream(reader, newVersion)
 	storeRecipe(newRecipePath, recipe)
-	storeFileList(newFilesPath, files)
+	storeFileList(newFilesPath, unprefixFiles(files, source))
 	fmt.Println(files)
 }
 
@@ -177,6 +180,20 @@ func listFiles(path string) []File {
 	return files
 }
 
+func unprefixFiles(files []File, prefix string) (ret []File) {
+	ret = make([]File, len(files))
+	preSize := len(prefix)
+	for i, f := range files {
+		if !strings.HasPrefix(f.Path, prefix) {
+			log.Println("Warning", f.Path, "is not prefixed by", prefix)
+		} else {
+			f.Path = f.Path[preSize:]
+		}
+		ret[i] = f
+	}
+	return
+}
+
 func concatFiles(files []File, stream io.WriteCloser) {
 	for _, f := range files {
 		file, err := os.Open(f.Path)
@@ -187,10 +204,6 @@ func concatFiles(files []File, stream io.WriteCloser) {
 		io.Copy(stream, file)
 	}
 	stream.Close()
-}
-
-func (r *Repo) chunkMinLen() int {
-	return sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount)
 }
 
 func storeFileList(dest string, files []File) {
@@ -286,6 +299,10 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 		}
 	}
 	close(chunks)
+}
+
+func (r *Repo) chunkMinLen() int {
+	return sketch.SuperFeatureSize(r.chunkSize, r.sketchSfCount, r.sketchFCount)
 }
 
 // hashChunks calculates the hashes for a channel of chunks.
