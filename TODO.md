@@ -1,7 +1,10 @@
 priority 1
 ----------
 - [x] add deltaEncode chunks function
-    - [x] do not merge consecutive smaller chunks as these could be stored as chunks if no similar chunk is found. Thus it will need to be of `chunkSize` or less. Otherwise it could not be possibly used for deduplication.
+    - [x] do not merge consecutive smaller chunks as these could be stored as
+        chunks if no similar chunk is found. Thus it will need to be of
+        `chunkSize` or less. Otherwise it could not be possibly used for
+        deduplication.
     ```
     for each new chunk:
         find similar in sketchMap
@@ -12,11 +15,11 @@ priority 1
             store in fingerprintMap
             store in sketchMap
     ```
-- [ ] read from repo (Restore function)
+- [x] read from repo (Restore function)
     - [x] store recipe
     - [x] load recipe
     - [x] read chunks in-order into a stream
-    - [ ] read individual files
+- [ ] read individual files
 - [ ] properly store informations to be DNA encoded
     - [ ] tar source to keep files metadata ?
     - [ ] store chunks compressed
@@ -28,11 +31,14 @@ priority 1
 
 priority 2
 ----------
-- [x] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
+- [ ] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
 - [ ] refactor matchStream as right now it is quite complex
 - [x] better test for `(*Repo).matchStream`
-- [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in fact just `TempChunks` for now)
+- [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in
+    fact just `TempChunks` for now)
 - [ ] option to commit without deltas to save new base chunks
+- [ ] custom binary marshall and unmarshal for chunks
+- [ ] use `loadChunkContent` in `loadChunks`
 
 réunion 7/09
 ------------

@@ -313,16 +313,18 @@ func (r *Repo) chunkMinLen() int {
 func (r *Repo) hashChunks(chunks <-chan IdentifiedChunk) {
 	hasher := rabinkarp64.NewFromPol(r.pol)
 	for c := range chunks {
-		r.hashAndStoreChunk(c, hasher)
+		r.hashAndStoreChunk(c.GetId(), c.Reader(), hasher)
 	}
 }
 
-func (r *Repo) hashAndStoreChunk(chunk IdentifiedChunk, hasher hash.Hash64) {
+func (r *Repo) hashAndStoreChunk(id *ChunkId, reader io.Reader, hasher hash.Hash64) {
+	var chunk bytes.Buffer
 	hasher.Reset()
-	io.Copy(hasher, chunk.Reader())
+	reader = io.TeeReader(reader, &chunk)
+	io.Copy(hasher, reader)
 	fingerprint := hasher.Sum64()
-	sketch, _ := sketch.SketchChunk(chunk.Reader(), r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
-	r.storeChunkId(chunk.GetId(), fingerprint, sketch)
+	sketch, _ := sketch.SketchChunk(&chunk, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	r.storeChunkId(id, fingerprint, sketch)
 }
 
 func (r *Repo) storeChunkId(id *ChunkId, fingerprint uint64, sketch []uint64) {
@@ -397,10 +399,9 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 	if chunk.Len() == r.chunkSize {
 		id := &ChunkId{Ver: version, Idx: *last}
 		*last++
-		ic := NewLoadedChunk(id, temp.Bytes())
 		hasher := rabinkarp64.NewFromPol(r.pol)
-		r.hashAndStoreChunk(ic, hasher)
-		r.StoreChunkContent(id, ic.Reader())
+		r.hashAndStoreChunk(id, temp.Reader(), hasher)
+		r.StoreChunkContent(id, temp.Reader())
 		log.Println("Add new chunk", id)
 		return NewStoredChunk(r, id), false
 	}
