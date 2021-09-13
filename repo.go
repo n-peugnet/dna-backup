@@ -144,6 +144,9 @@ func (r *Repo) Restore(destination string) {
 		if err != nil {
 			log.Printf("Error storing file content for '%s', written %d/%d bytes: %s\n", filePath, n, file.Size, err)
 		}
+		if err := f.Close(); err != nil {
+			log.Printf("Error closing restored file '%s': %s\n", filePath, err)
+		}
 	}
 }
 
@@ -275,6 +278,9 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 		value, err = io.ReadAll(wrapper)
 		if err != nil {
 			log.Panicf("Could not read from chunk '%s': %s\n", path, err)
+		}
+		if err = f.Close(); err != nil {
+			log.Printf("Could not close chunk '%s': %s\n", path, err)
 		}
 		r.chunkCache.Set(id, value)
 	}
