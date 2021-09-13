@@ -1,6 +1,6 @@
 # DNA Backup
 
-_Deduplicated versionned backups for DNA._
+_Deduplicated versioned backups for DNA._
 
 ## Requirements
 
