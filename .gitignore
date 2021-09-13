@@ -1,5 +1,8 @@
 ## Project generated files
 dna-backup
 
+## Test directories
+test_*
+
 ## IDE files
 .vscode

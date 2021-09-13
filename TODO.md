@@ -5,20 +5,6 @@ priority 1
         chunks if no similar chunk is found. Thus, it will need to be of
         `chunkSize` or less. Otherwise, it could not be possibly used for
         deduplication.
-    ```
-    for each new chunk:
-        find similar in sketchMap
-        if exists:
-            delta encode
-        else:
-            calculate fingerprint
-            store in fingerprintMap
-            store in sketchMap
-    ```
-- [x] read from repo (Restore function)
-    - [x] store recipe
-    - [x] load recipe
-    - [x] read chunks in-order into a stream
 - [ ] read individual files
 - [ ] properly store information to be DNA encoded
     - [ ] tar source to keep files metadata ?
@@ -39,8 +25,8 @@ priority 2
     fact just `TempChunks` for now)
 - [ ] option to commit without deltas to save new base chunks
 - [ ] custom binary marshal and unmarshal for chunks
-- [ ] use `loadChunkContent` in `loadChunks`
-- [ ] store hashes for faster maps rebuild
+- [x] use `loadChunkContent` in `loadChunks`
+- [ ] TODO: store hashes for faster maps rebuild
 - [ ] try [Fdelta](https://github.com/amlwwalker/fdelta) and
     [Xdelta](https://github.com/nine-lives-later/go-xdelta) instead of Bsdiff
 - [ ] maybe use an LRU cache instead of the current FIFO one.
@@ -53,3 +39,13 @@ reunion 7/09
 - [ ] store recipe and files incrementally
 - [ ] compress recipe
 - [ ] make size comparison between recipe and chunks with some datasets
+
+ideas
+-----
+1. Would it be a good idea to store the compressed size for each chunk?
+    Maybe this way we could only load the chunks needed for each file read.
+
+2. Implement the `fs` interface of Go? Not sure if this will be useful.
+
+3. If we don't need to reduce read amplification we could compress all chunks if
+    it reduces the space used.
