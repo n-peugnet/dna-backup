@@ -22,9 +22,9 @@ priority 1
 - [ ] read individual files
 - [ ] properly store informations to be DNA encoded
     - [ ] tar source to keep files metadata ?
-    - [ ] store chunks compressed
-        - [ ] compress before storing
-        - [ ] uncompress before loading
+    - [x] store chunks compressed
+        - [x] compress before storing
+        - [x] uncompress before loading
     - [ ] store compressed chunks into tracks of trackSize (1024o)
 - [x] add chunk cache... what was it for again ??
 - [x] better tests for `(*Repo).Commit`
@@ -34,6 +34,7 @@ priority 2
 - [ ] use more the `Reader` API (which is analoguous to the `IOStream` in Java)
 - [ ] refactor matchStream as right now it is quite complex
 - [x] better test for `(*Repo).matchStream`
+- [ ] compress partial chunks (`TempChunks` for now)
 - [ ] tail packing of PartialChunks (this Struct does not exist yet as it is in
     fact just `TempChunks` for now)
 - [ ] option to commit without deltas to save new base chunks

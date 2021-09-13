@@ -50,17 +50,19 @@ type FingerprintMap map[uint64]*ChunkId
 type SketchMap map[uint64][]*ChunkId
 
 type Repo struct {
-	path          string
-	chunkSize     int
-	sketchWSize   int
-	sketchSfCount int
-	sketchFCount  int
-	pol           rabinkarp64.Pol
-	differ        Differ
-	patcher       Patcher
-	fingerprints  FingerprintMap
-	sketches      SketchMap
-	chunkCache    cache.Cacher
+	path              string
+	chunkSize         int
+	sketchWSize       int
+	sketchSfCount     int
+	sketchFCount      int
+	pol               rabinkarp64.Pol
+	differ            Differ
+	patcher           Patcher
+	fingerprints      FingerprintMap
+	sketches          SketchMap
+	chunkCache        cache.Cacher
+	chunkReadWrapper  func(r io.Reader) (io.ReadCloser, error)
+	chunkWriteWrapper func(w io.Writer) io.WriteCloser
 }
 
 type File struct {
@@ -79,17 +81,19 @@ func NewRepo(path string) *Repo {
 		log.Panicln(err)
 	}
 	return &Repo{
-		path:          path,
-		chunkSize:     8 << 10,
-		sketchWSize:   32,
-		sketchSfCount: 3,
-		sketchFCount:  4,
-		pol:           p,
-		differ:        &Bsdiff{},
-		patcher:       &Bsdiff{},
-		fingerprints:  make(FingerprintMap),
-		sketches:      make(SketchMap),
-		chunkCache:    cache.NewFifoCache(1000),
+		path:              path,
+		chunkSize:         8 << 10,
+		sketchWSize:       32,
+		sketchSfCount:     3,
+		sketchFCount:      4,
+		pol:               p,
+		differ:            &Bsdiff{},
+		patcher:           &Bsdiff{},
+		fingerprints:      make(FingerprintMap),
+		sketches:          make(SketchMap),
+		chunkCache:        cache.NewFifoCache(1000),
+		chunkReadWrapper:  utils.ZlibReader,
+		chunkWriteWrapper: utils.ZlibWriter,
 	}
 }
 
@@ -242,9 +246,13 @@ func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error creating chunk for '%s'; %s\n", path, err))
 	}
-	n, err := io.Copy(file, reader)
+	wrapper := r.chunkWriteWrapper(file)
+	n, err := io.Copy(wrapper, reader)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err))
+	}
+	if err := wrapper.Close(); err != nil {
+		return errors.New(fmt.Sprintf("Error closing write wrapper for '%s': %s\n", path, err))
 	}
 	if err := file.Close(); err != nil {
 		return errors.New(fmt.Sprintf("Error closing chunk for '%s': %s\n", path, err))
@@ -262,7 +270,11 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 		if err != nil {
 			log.Printf("Cannot open chunk '%s': %s\n", path, err)
 		}
-		value, err = io.ReadAll(f)
+		wrapper, err := r.chunkReadWrapper(f)
+		if err != nil {
+			log.Printf("Cannot create read wrapper for chunk '%s': %s\n", path, err)
+		}
+		value, err = io.ReadAll(wrapper)
 		if err != nil {
 			log.Panicf("Could not read from chunk '%s': %s\n", path, err)
 		}
@@ -401,7 +413,10 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		*last++
 		hasher := rabinkarp64.NewFromPol(r.pol)
 		r.hashAndStoreChunk(id, temp.Reader(), hasher)
-		r.StoreChunkContent(id, temp.Reader())
+		err := r.StoreChunkContent(id, temp.Reader())
+		if err != nil {
+			log.Println(err)
+		}
 		log.Println("Add new chunk", id)
 		return NewStoredChunk(r, id), false
 	}

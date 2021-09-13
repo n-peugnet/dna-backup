@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
-	"os"
 	"path"
 )
 
@@ -87,12 +85,7 @@ func (c *StoredChunk) Reader() io.ReadSeeker {
 }
 
 func (c *StoredChunk) Len() int {
-	path := c.Id.Path(c.repo.path)
-	info, err := os.Stat(path)
-	if err != nil {
-		log.Println("Chunk: could not stat file:", path)
-	}
-	return int(info.Size())
+	return c.repo.chunkSize
 }
 
 func NewTempChunk(value []byte) *TempChunk {

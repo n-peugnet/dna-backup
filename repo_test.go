@@ -10,6 +10,8 @@ import (
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/n-peugnet/dna-backup/utils"
 )
 
 func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, chunkCount int) {
@@ -193,6 +195,14 @@ func getDataStream(dataDir string, streamFunc func([]File, io.WriteCloser)) io.R
 	return reader
 }
 
+func dummyReader(r io.Reader) (io.ReadCloser, error) {
+	return io.NopCloser(r), nil
+}
+
+func dummyWriter(w io.Writer) io.WriteCloser {
+	return utils.NopCloser(w)
+}
+
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
@@ -207,6 +217,10 @@ func TestBsdiff(t *testing.T) {
 	defer os.Remove(addedFile1)
 	ioutil.WriteFile(addedFile2, make([]byte, 4000), 0664)
 	defer os.Remove(addedFile2)
+
+	// configure repo
+	repo.chunkReadWrapper = dummyReader
+	repo.chunkWriteWrapper = dummyWriter
 
 	// Load previously stored chunks
 	oldChunks := make(chan IdentifiedChunk, 16)
@@ -233,6 +247,21 @@ func TestCommit(t *testing.T) {
 	source := path.Join("testdata", "logs")
 	expected := path.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
+	repo.chunkReadWrapper = dummyReader
+	repo.chunkWriteWrapper = dummyWriter
+
+	repo.Commit(source)
+	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
+}
+
+func TestCommitZlib(t *testing.T) {
+	dest := t.TempDir()
+	source := path.Join("testdata", "logs")
+	expected := path.Join("testdata", "repo_8k_zlib")
+	repo := NewRepo(dest)
+	repo.chunkReadWrapper = utils.ZlibReader
+	repo.chunkWriteWrapper = utils.ZlibWriter
+
 	repo.Commit(source)
 	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
 }
@@ -242,6 +271,21 @@ func TestRestore(t *testing.T) {
 	source := path.Join("testdata", "repo_8k")
 	expected := path.Join("testdata", "logs")
 	repo := NewRepo(source)
+	repo.chunkReadWrapper = dummyReader
+	repo.chunkWriteWrapper = dummyWriter
+
+	repo.Restore(dest)
+	assertSameTree(t, assertSameFile, expected, dest, "Restore")
+}
+
+func TestRestoreZlib(t *testing.T) {
+	dest := t.TempDir()
+	source := path.Join("testdata", "repo_8k_zlib")
+	expected := path.Join("testdata", "logs")
+	repo := NewRepo(source)
+	repo.chunkReadWrapper = utils.ZlibReader
+	repo.chunkWriteWrapper = utils.ZlibWriter
+
 	repo.Restore(dest)
 	assertSameTree(t, assertSameFile, expected, dest, "Restore")
 }
