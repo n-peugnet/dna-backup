@@ -28,7 +28,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -72,9 +71,9 @@ type File struct {
 
 func NewRepo(path string) *Repo {
 	err := os.MkdirAll(path, 0775)
-	// if err != nil {
-	// 	log.Panicln(err)
-	// }
+	if err != nil {
+		log.Panicln(err)
+	}
 	var seed int64 = 1
 	p, err := rabinkarp64.RandomPolynomial(seed)
 	if err != nil {
@@ -244,18 +243,18 @@ func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
 	path := id.Path(r.path)
 	file, err := os.Create(path)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error creating chunk for '%s'; %s\n", path, err))
+		return fmt.Errorf("Error creating chunk for '%s'; %s\n", path, err)
 	}
 	wrapper := r.chunkWriteWrapper(file)
 	n, err := io.Copy(wrapper, reader)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err))
+		return fmt.Errorf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err)
 	}
 	if err := wrapper.Close(); err != nil {
-		return errors.New(fmt.Sprintf("Error closing write wrapper for '%s': %s\n", path, err))
+		return fmt.Errorf("Error closing write wrapper for '%s': %s\n", path, err)
 	}
 	if err := file.Close(); err != nil {
-		return errors.New(fmt.Sprintf("Error closing chunk for '%s': %s\n", path, err))
+		return fmt.Errorf("Error closing chunk for '%s': %s\n", path, err)
 	}
 	return nil
 }

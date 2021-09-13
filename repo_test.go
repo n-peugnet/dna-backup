@@ -96,7 +96,8 @@ func storeChunks(dest string, chunks <-chan []byte) {
 }
 
 func TestReadFiles1(t *testing.T) {
-	repo := NewRepo("")
+	tmpDir := t.TempDir()
+	repo := NewRepo(tmpDir)
 	chunkCount := 590/repo.chunkSize + 1
 	dataDir := path.Join("testdata", "logs", "1")
 	files := []string{"logTest.log"}
@@ -104,7 +105,8 @@ func TestReadFiles1(t *testing.T) {
 }
 
 func TestReadFiles2(t *testing.T) {
-	repo := NewRepo("")
+	tmpDir := t.TempDir()
+	repo := NewRepo(tmpDir)
 	chunkCount := 22899/repo.chunkSize + 1
 	dataDir := path.Join("testdata", "logs", "2")
 	files := []string{"csvParserTest.log", "slipdb.log"}
@@ -112,7 +114,8 @@ func TestReadFiles2(t *testing.T) {
 }
 
 func TestReadFiles3(t *testing.T) {
-	repo := NewRepo("")
+	tmpDir := t.TempDir()
+	repo := NewRepo(tmpDir)
 	chunkCount := 119398/repo.chunkSize + 1
 	dataDir := path.Join("testdata", "logs")
 	files := []string{
