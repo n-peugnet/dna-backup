@@ -299,18 +299,8 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 			if e.IsDir() {
 				continue
 			}
-			f := filepath.Join(p, e.Name())
-			buff, err := os.ReadFile(f)
-			if err != nil {
-				log.Printf("Error reading chunk '%s': %s", f, err.Error())
-			}
-			c := NewLoadedChunk(
-				&ChunkId{
-					Ver: i,
-					Idx: uint64(j),
-				},
-				buff,
-			)
+			id := &ChunkId{Ver: i, Idx: uint64(j)}
+			c := NewStoredChunk(r, id)
 			chunks <- c
 		}
 	}

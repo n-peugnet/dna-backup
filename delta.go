@@ -20,7 +20,7 @@ type Patcher interface {
 	Patch(source io.Reader, target io.Writer, patch io.Reader) error
 }
 
-// TODO: maybe move this in it own file ?
+// TODO: maybe move this in its own file ?
 type Bsdiff struct{}
 
 func (*Bsdiff) Diff(source io.Reader, target io.Reader, patch io.Writer) error {

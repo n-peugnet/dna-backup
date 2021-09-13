@@ -131,6 +131,8 @@ func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := filepath.Join("testdata", "logs")
 	repo := NewRepo(resultDir)
+	repo.chunkReadWrapper = dummyReader
+	repo.chunkWriteWrapper = dummyWriter
 	resultVersion := filepath.Join(resultDir, "00000")
 	resultChunks := filepath.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)

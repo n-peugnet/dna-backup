@@ -36,32 +36,6 @@ func (i *ChunkId) Path(repo string) string {
 	return filepath.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
 }
 
-func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
-	return &LoadedChunk{Id: id, value: value}
-}
-
-type LoadedChunk struct {
-	Id    *ChunkId
-	value []byte
-}
-
-func (c *LoadedChunk) GetId() *ChunkId {
-	return c.Id
-}
-
-func (c *LoadedChunk) Reader() io.ReadSeeker {
-	// log.Printf("Chunk %d: Reading from in-memory value\n", c.id)
-	return bytes.NewReader(c.value)
-}
-
-func (c *LoadedChunk) Len() int {
-	return len(c.value)
-}
-
-func (c *LoadedChunk) Bytes() []byte {
-	return c.value
-}
-
 func NewStoredChunk(repo *Repo, id *ChunkId) *StoredChunk {
 	return &StoredChunk{repo: repo, Id: id}
 }

@@ -6,5 +6,5 @@ severity:
   rules:
     - severity: warning
       linters:
-      - errcheck # for now, make errcheck only a warning, remove it later
+      - errcheck # for now, make errcheck only a warning, TODO: remove it later
       - deadcode

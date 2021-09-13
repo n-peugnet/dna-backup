@@ -26,7 +26,7 @@ priority 1
         - [x] compress before storing
         - [x] decompress before loading
     - [ ] store compressed chunks into tracks of `trackSize` (1024o)
-- [x] add chunk cache... what was it for again ??
+- [x] add chunk cache to uniquely store chunks in RAM
 - [x] better tests for `(*Repo).Commit`
 
 priority 2
@@ -41,6 +41,11 @@ priority 2
 - [ ] custom binary marshal and unmarshal for chunks
 - [ ] use `loadChunkContent` in `loadChunks`
 - [ ] store hashes for faster maps rebuild
+- [ ] try [Fdelta](https://github.com/amlwwalker/fdelta) and
+    [Xdelta](https://github.com/nine-lives-later/go-xdelta) instead of Bsdiff
+- [ ] maybe use an LRU cache instead of the current FIFO one.
+- [x] remove `LoadedChunk` and only use `StoredChunk` instead now that the cache
+    is implemented
 
 reunion 7/09
 ------------
