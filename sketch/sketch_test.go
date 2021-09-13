@@ -2,7 +2,7 @@ package sketch
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -18,7 +18,7 @@ func TestSketchChunk(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c0, err := os.Open(path.Join(dataDir, "000000000000000"))
+	c0, err := os.Open(filepath.Join(dataDir, "000000000000000"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestSketchChunk(t *testing.T) {
 		t.Errorf("Sketch does not match, expected: %d, actual: %d", expected, sketch)
 	}
 
-	c14, err := os.Open(path.Join(dataDir, "000000000000014"))
+	c14, err := os.Open(filepath.Join(dataDir, "000000000000014"))
 	sketch, err = SketchChunk(c14, pol, 8<<10, 32, 3, 4)
 	if err != nil {
 		t.Error(err)
