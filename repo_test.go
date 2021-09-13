@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -24,7 +24,7 @@ func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, 
 	offset := 0
 	buff := make([]byte, repo.chunkSize*chunkCount)
 	for _, f := range testFiles {
-		content, err := os.ReadFile(path.Join(dataDir, f))
+		content, err := os.ReadFile(filepath.Join(dataDir, f))
 		if err != nil {
 			t.Error("Error reading test data file")
 		}
@@ -86,7 +86,7 @@ func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
 func storeChunks(dest string, chunks <-chan []byte) {
 	i := 0
 	for c := range chunks {
-		path := path.Join(dest, fmt.Sprintf(chunkIdFmt, i))
+		path := filepath.Join(dest, fmt.Sprintf(chunkIdFmt, i))
 		err := os.WriteFile(path, c, 0664)
 		if err != nil {
 			log.Println(err)
@@ -99,7 +99,7 @@ func TestReadFiles1(t *testing.T) {
 	tmpDir := t.TempDir()
 	repo := NewRepo(tmpDir)
 	chunkCount := 590/repo.chunkSize + 1
-	dataDir := path.Join("testdata", "logs", "1")
+	dataDir := filepath.Join("testdata", "logs", "1")
 	files := []string{"logTest.log"}
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
@@ -108,7 +108,7 @@ func TestReadFiles2(t *testing.T) {
 	tmpDir := t.TempDir()
 	repo := NewRepo(tmpDir)
 	chunkCount := 22899/repo.chunkSize + 1
-	dataDir := path.Join("testdata", "logs", "2")
+	dataDir := filepath.Join("testdata", "logs", "2")
 	files := []string{"csvParserTest.log", "slipdb.log"}
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
@@ -117,22 +117,22 @@ func TestReadFiles3(t *testing.T) {
 	tmpDir := t.TempDir()
 	repo := NewRepo(tmpDir)
 	chunkCount := 119398/repo.chunkSize + 1
-	dataDir := path.Join("testdata", "logs")
+	dataDir := filepath.Join("testdata", "logs")
 	files := []string{
-		path.Join("1", "logTest.log"),
-		path.Join("2", "csvParserTest.log"),
-		path.Join("2", "slipdb.log"),
-		path.Join("3", "indexingTreeTest.log"),
+		filepath.Join("1", "logTest.log"),
+		filepath.Join("2", "csvParserTest.log"),
+		filepath.Join("2", "slipdb.log"),
+		filepath.Join("3", "indexingTreeTest.log"),
 	}
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
 
 func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("testdata", "logs")
+	dataDir := filepath.Join("testdata", "logs")
 	repo := NewRepo(resultDir)
-	resultVersion := path.Join(resultDir, "00000")
-	resultChunks := path.Join(resultVersion, chunksName)
+	resultVersion := filepath.Join(resultDir, "00000")
+	resultChunks := filepath.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
 	reader1, writer1 := io.Pipe()
 	reader2, writer2 := io.Pipe()
@@ -166,8 +166,8 @@ func TestLoadChunks(t *testing.T) {
 
 func TestStoreLoadFiles(t *testing.T) {
 	resultDir := t.TempDir()
-	dataDir := path.Join("testdata", "logs")
-	resultFiles := path.Join(resultDir, filesName)
+	dataDir := filepath.Join("testdata", "logs")
+	resultFiles := filepath.Join(resultDir, filesName)
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
 	files2 := loadFileList(resultFiles)
@@ -182,8 +182,8 @@ func TestStoreLoadFiles(t *testing.T) {
 }
 
 func prepareChunks(dataDir string, repo *Repo, streamFunc func([]File, io.WriteCloser)) {
-	resultVersion := path.Join(repo.path, "00000")
-	resultChunks := path.Join(resultVersion, chunksName)
+	resultVersion := filepath.Join(repo.path, "00000")
+	resultChunks := filepath.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
 	reader := getDataStream(dataDir, streamFunc)
 	chunks := make(chan []byte, 16)
@@ -209,9 +209,9 @@ func dummyWriter(w io.Writer) io.WriteCloser {
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
-	dataDir := path.Join("testdata", "logs")
-	addedFile1 := path.Join(dataDir, "2", "slogTest.log")
-	addedFile2 := path.Join(dataDir, "3", "slogTest.log")
+	dataDir := filepath.Join("testdata", "logs")
+	addedFile1 := filepath.Join(dataDir, "2", "slogTest.log")
+	addedFile2 := filepath.Join(dataDir, "3", "slogTest.log")
 	// Store initial chunks
 	prepareChunks(dataDir, repo, concatFiles)
 
@@ -247,8 +247,8 @@ func TestBsdiff(t *testing.T) {
 
 func TestCommit(t *testing.T) {
 	dest := t.TempDir()
-	source := path.Join("testdata", "logs")
-	expected := path.Join("testdata", "repo_8k")
+	source := filepath.Join("testdata", "logs")
+	expected := filepath.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
 	repo.chunkReadWrapper = dummyReader
 	repo.chunkWriteWrapper = dummyWriter
@@ -259,8 +259,8 @@ func TestCommit(t *testing.T) {
 
 func TestCommitZlib(t *testing.T) {
 	dest := t.TempDir()
-	source := path.Join("testdata", "logs")
-	expected := path.Join("testdata", "repo_8k_zlib")
+	source := filepath.Join("testdata", "logs")
+	expected := filepath.Join("testdata", "repo_8k_zlib")
 	repo := NewRepo(dest)
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
@@ -271,8 +271,8 @@ func TestCommitZlib(t *testing.T) {
 
 func TestRestore(t *testing.T) {
 	dest := t.TempDir()
-	source := path.Join("testdata", "repo_8k")
-	expected := path.Join("testdata", "logs")
+	source := filepath.Join("testdata", "repo_8k")
+	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
 	repo.chunkReadWrapper = dummyReader
 	repo.chunkWriteWrapper = dummyWriter
@@ -283,8 +283,8 @@ func TestRestore(t *testing.T) {
 
 func TestRestoreZlib(t *testing.T) {
 	dest := t.TempDir()
-	source := path.Join("testdata", "repo_8k_zlib")
-	expected := path.Join("testdata", "logs")
+	source := filepath.Join("testdata", "repo_8k_zlib")
+	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
@@ -316,7 +316,7 @@ func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actu
 }
 
 func assertCompatibleRepoFile(t *testing.T, expected string, actual string, prefix string) {
-	if path.Base(expected) == filesName {
+	if filepath.Base(expected) == filesName {
 		eFiles := loadFileList(expected)
 		aFiles := loadFileList(actual)
 		assertLen(t, len(eFiles), aFiles, prefix)
@@ -325,7 +325,7 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 				t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFiles[i])
 			}
 		}
-	} else if path.Base(expected) == recipeName {
+	} else if filepath.Base(expected) == recipeName {
 		// TODO: check recipies equality
 	} else {
 		assertSameFile(t, expected, actual, prefix)

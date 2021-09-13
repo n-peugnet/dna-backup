@@ -34,7 +34,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -108,10 +107,10 @@ func (r *Repo) Commit(source string) {
 	source = utils.TrimTrailingSeparator(source)
 	versions := r.loadVersions()
 	newVersion := len(versions) // TODO: add newVersion functino
-	newPath := path.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
-	newChunkPath := path.Join(newPath, chunksName)
-	newFilesPath := path.Join(newPath, filesName)
-	newRecipePath := path.Join(newPath, recipeName)
+	newPath := filepath.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
+	newChunkPath := filepath.Join(newPath, chunksName)
+	newFilesPath := filepath.Join(newPath, filesName)
+	newRecipePath := filepath.Join(newPath, recipeName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
 	reader, writer := io.Pipe()
@@ -129,15 +128,15 @@ func (r *Repo) Commit(source string) {
 func (r *Repo) Restore(destination string) {
 	versions := r.loadVersions()
 	latest := versions[len(versions)-1]
-	latestFilesPath := path.Join(latest, filesName)
-	latestRecipePath := path.Join(latest, recipeName)
+	latestFilesPath := filepath.Join(latest, filesName)
+	latestRecipePath := filepath.Join(latest, recipeName)
 	files := loadFileList(latestFilesPath)
 	recipe := loadRecipe(latestRecipePath)
 	reader, writer := io.Pipe()
 	go r.restoreStream(writer, recipe)
 	bufReader := bufio.NewReaderSize(reader, r.chunkSize*2)
 	for _, file := range files {
-		filePath := path.Join(destination, file.Path)
+		filePath := filepath.Join(destination, file.Path)
 		dir := filepath.Dir(filePath)
 		os.MkdirAll(dir, 0775)      // TODO: handle errors
 		f, _ := os.Create(filePath) // TODO: handle errors
@@ -158,7 +157,7 @@ func (r *Repo) loadVersions() []string {
 		if !f.IsDir() {
 			continue
 		}
-		versions = append(versions, path.Join(r.path, f.Name()))
+		versions = append(versions, filepath.Join(r.path, f.Name()))
 	}
 	return versions
 }
@@ -285,7 +284,7 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 // TODO: use atoi for chunkid
 func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 	for i, v := range versions {
-		p := path.Join(v, chunksName)
+		p := filepath.Join(v, chunksName)
 		entries, err := os.ReadDir(p)
 		if err != nil {
 			log.Printf("Error reading version '%05d' in '%s' chunks: %s", i, v, err)
@@ -294,7 +293,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 			if e.IsDir() {
 				continue
 			}
-			f := path.Join(p, e.Name())
+			f := filepath.Join(p, e.Name())
 			buff, err := os.ReadFile(f)
 			if err != nil {
 				log.Printf("Error reading chunk '%s': %s", f, err.Error())

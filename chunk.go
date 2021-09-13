@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path"
+	"path/filepath"
 )
 
 type Chunk interface {
@@ -33,7 +33,7 @@ type ChunkId struct {
 }
 
 func (i *ChunkId) Path(repo string) string {
-	return path.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
+	return filepath.Join(repo, fmt.Sprintf(versionFmt, i.Ver), chunksName, fmt.Sprintf(chunkIdFmt, i.Idx))
 }
 
 func NewLoadedChunk(id *ChunkId, value []byte) *LoadedChunk {
