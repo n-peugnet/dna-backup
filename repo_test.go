@@ -320,9 +320,10 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 		eFiles := loadFileList(expected)
 		aFiles := loadFileList(actual)
 		assertLen(t, len(eFiles), aFiles, prefix)
-		for i := 0; i < len(eFiles); i++ {
-			if eFiles[i] != aFiles[i] {
-				t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFiles[i])
+		for i, eFile := range eFiles {
+			eFile.Path = filepath.FromSlash(eFile.Path)
+			if eFile != aFiles[i] {
+				t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFile)
 			}
 		}
 	} else if filepath.Base(expected) == recipeName {
