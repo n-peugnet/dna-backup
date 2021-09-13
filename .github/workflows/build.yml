@@ -15,7 +15,6 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
-          args: --tests=false
   test:
     runs-on: ubuntu-latest
     steps:

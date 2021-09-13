@@ -1,0 +1,10 @@
+run:
+  tests: false
+
+severity:
+  default-severity: error
+  rules:
+    - severity: warning
+      linters:
+      - errcheck # for now, make errcheck only a warning, remove it later
+      - deadcode
