@@ -32,6 +32,7 @@ priority 2
 - [ ] maybe use an LRU cache instead of the current FIFO one.
 - [x] remove `LoadedChunk` and only use `StoredChunk` instead now that the cache
     is implemented
+- [ ] store file list compressed
 
 reunion 7/09
 ------------
