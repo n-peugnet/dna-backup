@@ -12,13 +12,17 @@ repo/
 │   │   ├── 000000000000002
 │   │   ├── 000000000000003
 │   ├── files
-│   └── recipe
+│   ├── fingerprints
+│   ├── recipe
+│   └── sketches
 └── 00001/
     ├── chunks/
     │   ├── 000000000000000
     │   ├── 000000000000001
     ├── files
-    └── recipe
+│   ├── fingerprints
+│   ├── recipe
+│   └── sketches
 ```
 */
 
@@ -110,7 +114,9 @@ func (r *Repo) Commit(source string) {
 	newPath := filepath.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := filepath.Join(newPath, chunksName)
 	newFilesPath := filepath.Join(newPath, filesName)
+	newFingerprintsPath := filepath.Join(newPath, fingerprintsName)
 	newRecipePath := filepath.Join(newPath, recipeName)
+	newSketchesPath := filepath.Join(newPath, sketchesName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
 	reader, writer := io.Pipe()
@@ -120,8 +126,10 @@ func (r *Repo) Commit(source string) {
 	go concatFiles(files, writer)
 	r.hashChunks(oldChunks)
 	recipe := r.matchStream(reader, newVersion)
-	storeRecipe(newRecipePath, recipe)
 	storeFileList(newFilesPath, unprefixFiles(files, source))
+	storeFingerprints(newFingerprintsPath, r.fingerprints)
+	storeRecipe(newRecipePath, recipe)
+	storeSketches(newSketchesPath, r.sketches)
 	logger.Info(files)
 }
 
@@ -211,11 +219,11 @@ func concatFiles(files []File, stream io.WriteCloser) {
 	stream.Close()
 }
 
-func storeFileList(dest string, files []File) {
+func storeBasicStruct(dest string, obj interface{}) {
 	file, err := os.Create(dest)
 	if err == nil {
 		encoder := gob.NewEncoder(file)
-		err = encoder.Encode(files)
+		err = encoder.Encode(obj)
 	}
 	if err != nil {
 		logger.Panic(err)
@@ -225,12 +233,11 @@ func storeFileList(dest string, files []File) {
 	}
 }
 
-func loadFileList(path string) []File {
-	var files []File
+func loadBasicStruct(path string, obj interface{}) {
 	file, err := os.Open(path)
 	if err == nil {
 		decoder := gob.NewDecoder(file)
-		err = decoder.Decode(&files)
+		err = decoder.Decode(obj)
 	}
 	if err != nil {
 		logger.Panic(err)
@@ -238,6 +245,15 @@ func loadFileList(path string) []File {
 	if err = file.Close(); err != nil {
 		logger.Panic(err)
 	}
+}
+
+func storeFileList(dest string, files []File) {
+	storeBasicStruct(dest, files)
+}
+
+func loadFileList(path string) []File {
+	var files []File
+	loadBasicStruct(path, &files)
 	return files
 }
 
@@ -572,6 +588,26 @@ func loadRecipe(path string) []Chunk {
 		logger.Panic(err)
 	}
 	return recipe
+}
+
+func storeFingerprints(dest string, fingerprints FingerprintMap) {
+	storeBasicStruct(dest, fingerprints)
+}
+
+func loadFingerprints(path string) FingerprintMap {
+	var fingerprints FingerprintMap
+	loadBasicStruct(path, &fingerprints)
+	return fingerprints
+}
+
+func storeSketches(dest string, sketches SketchMap) {
+	storeBasicStruct(dest, sketches)
+}
+
+func loadSketches(path string) SketchMap {
+	var sketches SketchMap
+	loadBasicStruct(path, &sketches)
+	return sketches
 }
 
 func extractDeltaChunks(chunks []Chunk) (ret []*DeltaChunk) {

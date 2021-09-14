@@ -319,6 +319,7 @@ func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actu
 
 func assertCompatibleRepoFile(t *testing.T, expected string, actual string, prefix string) {
 	if filepath.Base(expected) == filesName {
+		// Filelist file
 		eFiles := loadFileList(expected)
 		aFiles := loadFileList(actual)
 		assertLen(t, len(eFiles), aFiles, prefix)
@@ -329,8 +330,23 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 			}
 		}
 	} else if filepath.Base(expected) == recipeName {
-		// TODO: check recipies equality
+		// Recipe file
+		eRecipe := loadRecipe(expected)
+		aRecipe := loadRecipe(actual)
+		assertLen(t, len(eRecipe), aRecipe, prefix)
+		for i, eChunk := range eRecipe {
+			if reflect.DeepEqual(eChunk, aRecipe[i]) {
+				continue
+			} else {
+				t.Fatal(prefix, "chunk do not match:", aRecipe[i], ", expected", eChunk)
+			}
+		}
+	} else if filepath.Base(expected) == sketchesName {
+		// TODO: check Sketches file
+	} else if filepath.Base(expected) == fingerprintsName {
+		// TODO: check Fingerprints file
 	} else {
+		// Chunk content file
 		assertSameFile(t, expected, actual, prefix)
 	}
 }
