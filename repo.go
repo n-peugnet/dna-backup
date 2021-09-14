@@ -215,7 +215,8 @@ func concatFiles(files []File, stream io.WriteCloser) {
 			continue
 		}
 		if n, err := io.Copy(stream, file); err != nil {
-			logger.Panic(n, err)
+			logger.Error(n, err)
+			continue
 		}
 		if err = file.Close(); err != nil {
 			logger.Panic(err)
