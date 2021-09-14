@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
@@ -71,7 +71,7 @@ func (r *Repo) chunkStream(stream io.Reader, chunks chan<- []byte) {
 			prev += read
 		}
 		if err != nil && err != io.EOF {
-			log.Println(err)
+			logger.Error(err)
 		}
 		if prev == r.chunkSize {
 			chunks <- buff
@@ -89,7 +89,7 @@ func storeChunks(dest string, chunks <-chan []byte) {
 		path := filepath.Join(dest, fmt.Sprintf(chunkIdFmt, i))
 		err := os.WriteFile(path, c, 0664)
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 		i++
 	}
@@ -240,7 +240,7 @@ func TestBsdiff(t *testing.T) {
 	newChunks := extractDeltaChunks(recipe)
 	assertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
-		log.Println("Patch size:", len(c.Patch))
+		logger.Info("Patch size:", len(c.Patch))
 		if len(c.Patch) >= repo.chunkSize/10 {
 			t.Errorf("Bsdiff of chunk is too large: %d", len(c.Patch))
 		}

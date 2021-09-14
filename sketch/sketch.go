@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"log"
 	"sync"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
+	"github.com/n-peugnet/dna-backup/logger"
 )
 
 type Sketch []uint64
@@ -31,13 +31,13 @@ func SketchChunk(r io.Reader, pol rabinkarp64.Pol, chunkSize int, wSize int, sfC
 	sfBuff := make([]byte, fBytes*fCount)
 	chunkLen, err := chunk.ReadFrom(r)
 	if err != nil {
-		log.Panicln(chunkLen, err)
+		logger.Panic(chunkLen, err)
 	}
 	for f := 0; f < int(chunkLen)/fSize; f++ {
 		var fBuff bytes.Buffer
 		n, err := io.CopyN(&fBuff, &chunk, int64(fSize))
 		if err != nil {
-			log.Println(n, err)
+			logger.Error(n, err)
 			continue
 		}
 		features = append(features, 0)
@@ -62,7 +62,7 @@ func calcFeature(wg *sync.WaitGroup, p rabinkarp64.Pol, r ReadByteReader, wSize 
 	hasher := rabinkarp64.NewFromPol(p)
 	n, err := io.CopyN(hasher, r, int64(wSize))
 	if err != nil {
-		log.Println(n, err)
+		logger.Error(n, err)
 	}
 	max := hasher.Sum64()
 	for w := 0; w < fSize-wSize; w++ {

@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/n-peugnet/dna-backup/logger"
 )
 
 func TestMain(m *testing.M) {
@@ -14,7 +16,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	log.SetFlags(log.Lshortfile)
+	logger.SetFlags(log.Lshortfile)
 }
 
 func shutdown() {}

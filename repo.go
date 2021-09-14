@@ -32,7 +32,6 @@ import (
 	"hash"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -40,6 +39,7 @@ import (
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/cache"
+	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/sketch"
 	"github.com/n-peugnet/dna-backup/utils"
 )
@@ -71,12 +71,12 @@ type File struct {
 func NewRepo(path string) *Repo {
 	err := os.MkdirAll(path, 0775)
 	if err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	var seed int64 = 1
 	p, err := rabinkarp64.RandomPolynomial(seed)
 	if err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	return &Repo{
 		path:              path,
@@ -122,7 +122,7 @@ func (r *Repo) Commit(source string) {
 	recipe := r.matchStream(reader, newVersion)
 	storeRecipe(newRecipePath, recipe)
 	storeFileList(newFilesPath, unprefixFiles(files, source))
-	fmt.Println(files)
+	logger.Info(files)
 }
 
 func (r *Repo) Restore(destination string) {
@@ -142,10 +142,10 @@ func (r *Repo) Restore(destination string) {
 		f, _ := os.Create(filePath) // TODO: handle errors
 		n, err := io.CopyN(f, bufReader, file.Size)
 		if err != nil {
-			log.Printf("Error storing file content for '%s', written %d/%d bytes: %s\n", filePath, n, file.Size, err)
+			logger.Errorf("storing file content for '%s', written %d/%d bytes: %s", filePath, n, file.Size, err)
 		}
 		if err := f.Close(); err != nil {
-			log.Printf("Error closing restored file '%s': %s\n", filePath, err)
+			logger.Errorf("closing restored file '%s': %s", filePath, err)
 		}
 	}
 }
@@ -154,7 +154,7 @@ func (r *Repo) loadVersions() []string {
 	var versions []string
 	files, err := os.ReadDir(r.path)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatal(err)
 	}
 	for _, f := range files {
 		if !f.IsDir() {
@@ -170,7 +170,7 @@ func listFiles(path string) []File {
 	err := filepath.Walk(path,
 		func(p string, i fs.FileInfo, err error) error {
 			if err != nil {
-				log.Println(err)
+				logger.Error(err)
 				return err
 			}
 			if i.IsDir() {
@@ -180,7 +180,7 @@ func listFiles(path string) []File {
 			return nil
 		})
 	if err != nil {
-		log.Println(err)
+		logger.Error(err)
 	}
 	return files
 }
@@ -190,7 +190,7 @@ func unprefixFiles(files []File, prefix string) (ret []File) {
 	preSize := len(prefix)
 	for i, f := range files {
 		if !strings.HasPrefix(f.Path, prefix) {
-			log.Println("Warning", f.Path, "is not prefixed by", prefix)
+			logger.Warning(f.Path, "is not prefixed by", prefix)
 		} else {
 			f.Path = f.Path[preSize:]
 		}
@@ -203,7 +203,7 @@ func concatFiles(files []File, stream io.WriteCloser) {
 	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
-			log.Printf("Error reading file '%s': %s\n", f.Path, err)
+			logger.Errorf("reading file '%s': %s", f.Path, err)
 			continue
 		}
 		io.Copy(stream, file)
@@ -218,10 +218,10 @@ func storeFileList(dest string, files []File) {
 		err = encoder.Encode(files)
 	}
 	if err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 }
 
@@ -233,10 +233,10 @@ func loadFileList(path string) []File {
 		err = decoder.Decode(&files)
 	}
 	if err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	return files
 }
@@ -245,18 +245,18 @@ func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
 	path := id.Path(r.path)
 	file, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Error creating chunk for '%s'; %s\n", path, err)
+		return fmt.Errorf("creating chunk for '%s'; %s\n", path, err)
 	}
 	wrapper := r.chunkWriteWrapper(file)
 	n, err := io.Copy(wrapper, reader)
 	if err != nil {
-		return fmt.Errorf("Error writing chunk content for '%s', written %d bytes: %s\n", path, n, err)
+		return fmt.Errorf("writing chunk content for '%s', written %d bytes: %s\n", path, n, err)
 	}
 	if err := wrapper.Close(); err != nil {
-		return fmt.Errorf("Error closing write wrapper for '%s': %s\n", path, err)
+		return fmt.Errorf("closing write wrapper for '%s': %s\n", path, err)
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("Error closing chunk for '%s': %s\n", path, err)
+		return fmt.Errorf("closing chunk for '%s': %s\n", path, err)
 	}
 	return nil
 }
@@ -269,18 +269,18 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 		path := id.Path(r.path)
 		f, err := os.Open(path)
 		if err != nil {
-			log.Printf("Cannot open chunk '%s': %s\n", path, err)
+			logger.Errorf("cannot open chunk '%s': %s", path, err)
 		}
 		wrapper, err := r.chunkReadWrapper(f)
 		if err != nil {
-			log.Printf("Cannot create read wrapper for chunk '%s': %s\n", path, err)
+			logger.Errorf("cannot create read wrapper for chunk '%s': %s", path, err)
 		}
 		value, err = io.ReadAll(wrapper)
 		if err != nil {
-			log.Panicf("Could not read from chunk '%s': %s\n", path, err)
+			logger.Panicf("could not read from chunk '%s': %s", path, err)
 		}
 		if err = f.Close(); err != nil {
-			log.Printf("Could not close chunk '%s': %s\n", path, err)
+			logger.Warningf("could not close chunk '%s': %s", path, err)
 		}
 		r.chunkCache.Set(id, value)
 	}
@@ -293,7 +293,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 		p := filepath.Join(v, chunksName)
 		entries, err := os.ReadDir(p)
 		if err != nil {
-			log.Printf("Error reading version '%05d' in '%s' chunks: %s", i, v, err)
+			logger.Errorf("reading version '%05d' in '%s' chunks: %s", i, v, err)
 		}
 		for j, e := range entries {
 			if e.IsDir() {
@@ -366,7 +366,7 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 		for _, id := range chunkIds {
 			count := similarChunks[*id]
 			count += 1
-			log.Printf("Found %d %d time(s)", id, count)
+			logger.Infof("found %d %d time(s)", id, count)
 			if count > max {
 				similarChunk = id
 			}
@@ -381,7 +381,7 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 	if found {
 		var buff bytes.Buffer
 		if err := r.differ.Diff(r.LoadChunkContent(id), temp.Reader(), &buff); err != nil {
-			log.Println("Error trying delta encode chunk:", temp, "with source:", id, ":", err)
+			logger.Error("trying delta encode chunk:", temp, "with source:", id, ":", err)
 		} else {
 			return &DeltaChunk{
 				repo:   r,
@@ -399,7 +399,7 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (chunk Chunk, isDelta bool) {
 	chunk, isDelta = r.tryDeltaEncodeChunk(temp)
 	if isDelta {
-		log.Println("Add new delta chunk")
+		logger.Info("add new delta chunk")
 		return
 	}
 	if chunk.Len() == r.chunkSize {
@@ -409,12 +409,12 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64) (c
 		r.hashAndStoreChunk(id, temp.Reader(), hasher)
 		err := r.StoreChunkContent(id, temp.Reader())
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
-		log.Println("Add new chunk", id)
+		logger.Info("add new chunk", id)
 		return NewStoredChunk(r, id), false
 	}
-	log.Println("Add new partial chunk of size:", chunk.Len())
+	logger.Info("add new partial chunk of size:", chunk.Len())
 	return
 }
 
@@ -453,7 +453,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 			chunks = append(chunks, NewTempChunk(buff[:n]))
 			return chunks
 		} else {
-			log.Panicf("Error Read only %d bytes with error '%s'\n", n, err)
+			logger.Panicf("matching stream, read only %d bytes with error '%s'", n, err)
 		}
 	}
 	hasher := rabinkarp64.NewFromPol(r.pol)
@@ -472,7 +472,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 				chunks = append(chunks, c)
 				prev = nil
 			}
-			log.Printf("Add existing chunk: %d\n", chunkId)
+			logger.Infof("add existing chunk: %d", chunkId)
 			chunks = append(chunks, NewStoredChunk(r, chunkId))
 			buff = make([]byte, 0, r.chunkSize*2)
 			for i := 0; i < r.chunkSize && err == nil; i++ {
@@ -523,7 +523,7 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 			rc.SetRepo(r)
 		}
 		if n, err := io.Copy(stream, c.Reader()); err != nil {
-			log.Printf("Error copying to stream, read %d bytes from chunk: %s\n", n, err)
+			logger.Errorf("copying to stream, read %d bytes from chunk: %s", n, err)
 		}
 	}
 	stream.Close()
@@ -538,15 +538,15 @@ func storeRecipe(dest string, recipe []Chunk) {
 		encoder := gob.NewEncoder(file)
 		for _, c := range recipe {
 			if err = encoder.Encode(&c); err != nil {
-				log.Panicln(err)
+				logger.Panic(err)
 			}
 		}
 	}
 	if err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 }
 
@@ -566,10 +566,10 @@ func loadRecipe(path string) []Chunk {
 		}
 	}
 	if err != nil && err != io.EOF {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
-		log.Panicln(err)
+		logger.Panic(err)
 	}
 	return recipe
 }

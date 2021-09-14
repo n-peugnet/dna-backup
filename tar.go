@@ -3,8 +3,9 @@ package main
 import (
 	"archive/tar"
 	"io"
-	"log"
 	"os"
+
+	"github.com/n-peugnet/dna-backup/logger"
 )
 
 func streamFilesTar(files []File, stream io.WriteCloser) {
@@ -12,30 +13,30 @@ func streamFilesTar(files []File, stream io.WriteCloser) {
 	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
-			log.Printf("Error reading file '%s': %s\n", f.Path, err)
+			logger.Errorf("reading file '%s': %s", f.Path, err)
 			continue
 		}
 		stat, err := file.Stat()
 		if err != nil {
-			log.Printf("Error getting stat of file '%s': %s\n", f.Path, err)
+			logger.Errorf("getting stat of file '%s': %s", f.Path, err)
 			continue
 		}
 		hdr, err := tar.FileInfoHeader(stat, "")
 		if err != nil {
-			log.Printf("Error creating tar header for file '%s': %s\n", f.Path, err)
+			logger.Errorf("creating tar header for file '%s': %s", f.Path, err)
 			continue
 		}
 		if err := tarStream.WriteHeader(hdr); err != nil {
-			log.Panicf("Error writing tar header to stream for file '%s': %s\n", f.Path, err)
+			logger.Panicf("writing tar header to stream for file '%s': %s", f.Path, err)
 		}
 		if _, err := io.Copy(tarStream, file); err != nil {
-			log.Panicf("Error writing file to stream '%s': %s\n", f.Path, err)
+			logger.Panicf("writing file to stream '%s': %s", f.Path, err)
 		}
 	}
 	if err := tarStream.Close(); err != nil {
-		log.Panic("Error closing tar stream:", err)
+		logger.Panic("closing tar stream:", err)
 	}
 	if err := stream.Close(); err != nil {
-		log.Panic("Error closing stream:", err)
+		logger.Panic("closing stream:", err)
 	}
 }

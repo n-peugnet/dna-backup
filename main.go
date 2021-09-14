@@ -17,7 +17,7 @@ var (
 )
 
 func init() {
-	flag.IntVar(&logLevel, "v", 1, "log verbosity level (0-3)")
+	flag.IntVar(&logLevel, "v", 2, "log verbosity level (0-3)")
 }
 
 func main() {
@@ -31,9 +31,9 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-
-	source := os.Args[0]
-	dest := os.Args[1]
+	args := flag.Args()
+	source := args[0]
+	dest := args[1]
 	repo := NewRepo(dest)
 	repo.Commit(source)
 }
