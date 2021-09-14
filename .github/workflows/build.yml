@@ -39,9 +39,6 @@ jobs:
           echo "::set-output name=build::$(go env GOCACHE)"
           echo "::set-output name=mod::$(go env GOMODCACHE)"
 
-      - name: Checkout
-        uses: actions/checkout@v2
-
       # Cache go build cache, used to speedup go test
       - name: Go Build Cache
         uses: actions/cache@v2
