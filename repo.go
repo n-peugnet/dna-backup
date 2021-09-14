@@ -214,7 +214,12 @@ func concatFiles(files []File, stream io.WriteCloser) {
 			logger.Errorf("reading file '%s': %s", f.Path, err)
 			continue
 		}
-		io.Copy(stream, file)
+		if n, err := io.Copy(stream, file); err != nil {
+			logger.Panic(n, err)
+		}
+		if err = file.Close(); err != nil {
+			logger.Panic(err)
+		}
 	}
 	stream.Close()
 }
