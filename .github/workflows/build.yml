@@ -32,22 +32,29 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Set up cache
+      # Get values for cache paths to be used in later steps
+      - name: Get Go cache path
+        id: go-cache
+        run: |
+          echo "::set-output name=build::$(go env GOCACHE)"
+          echo "::set-output name=mod::$(go env GOMODCACHE)"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Cache go build cache, used to speedup go test
+      - name: Go Build Cache
         uses: actions/cache@v2
         with:
-          # In order:
-          # * Module download cache
-          # * Build cache (Linux)
-          # * Build cache (Mac)
-          # * Build cache (Windows)
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-            %LocalAppData%\go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          path: ${{ steps.go-cache.outputs.build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+
+      # Cache go mod cache, used to speedup builds
+      - name: Go Mod Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache.outputs.mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
 
       - name: Build
         run: go build -v ./...
