@@ -3,6 +3,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"runtime/debug"
@@ -13,6 +14,7 @@ type severity int
 
 type logger interface {
 	Output(calldepth int, s string) error
+	SetOutput(w io.Writer)
 	SetFlags(flag int)
 }
 
@@ -101,6 +103,13 @@ func (l *Logger) output(s severity, depth int, txt string) {
 		panic(fmt.Sprintln("unrecognized severity:", s))
 	}
 	l.loggers[s].Output(3+depth, txt+"\033[0m")
+}
+
+// SetOutput changes the output of the logger.
+func (l *Logger) SetOutput(w io.Writer) {
+	for _, logger := range l.loggers {
+		logger.SetOutput(w)
+	}
 }
 
 // SetFlags sets the output flags for the logger.
@@ -192,6 +201,11 @@ func (l *Logger) Fatal(v ...interface{}) {
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.output(sFatal, 0, fmt.Sprintf(format, v...))
 	os.Exit(1)
+}
+
+// SetOutput changes the output of the default logger.
+func SetOutput(w io.Writer) {
+	defaultLogger.SetOutput(w)
 }
 
 // SetFlags sets the output flags for the logger.

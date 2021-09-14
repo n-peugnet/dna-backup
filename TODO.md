@@ -33,7 +33,6 @@ priority 2
 - [x] remove `LoadedChunk` and only use `StoredChunk` instead now that the cache
     is implemented
 - [ ] store file list compressed
-- [ ] TODO: add tests for logger
 
 reunion 7/09
 ------------
