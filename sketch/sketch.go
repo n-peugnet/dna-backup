@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"sync"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/logger"
@@ -23,7 +22,6 @@ const fBytes = 8
 // sfCount: the number of super-features, and fCount: the number of feature
 // per super-feature
 func SketchChunk(r io.Reader, pol rabinkarp64.Pol, chunkSize int, wSize int, sfCount int, fCount int) (Sketch, error) {
-	var wg sync.WaitGroup
 	var fSize = FeatureSize(chunkSize, sfCount, fCount)
 	var chunk bytes.Buffer
 	superfeatures := make([]uint64, 0, sfCount)
@@ -41,11 +39,9 @@ func SketchChunk(r io.Reader, pol rabinkarp64.Pol, chunkSize int, wSize int, sfC
 			continue
 		}
 		features = append(features, 0)
-		wg.Add(1)
-		go calcFeature(&wg, pol, &fBuff, wSize, fSize, &features[f])
+		calcFeature(pol, &fBuff, wSize, fSize, &features[f])
 	}
 	hasher := rabinkarp64.NewFromPol(pol)
-	wg.Wait()
 	for sf := 0; sf < len(features)/fCount; sf++ {
 		for i := 0; i < fCount; i++ {
 			binary.LittleEndian.PutUint64(sfBuff[i*fBytes:(i+1)*fBytes], features[i+sf*fCount])
@@ -57,8 +53,7 @@ func SketchChunk(r io.Reader, pol rabinkarp64.Pol, chunkSize int, wSize int, sfC
 	return superfeatures, nil
 }
 
-func calcFeature(wg *sync.WaitGroup, p rabinkarp64.Pol, r ReadByteReader, wSize int, fSize int, result *uint64) {
-	defer wg.Done()
+func calcFeature(p rabinkarp64.Pol, r ReadByteReader, wSize int, fSize int, result *uint64) {
 	hasher := rabinkarp64.NewFromPol(p)
 	n, err := io.CopyN(hasher, r, int64(wSize))
 	if err != nil {

@@ -33,6 +33,8 @@ priority 2
 - [x] remove `LoadedChunk` and only use `StoredChunk` instead now that the cache
     is implemented
 - [ ] store file list compressed
+- [ ] keep hash workers so that they reuse the same hasher and reset it instead
+    of creating a new one each time. This could save some processing time
 
 reunion 7/09
 ------------
