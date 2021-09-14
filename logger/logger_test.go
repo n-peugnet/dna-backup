@@ -3,7 +3,9 @@ package logger
 import (
 	"bufio"
 	"bytes"
+	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -83,5 +85,62 @@ func TestInit(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("logger %d wrong number of lines, want %d, got %d", i+1, tt.want, got)
 		}
+	}
+}
+
+func TestLevel(t *testing.T) {
+	initialize()
+	var buf bytes.Buffer
+	Init(1)
+	SetOutput(&buf)
+
+	Infof("info %d", sInfo)
+	Warningf("warning %d", sWarning)
+	Errorf("error %d", sError)
+	s := buf.String()
+	if strings.Contains(s, "info") {
+		t.Errorf("log output %q should not contain: info", s)
+	}
+	if strings.Contains(s, "warning") {
+		t.Errorf("log output %q should not contain: warning", s)
+	}
+	if !strings.Contains(s, "error") {
+		t.Errorf("log output %q should contain: error", s)
+	}
+}
+
+func TestFlags(t *testing.T) {
+	initialize()
+	l := Init(3)
+	SetFlags(log.Llongfile)
+	var buf bytes.Buffer
+	SetOutput(&buf)
+	l.Infof("info %d", sInfo)
+	s := buf.String()
+	if !strings.Contains(s, "info 0") {
+		t.Errorf("log output %q should contain: info 0", s)
+	}
+	path := filepath.Join("logger", "logger_test.go")
+	if !strings.Contains(s, path) {
+		t.Errorf("log output %q should contain: %s", s, path)
+	}
+
+	// bonus for coverage
+	l.Warning("warning")
+	l.Warningf("warning %d", sWarning)
+	l.Error("error")
+	l.Errorf("error %d", sError)
+	s = buf.String()
+	if !strings.Contains(s, "warning") {
+		t.Errorf("log output %q should contain: warning", s)
+	}
+	if !strings.Contains(s, "warning 1") {
+		t.Errorf("log output %q should contain: warning 1", s)
+	}
+	if !strings.Contains(s, "error") {
+		t.Errorf("log output %q should contain: error", s)
+	}
+	if !strings.Contains(s, "error 2") {
+		t.Errorf("log output %q should contain: error 2", s)
 	}
 }

@@ -29,8 +29,8 @@ const (
 // Severity tags.
 const (
 	tagInfo    = "\033[0m[INFO]  "
-	tagWarning = "\033[1;33m[WARN]  "
-	tagError   = "\033[1;31m[ERROR] "
+	tagWarning = "\033[33m[WARN]  "
+	tagError   = "\033[31m[ERROR] "
 	tagFatal   = "\033[1;31m[FATAL] "
 )
 
@@ -46,13 +46,13 @@ var (
 // initialize resets defaultLogger.  Which allows tests to reset environment.
 func initialize() {
 	defaultLogger = &Logger{
-		loggers: []logger{
+		loggers: [4]logger{
 			log.New(os.Stderr, tagInfo, flags),
 			log.New(os.Stderr, tagWarning, flags),
 			log.New(os.Stderr, tagError, flags),
 			log.New(os.Stderr, tagFatal, flags),
 		},
-		level: 3,
+		minSeverity: 0,
 	}
 }
 
@@ -67,14 +67,16 @@ func init() {
 // generated logger, subsequent calls to Init will only return the generated
 // logger.
 func Init(level int) *Logger {
-
-	loggers := []logger{
-		log.New(os.Stderr, tagInfo, flags),
-		log.New(os.Stderr, tagWarning, flags),
-		log.New(os.Stderr, tagError, flags),
-		log.New(os.Stderr, tagFatal, flags),
+	l := Logger{
+		loggers: [4]logger{
+			log.New(os.Stderr, tagInfo, flags),
+			log.New(os.Stderr, tagWarning, flags),
+			log.New(os.Stderr, tagError, flags),
+			log.New(os.Stderr, tagFatal, flags),
+		},
+		minSeverity: sFatal - severity(level),
+		initialized: true,
 	}
-	l := Logger{loggers: loggers, level: level, initialized: true}
 
 	logLock.Lock()
 	defer logLock.Unlock()
@@ -88,13 +90,13 @@ func Init(level int) *Logger {
 // A Logger represents an active logging object. Multiple loggers can be used
 // simultaneously even if they are using the same writers.
 type Logger struct {
-	loggers     []logger
-	level       int
+	loggers     [4]logger
+	minSeverity severity
 	initialized bool
 }
 
 func (l *Logger) output(s severity, depth int, txt string) {
-	if s < sFatal-severity(l.level) {
+	if s < l.minSeverity {
 		return
 	}
 	logLock.Lock()
@@ -125,12 +127,6 @@ func (l *Logger) Info(v ...interface{}) {
 	l.output(sInfo, 0, fmt.Sprint(v...))
 }
 
-// InfoDepth acts as Info but uses depth to determine which call frame to log.
-// InfoDepth(0, "msg") is the same as Info("msg").
-func (l *Logger) InfoDepth(depth int, v ...interface{}) {
-	l.output(sInfo, depth, fmt.Sprint(v...))
-}
-
 // Infof logs with the Info severity.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Infof(format string, v ...interface{}) {
@@ -143,12 +139,6 @@ func (l *Logger) Warning(v ...interface{}) {
 	l.output(sWarning, 0, fmt.Sprint(v...))
 }
 
-// WarningDepth acts as Warning but uses depth to determine which call frame to log.
-// WarningDepth(0, "msg") is the same as Warning("msg").
-func (l *Logger) WarningDepth(depth int, v ...interface{}) {
-	l.output(sWarning, depth, fmt.Sprint(v...))
-}
-
 // Warningf logs with the Warning severity.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Warningf(format string, v ...interface{}) {
@@ -159,12 +149,6 @@ func (l *Logger) Warningf(format string, v ...interface{}) {
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Error(v ...interface{}) {
 	l.output(sError, 0, fmt.Sprint(v...))
-}
-
-// ErrorDepth acts as Error but uses depth to determine which call frame to log.
-// ErrorDepth(0, "msg") is the same as Error("msg").
-func (l *Logger) ErrorDepth(depth int, v ...interface{}) {
-	l.output(sError, depth, fmt.Sprint(v...))
 }
 
 // Errorf logs with the Error severity.
@@ -193,6 +177,7 @@ func (l *Logger) Panicf(format string, v ...interface{}) {
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Fatal(v ...interface{}) {
 	l.output(sFatal, 0, fmt.Sprint(v...))
+	debug.PrintStack()
 	os.Exit(1)
 }
 
@@ -200,6 +185,7 @@ func (l *Logger) Fatal(v ...interface{}) {
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.output(sFatal, 0, fmt.Sprintf(format, v...))
+	debug.PrintStack()
 	os.Exit(1)
 }
 
