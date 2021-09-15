@@ -26,7 +26,10 @@ priority 2
 - [ ] option to commit without deltas to save new base chunks
 - [ ] custom binary marshal and unmarshal for chunks
 - [x] use `loadChunkContent` in `loadChunks`
-- [ ] TODO: store hashes for faster maps rebuild
+- [x] save hashes for faster maps rebuild
+    - [x] store hashes for current version's chunks
+    - [x] load hashes for each version
+- [x] use store queue to asynchronously store `chunkData`
 - [ ] try [Fdelta](https://github.com/amlwwalker/fdelta) and
     [Xdelta](https://github.com/nine-lives-later/go-xdelta) instead of Bsdiff
 - [ ] maybe use an LRU cache instead of the current FIFO one.

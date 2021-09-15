@@ -230,11 +230,13 @@ func TestBsdiff(t *testing.T) {
 	// Load previously stored chunks
 	oldChunks := make(chan IdentifiedChunk, 16)
 	versions := repo.loadVersions()
-	newVersion := len(versions)
 	go repo.loadChunks(versions, oldChunks)
 	repo.hashChunks(oldChunks)
 
 	// Read new data
+	newVersion := len(versions)
+	newPath := filepath.Join(repo.path, fmt.Sprintf(versionFmt, newVersion))
+	os.MkdirAll(newPath, 0775)
 	reader := getDataStream(dataDir, concatFiles)
 	recipe := repo.matchStream(reader, newVersion)
 	newChunks := extractDeltaChunks(recipe)
@@ -341,10 +343,8 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 				t.Fatal(prefix, "chunk do not match:", aRecipe[i], ", expected", eChunk)
 			}
 		}
-	} else if filepath.Base(expected) == sketchesName {
-		// TODO: check Sketches file
-	} else if filepath.Base(expected) == fingerprintsName {
-		// TODO: check Fingerprints file
+	} else if filepath.Base(expected) == hashesName {
+		// TODO: check Hashes file
 	} else {
 		// Chunk content file
 		assertSameFile(t, expected, actual, prefix)
