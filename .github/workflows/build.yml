@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -15,8 +16,10 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
-          args: --issues-exit-code=0 # do not fail ci
-          only-new-issues: true
+          args: >
+            --issues-exit-code=0             # do not fail ci
+            --out-format=colored-line-number # display line number instead of hidden github style
+
   test:
     strategy:
       matrix:
