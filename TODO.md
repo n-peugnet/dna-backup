@@ -35,7 +35,6 @@ priority 2
 - [ ] maybe use an LRU cache instead of the current FIFO one.
 - [x] remove `LoadedChunk` and only use `StoredChunk` instead now that the cache
     is implemented
-- [ ] store file list compressed
 - [ ] keep hash workers so that they reuse the same hasher and reset it instead
     of creating a new one each time. This could save some processing time
 
@@ -44,6 +43,7 @@ reunion 7/09
 - [ ] save recipe consecutive chunks as extents
 - [ ] store recipe and files incrementally
 - [ ] compress recipe
+- [ ] TODO: compress file list
 - [ ] make size comparison between recipe and chunks with some datasets
 
 ideas
@@ -55,3 +55,5 @@ ideas
 
 3. If we don't need to reduce read amplification we could compress all chunks if
     it reduces the space used.
+
+4. Command line with subcommands (like, hmm... git ? for instance)
