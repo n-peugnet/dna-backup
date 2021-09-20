@@ -15,18 +15,20 @@ priority 1
 - [x] add chunk cache to uniquely store chunks in RAM
 - [x] better tests for `(*Repo).Commit`
 - [x] remove errored files from `fileList`
-- [ ] add superblock logic
-- [ ] add version blocks or journal logic
+- [ ] **TODO: Priority 3** add superblock logic.
+- [ ] **TODO: Priority 2** add version blocks or journal logic.
+- [ ] command line with subcommands (like, hmm... git ? for instance).
 
 priority 2
 ----------
 - [ ] use more the `Reader` API (which is analogous to the `IOStream` in Java)
 - [ ] refactor `matchStream` as right now it is quite complex
 - [x] better test for `(*Repo).matchStream`
-- [ ] compress partial chunks (`TempChunks` for now)
-- [ ] tail packing of `PartialChunks` (this Struct does not exist yet as it is in
-    fact just `TempChunks` for now)
-- [ ] option to commit without deltas to save new base chunks
+- [ ] tail packing of `PartialChunks` (this Struct does not exist yet as it is
+    in fact just `TempChunks` for now).
+    This might not be useful if we store the recipe incrementally.
+- [ ] option to commit without deltas to save new base chunks.
+    This might not be useful if we store the recipe incrementally.
 - [ ] custom binary marshal and unmarshal for chunks
 - [x] use `loadChunkContent` in `loadChunks`
 - [x] save hashes for faster maps rebuild
@@ -44,7 +46,7 @@ priority 2
 reunion 7/09
 ------------
 - [ ] save recipe consecutive chunks as extents
-- [ ] store recipe and files incrementally
+- [ ] **TODO: Priority 1** store recipe and files incrementally.
 - [x] compress recipe
 - [x] compress file list
 - [ ] make size comparison between recipe and chunks with some datasets
@@ -58,5 +60,3 @@ ideas
 
 3. If we don't need to reduce read amplification we could compress all chunks if
     it reduces the space used.
-
-4. Command line with subcommands (like, hmm... git ? for instance)
