@@ -45,7 +45,7 @@ reunion 7/09
 ------------
 - [ ] save recipe consecutive chunks as extents
 - [ ] store recipe and files incrementally
-- [ ] compress recipe
+- [x] compress recipe
 - [x] compress file list
 - [ ] make size comparison between recipe and chunks with some datasets
 

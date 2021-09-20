@@ -652,15 +652,20 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 
 func storeRecipe(dest string, recipe []Chunk) {
 	file, err := os.Create(dest)
-	if err == nil {
-		encoder := gob.NewEncoder(file)
-		for _, c := range recipe {
-			if err = encoder.Encode(&c); err != nil {
-				logger.Panic(err)
-			}
+	if err != nil {
+		logger.Panic(err)
+	}
+	out := utils.ZlibWriter(file)
+	encoder := gob.NewEncoder(out)
+	for _, c := range recipe {
+		if err = encoder.Encode(&c); err != nil {
+			logger.Panic(err)
 		}
 	}
 	if err != nil {
+		logger.Panic(err)
+	}
+	if err = out.Close(); err != nil {
 		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
@@ -671,16 +676,24 @@ func storeRecipe(dest string, recipe []Chunk) {
 func loadRecipe(path string) []Chunk {
 	var recipe []Chunk
 	file, err := os.Open(path)
-	if err == nil {
-		decoder := gob.NewDecoder(file)
-		for i := 0; err == nil; i++ {
-			var c Chunk
-			if err = decoder.Decode(&c); err == nil {
-				recipe = append(recipe, c)
-			}
+	if err != nil && err != io.EOF {
+		logger.Panic(err)
+	}
+	in, err := utils.ZlibReader(file)
+	if err != nil {
+		logger.Panic(err)
+	}
+	decoder := gob.NewDecoder(in)
+	for i := 0; err == nil; i++ {
+		var c Chunk
+		if err = decoder.Decode(&c); err == nil {
+			recipe = append(recipe, c)
 		}
 	}
 	if err != nil && err != io.EOF {
+		logger.Panic(err)
+	}
+	if err = in.Close(); err != nil {
 		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
