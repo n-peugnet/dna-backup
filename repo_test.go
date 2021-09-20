@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -130,7 +129,7 @@ func TestReadFiles3(t *testing.T) {
 
 func TestNoSuchFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Symlink("./notexisting", path.Join(tmpDir, "linknotexisting"))
+	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
 	var buff bytes.Buffer
 	files := listFiles(tmpDir)
 	assertLen(t, 1, files, "Files")
@@ -301,6 +300,44 @@ func TestRestoreZlib(t *testing.T) {
 	assertSameTree(t, assertSameFile, expected, dest, "Restore")
 }
 
+func TestHashes(t *testing.T) {
+	dest := t.TempDir()
+	source := filepath.Join("testdata", "repo_8k")
+
+	chunks := make(chan IdentifiedChunk, 16)
+	storeQueue := make(chan chunkData, 16)
+	storeEnd := make(chan bool)
+
+	repo1 := NewRepo(source)
+	repo1.chunkReadWrapper = utils.NopReadWrapper
+	repo1.chunkWriteWrapper = utils.NopWriteWrapper
+	go repo1.loadChunks([]string{filepath.Join(source, "00000")}, chunks)
+	for c := range chunks {
+		fp, sk := repo1.hashChunk(c.GetId(), c.Reader())
+		content, err := io.ReadAll(c.Reader())
+		if err != nil {
+			t.Error(err)
+		}
+		storeQueue <- chunkData{
+			hashes:  chunkHashes{fp, sk},
+			content: content,
+			id:      c.GetId(),
+		}
+	}
+	repo2 := NewRepo(dest)
+	repo2.chunkReadWrapper = utils.NopReadWrapper
+	repo2.chunkWriteWrapper = utils.NopWriteWrapper
+	os.MkdirAll(filepath.Join(dest, "00000", chunksName), 0775)
+	go repo2.storageWorker(0, storeQueue, storeEnd)
+	close(storeQueue)
+	<-storeEnd
+	assertLen(t, 0, repo2.fingerprints, "Fingerprints")
+	assertLen(t, 0, repo2.sketches, "Sketches")
+	repo2.loadHashes([]string{filepath.Join(dest, "00000")})
+	assertSame(t, repo1.fingerprints, repo2.fingerprints, "Fingerprint maps")
+	assertSame(t, repo1.sketches, repo2.sketches, "Sketches maps")
+}
+
 func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actual string, prefix string), expected string, actual string, prefix string) {
 	actualFiles := listFiles(actual)
 	expectedFiles := listFiles(expected)
@@ -341,14 +378,10 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 		aRecipe := loadRecipe(actual)
 		assertLen(t, len(eRecipe), aRecipe, prefix)
 		for i, eChunk := range eRecipe {
-			if reflect.DeepEqual(eChunk, aRecipe[i]) {
-				continue
-			} else {
-				t.Fatal(prefix, "chunk do not match:", aRecipe[i], ", expected", eChunk)
-			}
+			assertSame(t, eChunk, aRecipe[i], prefix+" chunks")
 		}
 	} else if filepath.Base(expected) == hashesName {
-		// TODO: check Hashes file
+		// Hashes file is checked in TestHashes
 	} else {
 		// Chunk content file
 		assertSameFile(t, expected, actual, prefix)
@@ -389,4 +422,10 @@ func assertChunkContent(t *testing.T, expected []byte, c Chunk, prefix string) {
 		t.Fatal(err)
 	}
 	assertSameSlice(t, expected, buf, prefix+" Chunk content")
+}
+
+func assertSame(t *testing.T, expected interface{}, actual interface{}, prefix string) {
+	if !reflect.DeepEqual(expected, actual) {
+		t.Error(prefix, "do not match, expected:", expected, ", actual:", actual)
+	}
 }
