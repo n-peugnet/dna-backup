@@ -43,15 +43,19 @@ var (
 	defaultLogger *Logger
 )
 
+func newLoggers() [4]logger {
+	return [4]logger{
+		log.New(os.Stderr, tagInfo, flags),
+		log.New(os.Stderr, tagWarning, flags),
+		log.New(os.Stderr, tagError, flags),
+		log.New(os.Stderr, tagFatal, flags),
+	}
+}
+
 // initialize resets defaultLogger.  Which allows tests to reset environment.
 func initialize() {
 	defaultLogger = &Logger{
-		loggers: [4]logger{
-			log.New(os.Stderr, tagInfo, flags),
-			log.New(os.Stderr, tagWarning, flags),
-			log.New(os.Stderr, tagError, flags),
-			log.New(os.Stderr, tagFatal, flags),
-		},
+		loggers:     newLoggers(),
 		minSeverity: 0,
 	}
 }
@@ -68,12 +72,7 @@ func init() {
 // logger.
 func Init(level int) *Logger {
 	l := Logger{
-		loggers: [4]logger{
-			log.New(os.Stderr, tagInfo, flags),
-			log.New(os.Stderr, tagWarning, flags),
-			log.New(os.Stderr, tagError, flags),
-			log.New(os.Stderr, tagFatal, flags),
-		},
+		loggers:     newLoggers(),
 		minSeverity: sFatal - severity(level),
 		initialized: true,
 	}

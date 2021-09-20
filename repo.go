@@ -73,8 +73,8 @@ type Repo struct {
 	fingerprints      FingerprintMap
 	sketches          SketchMap
 	chunkCache        cache.Cacher
-	chunkReadWrapper  func(r io.Reader) (io.ReadCloser, error)
-	chunkWriteWrapper func(w io.Writer) io.WriteCloser
+	chunkReadWrapper  utils.ReadWrapper
+	chunkWriteWrapper utils.WriteWrapper
 }
 
 type chunkHashes struct {
@@ -240,13 +240,18 @@ func concatFiles(files []File, stream io.WriteCloser) {
 	stream.Close()
 }
 
-func storeBasicStruct(dest string, obj interface{}) {
+func storeBasicStruct(dest string, wrapper utils.WriteWrapper, obj interface{}) {
 	file, err := os.Create(dest)
-	if err == nil {
-		encoder := gob.NewEncoder(file)
-		err = encoder.Encode(obj)
-	}
 	if err != nil {
+		logger.Panic(err)
+	}
+	out := wrapper(file)
+	encoder := gob.NewEncoder(out)
+	err = encoder.Encode(obj)
+	if err != nil {
+		logger.Panic(err)
+	}
+	if err = out.Close(); err != nil {
 		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
@@ -254,13 +259,21 @@ func storeBasicStruct(dest string, obj interface{}) {
 	}
 }
 
-func loadBasicStruct(path string, obj interface{}) {
+func loadBasicStruct(path string, wrapper utils.ReadWrapper, obj interface{}) {
 	file, err := os.Open(path)
-	if err == nil {
-		decoder := gob.NewDecoder(file)
-		err = decoder.Decode(obj)
-	}
 	if err != nil {
+		logger.Panic(err)
+	}
+	in, err := wrapper(file)
+	if err != nil {
+		logger.Panic(err)
+	}
+	decoder := gob.NewDecoder(in)
+	err = decoder.Decode(obj)
+	if err != nil {
+		logger.Panic(err)
+	}
+	if err = in.Close(); err != nil {
 		logger.Panic(err)
 	}
 	if err = file.Close(); err != nil {
@@ -269,12 +282,12 @@ func loadBasicStruct(path string, obj interface{}) {
 }
 
 func storeFileList(dest string, files []File) {
-	storeBasicStruct(dest, files)
+	storeBasicStruct(dest, utils.ZlibWriter, files)
 }
 
 func loadFileList(path string) []File {
 	var files []File
-	loadBasicStruct(path, &files)
+	loadBasicStruct(path, utils.ZlibReader, &files)
 	return files
 }
 

@@ -131,8 +131,8 @@ func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := filepath.Join("testdata", "logs")
 	repo := NewRepo(resultDir)
-	repo.chunkReadWrapper = dummyReader
-	repo.chunkWriteWrapper = dummyWriter
+	repo.chunkReadWrapper = utils.NopReadWrapper
+	repo.chunkWriteWrapper = utils.NopWriteWrapper
 	resultVersion := filepath.Join(resultDir, "00000")
 	resultChunks := filepath.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
@@ -200,14 +200,6 @@ func getDataStream(dataDir string, streamFunc func([]File, io.WriteCloser)) io.R
 	return reader
 }
 
-func dummyReader(r io.Reader) (io.ReadCloser, error) {
-	return io.NopCloser(r), nil
-}
-
-func dummyWriter(w io.Writer) io.WriteCloser {
-	return utils.NopCloser(w)
-}
-
 func TestBsdiff(t *testing.T) {
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
@@ -224,8 +216,8 @@ func TestBsdiff(t *testing.T) {
 	defer os.Remove(addedFile2)
 
 	// configure repo
-	repo.chunkReadWrapper = dummyReader
-	repo.chunkWriteWrapper = dummyWriter
+	repo.chunkReadWrapper = utils.NopReadWrapper
+	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
 	// Load previously stored chunks
 	oldChunks := make(chan IdentifiedChunk, 16)
@@ -254,8 +246,8 @@ func TestCommit(t *testing.T) {
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
-	repo.chunkReadWrapper = dummyReader
-	repo.chunkWriteWrapper = dummyWriter
+	repo.chunkReadWrapper = utils.NopReadWrapper
+	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
 	repo.Commit(source)
 	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
@@ -278,8 +270,8 @@ func TestRestore(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
-	repo.chunkReadWrapper = dummyReader
-	repo.chunkWriteWrapper = dummyWriter
+	repo.chunkReadWrapper = utils.NopReadWrapper
+	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
 	repo.Restore(dest)
 	assertSameTree(t, assertSameFile, expected, dest, "Restore")

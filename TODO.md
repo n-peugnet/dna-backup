@@ -14,6 +14,9 @@ priority 1
     - [ ] store compressed chunks into tracks of `trackSize` (1024o)
 - [x] add chunk cache to uniquely store chunks in RAM
 - [x] better tests for `(*Repo).Commit`
+- [ ] remove errored files from `fileList`
+- [ ] add superblock logic
+- [ ] add version blocks or journal logic
 
 priority 2
 ----------
@@ -43,7 +46,7 @@ reunion 7/09
 - [ ] save recipe consecutive chunks as extents
 - [ ] store recipe and files incrementally
 - [ ] compress recipe
-- [ ] TODO: compress file list
+- [x] compress file list
 - [ ] make size comparison between recipe and chunks with some datasets
 
 ideas
