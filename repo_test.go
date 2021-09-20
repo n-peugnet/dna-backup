@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -18,7 +19,7 @@ func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, 
 	reader, writer := io.Pipe()
 	chunks := make(chan []byte)
 	files := listFiles(dataDir)
-	go concatFiles(files, writer)
+	go concatFiles(&files, writer)
 	go repo.chunkStream(reader, chunks)
 
 	offset := 0
@@ -127,6 +128,17 @@ func TestReadFiles3(t *testing.T) {
 	chunkCompare(t, dataDir, repo, files, chunkCount)
 }
 
+func TestNoSuchFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.Symlink("./notexisting", path.Join(tmpDir, "linknotexisting"))
+	var buff bytes.Buffer
+	files := listFiles(tmpDir)
+	assertLen(t, 1, files, "Files")
+	concatFiles(&files, utils.NopCloser(&buff))
+	assertLen(t, 0, files, "Files")
+	assertLen(t, 0, buff.Bytes(), "Buffer")
+}
+
 func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := filepath.Join("testdata", "logs")
@@ -142,8 +154,8 @@ func TestLoadChunks(t *testing.T) {
 	chunks2 := make(chan []byte, 16)
 	chunks3 := make(chan IdentifiedChunk, 16)
 	files := listFiles(dataDir)
-	go concatFiles(files, writer1)
-	go concatFiles(files, writer2)
+	go concatFiles(&files, writer1)
+	go concatFiles(&files, writer2)
 	go repo.chunkStream(reader1, chunks1)
 	go repo.chunkStream(reader2, chunks2)
 	storeChunks(resultChunks, chunks1)
@@ -183,7 +195,7 @@ func TestStoreLoadFiles(t *testing.T) {
 	}
 }
 
-func prepareChunks(dataDir string, repo *Repo, streamFunc func([]File, io.WriteCloser)) {
+func prepareChunks(dataDir string, repo *Repo, streamFunc func(*[]File, io.WriteCloser)) {
 	resultVersion := filepath.Join(repo.path, "00000")
 	resultChunks := filepath.Join(resultVersion, chunksName)
 	os.MkdirAll(resultChunks, 0775)
@@ -193,10 +205,10 @@ func prepareChunks(dataDir string, repo *Repo, streamFunc func([]File, io.WriteC
 	storeChunks(resultChunks, chunks)
 }
 
-func getDataStream(dataDir string, streamFunc func([]File, io.WriteCloser)) io.Reader {
+func getDataStream(dataDir string, streamFunc func(*[]File, io.WriteCloser)) io.Reader {
 	reader, writer := io.Pipe()
 	files := listFiles(dataDir)
-	go streamFunc(files, writer)
+	go streamFunc(&files, writer)
 	return reader
 }
 

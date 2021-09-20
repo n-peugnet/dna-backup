@@ -48,6 +48,13 @@ import (
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
+func init() {
+	// register chunk structs for encoding/decoding using gob
+	gob.Register(&StoredChunk{})
+	gob.Register(&TempChunk{})
+	gob.Register(&DeltaChunk{})
+}
+
 type FingerprintMap map[uint64]*ChunkId
 type SketchMap map[uint64][]*ChunkId
 
@@ -141,7 +148,7 @@ func (r *Repo) Commit(source string) {
 	reader, writer := io.Pipe()
 	files := listFiles(source)
 	r.loadHashes(versions)
-	go concatFiles(files, writer)
+	go concatFiles(&files, writer)
 	recipe := r.matchStream(reader, newVersion)
 	storeFileList(newFilesPath, unprefixFiles(files, source))
 	storeRecipe(newRecipePath, recipe)
@@ -222,22 +229,30 @@ func unprefixFiles(files []File, prefix string) (ret []File) {
 	return
 }
 
-func concatFiles(files []File, stream io.WriteCloser) {
-	for _, f := range files {
+// concatFiles reads the content of all the listed files into a continuous stream.
+// If any errors are encoutered while opening a file, it is then removed from the
+// list.
+// If read is incomplete, then the actual read size is used.
+func concatFiles(files *[]File, stream io.WriteCloser) {
+	actual := make([]File, 0, len(*files))
+	for _, f := range *files {
 		file, err := os.Open(f.Path)
 		if err != nil {
-			logger.Error(err)
+			logger.Warning(err)
 			continue
 		}
+		af := f
 		if n, err := io.Copy(stream, file); err != nil {
 			logger.Error(n, err)
-			continue
+			af.Size = n
 		}
+		actual = append(actual, af)
 		if err = file.Close(); err != nil {
 			logger.Panic(err)
 		}
 	}
 	stream.Close()
+	*files = actual
 }
 
 func storeBasicStruct(dest string, wrapper utils.WriteWrapper, obj interface{}) {
@@ -636,9 +651,6 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 }
 
 func storeRecipe(dest string, recipe []Chunk) {
-	gob.Register(&StoredChunk{})
-	gob.Register(&TempChunk{})
-	gob.Register(&DeltaChunk{})
 	file, err := os.Create(dest)
 	if err == nil {
 		encoder := gob.NewEncoder(file)
@@ -658,9 +670,6 @@ func storeRecipe(dest string, recipe []Chunk) {
 
 func loadRecipe(path string) []Chunk {
 	var recipe []Chunk
-	gob.Register(&StoredChunk{})
-	gob.Register(&TempChunk{})
-	gob.Register(&DeltaChunk{})
 	file, err := os.Open(path)
 	if err == nil {
 		decoder := gob.NewDecoder(file)
