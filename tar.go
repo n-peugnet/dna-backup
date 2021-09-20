@@ -13,7 +13,7 @@ func streamFilesTar(files []File, stream io.WriteCloser) {
 	for _, f := range files {
 		file, err := os.Open(f.Path)
 		if err != nil {
-			logger.Errorf("reading file '%s': %s", f.Path, err)
+			logger.Error(err)
 			continue
 		}
 		stat, err := file.Stat()
