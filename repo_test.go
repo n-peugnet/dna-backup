@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/n-peugnet/dna-backup/logger"
+	"github.com/n-peugnet/dna-backup/testutils"
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
@@ -132,10 +132,10 @@ func TestNoSuchFile(t *testing.T) {
 	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
 	var buff bytes.Buffer
 	files := listFiles(tmpDir)
-	assertLen(t, 1, files, "Files")
+	testutils.AssertLen(t, 1, files, "Files")
 	concatFiles(&files, utils.NopCloser(&buff))
-	assertLen(t, 0, files, "Files")
-	assertLen(t, 0, buff.Bytes(), "Buffer")
+	testutils.AssertLen(t, 0, files, "Files")
+	testutils.AssertLen(t, 0, buff.Bytes(), "Buffer")
 }
 
 func TestLoadChunks(t *testing.T) {
@@ -184,7 +184,7 @@ func TestStoreLoadFiles(t *testing.T) {
 	files1 := listFiles(dataDir)
 	storeFileList(resultFiles, files1)
 	files2 := loadFileList(resultFiles)
-	assertLen(t, 4, files1, "Files:")
+	testutils.AssertLen(t, 4, files1, "Files:")
 	for i, f := range files1 {
 		if f != files2[i] {
 			t.Errorf("Loaded file data %d does not match stored one", i)
@@ -243,7 +243,7 @@ func TestBsdiff(t *testing.T) {
 	reader := getDataStream(dataDir, concatFiles)
 	recipe := repo.matchStream(reader, newVersion)
 	newChunks := extractDeltaChunks(recipe)
-	assertLen(t, 2, newChunks, "New delta chunks:")
+	testutils.AssertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
 		logger.Info("Patch size:", len(c.Patch))
 		if len(c.Patch) >= repo.chunkSize/10 {
@@ -285,7 +285,7 @@ func TestRestore(t *testing.T) {
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
 	repo.Restore(dest)
-	assertSameTree(t, assertSameFile, expected, dest, "Restore")
+	assertSameTree(t, testutils.AssertSameFile, expected, dest, "Restore")
 }
 
 func TestRestoreZlib(t *testing.T) {
@@ -297,7 +297,7 @@ func TestRestoreZlib(t *testing.T) {
 	repo.chunkWriteWrapper = utils.ZlibWriter
 
 	repo.Restore(dest)
-	assertSameTree(t, assertSameFile, expected, dest, "Restore")
+	assertSameTree(t, testutils.AssertSameFile, expected, dest, "Restore")
 }
 
 func TestHashes(t *testing.T) {
@@ -331,11 +331,11 @@ func TestHashes(t *testing.T) {
 	go repo2.storageWorker(0, storeQueue, storeEnd)
 	close(storeQueue)
 	<-storeEnd
-	assertLen(t, 0, repo2.fingerprints, "Fingerprints")
-	assertLen(t, 0, repo2.sketches, "Sketches")
+	testutils.AssertLen(t, 0, repo2.fingerprints, "Fingerprints")
+	testutils.AssertLen(t, 0, repo2.sketches, "Sketches")
 	repo2.loadHashes([]string{filepath.Join(dest, "00000")})
-	assertSame(t, repo1.fingerprints, repo2.fingerprints, "Fingerprint maps")
-	assertSame(t, repo1.sketches, repo2.sketches, "Sketches maps")
+	testutils.AssertSame(t, repo1.fingerprints, repo2.fingerprints, "Fingerprint maps")
+	testutils.AssertSame(t, repo1.sketches, repo2.sketches, "Sketches maps")
 }
 
 func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actual string, prefix string), expected string, actual string, prefix string) {
@@ -365,7 +365,7 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 		// Filelist file
 		eFiles := loadFileList(expected)
 		aFiles := loadFileList(actual)
-		assertLen(t, len(eFiles), aFiles, prefix)
+		testutils.AssertLen(t, len(eFiles), aFiles, prefix)
 		for i, eFile := range eFiles {
 			eFile.Path = filepath.FromSlash(eFile.Path)
 			if eFile != aFiles[i] {
@@ -376,31 +376,12 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 		// Recipe file
 		eRecipe := loadRecipe(expected)
 		aRecipe := loadRecipe(actual)
-		assertSame(t, eRecipe, aRecipe, prefix+"recipe")
+		testutils.AssertSame(t, eRecipe, aRecipe, prefix+"recipe")
 	} else if filepath.Base(expected) == hashesName {
 		// Hashes file is checked in TestHashes
 	} else {
 		// Chunk content file
-		assertSameFile(t, expected, actual, prefix)
-	}
-}
-
-func assertSameFile(t *testing.T, expected string, actual string, prefix string) {
-	efContent, err := os.ReadFile(expected)
-	if err != nil {
-		t.Fatalf("%s Error reading from expected file '%s': %s", prefix, expected, err)
-	}
-	afContent, err := os.ReadFile(actual)
-	if err != nil {
-		t.Fatalf("%s Error reading from expected file '%s': %s", prefix, actual, err)
-	}
-	assertSame(t, efContent, afContent, prefix+" files")
-}
-
-func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
-	s := reflect.ValueOf(actual)
-	if s.Len() != expected {
-		t.Fatal(prefix, "incorrect length, expected:", expected, ", actual:", s.Len())
+		testutils.AssertSameFile(t, expected, actual, prefix)
 	}
 }
 
@@ -409,11 +390,5 @@ func assertChunkContent(t *testing.T, expected []byte, c Chunk, prefix string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSame(t, expected, buf, prefix+" Chunk content")
-}
-
-func assertSame(t *testing.T, expected interface{}, actual interface{}, prefix string) {
-	if !reflect.DeepEqual(expected, actual) {
-		t.Error(prefix, "do not match, expected:", expected, ", actual:", actual)
-	}
+	testutils.AssertSame(t, expected, buf, prefix+" Chunk content")
 }
