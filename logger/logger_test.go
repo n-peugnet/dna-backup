@@ -119,7 +119,7 @@ func TestFlags(t *testing.T) {
 	if !strings.Contains(s, "info 0") {
 		t.Errorf("log output %q should contain: info 0", s)
 	}
-	path := "logger/logger_test.go"
+	path := "logger/logger_test.go:117"
 	if !strings.Contains(s, path) {
 		t.Errorf("log output %q should contain: %s", s, path)
 	}
