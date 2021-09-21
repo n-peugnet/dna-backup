@@ -54,6 +54,7 @@ func init() {
 	gob.RegisterName("*dna-backup.StoredChunk", &StoredChunk{})
 	gob.RegisterName("*dna-backup.TempChunk", &TempChunk{})
 	gob.RegisterName("*dna-backup.DeltaChunk", &DeltaChunk{})
+	gob.RegisterName("dna-backup.File", File{})
 }
 
 type FingerprintMap map[uint64]*ChunkId
@@ -81,6 +82,7 @@ type Repo struct {
 	fingerprints      FingerprintMap
 	sketches          SketchMap
 	recipe            []Chunk
+	files             []File
 	chunkCache        cache.Cacher
 	chunkReadWrapper  utils.ReadWrapper
 	chunkWriteWrapper utils.WriteWrapper
@@ -143,30 +145,30 @@ func (r *Repo) Commit(source string) {
 	newVersion := len(versions) // TODO: add newVersion functino
 	newPath := filepath.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := filepath.Join(newPath, chunksName)
-	newFilesPath := filepath.Join(newPath, filesName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
 	reader, writer := io.Pipe()
 	files := listFiles(source)
 	r.loadHashes(versions)
+	r.loadFileLists(versions)
+	logger.Info(r.files)
 	r.loadRecipes(versions)
+	logger.Info(r.recipe)
 	go concatFiles(&files, writer)
 	recipe := r.matchStream(reader, newVersion)
-	storeFileList(newFilesPath, unprefixFiles(files, source))
+	r.storeFileList(newVersion, unprefixFiles(files, source))
 	r.storeRecipe(newVersion, recipe)
 	logger.Info(files)
 }
 
 func (r *Repo) Restore(destination string) {
 	versions := r.loadVersions()
-	latest := versions[len(versions)-1]
-	latestFilesPath := filepath.Join(latest, filesName)
-	files := loadFileList(latestFilesPath)
+	r.loadFileLists(versions)
 	r.loadRecipes(versions)
 	reader, writer := io.Pipe()
 	go r.restoreStream(writer, r.recipe)
 	bufReader := bufio.NewReaderSize(reader, r.chunkSize*2)
-	for _, file := range files {
+	for _, file := range r.files {
 		filePath := filepath.Join(destination, file.Path)
 		dir := filepath.Dir(filePath)
 		os.MkdirAll(dir, 0775)      // TODO: handle errors
@@ -307,14 +309,35 @@ func (r *Repo) loadDeltas(versions []string, wrapper utils.ReadWrapper, name str
 	return
 }
 
-func storeFileList(dest string, files []File) {
-	storeBasicStruct(dest, utils.ZlibWriter, files)
+func fileList2slice(l []File) (ret slice.Slice) {
+	ret = make(slice.Slice, len(l))
+	for i := range l {
+		ret[i] = l[i]
+	}
+	return
 }
 
-func loadFileList(path string) []File {
-	var files []File
-	loadBasicStruct(path, utils.ZlibReader, &files)
-	return files
+func slice2fileList(s slice.Slice) (ret []File) {
+	ret = make([]File, len(s), len(s))
+	for i := range s {
+		if f, ok := s[i].(File); ok {
+			ret[i] = f
+		} else {
+			logger.Warningf("could not convert %s into a File", s[i])
+		}
+	}
+	return
+}
+
+func (r *Repo) storeFileList(version int, list []File) {
+	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
+	delta := slice.Diff(fileList2slice(r.files), fileList2slice(list))
+	logger.Info("files delta: ", delta)
+	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
+}
+
+func (r *Repo) loadFileLists(versions []string) {
+	r.files = slice2fileList(r.loadDeltas(versions, utils.NopReadWrapper, filesName))
 }
 
 func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<- bool) {
@@ -681,6 +704,7 @@ func slice2recipe(s slice.Slice) (ret []Chunk) {
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
 	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
+	logger.Info("recipe delta: ", delta)
 	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
 }
 

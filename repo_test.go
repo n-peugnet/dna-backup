@@ -177,23 +177,6 @@ func TestLoadChunks(t *testing.T) {
 	}
 }
 
-func TestStoreLoadFiles(t *testing.T) {
-	resultDir := t.TempDir()
-	dataDir := filepath.Join("testdata", "logs")
-	resultFiles := filepath.Join(resultDir, filesName)
-	files1 := listFiles(dataDir)
-	storeFileList(resultFiles, files1)
-	files2 := loadFileList(resultFiles)
-	testutils.AssertLen(t, 4, files1, "Files:")
-	for i, f := range files1 {
-		if f != files2[i] {
-			t.Errorf("Loaded file data %d does not match stored one", i)
-			t.Log("Expected: ", f)
-			t.Log("Actual: ", files2[i])
-		}
-	}
-}
-
 func prepareChunks(dataDir string, repo *Repo, streamFunc func(*[]File, io.WriteCloser)) {
 	resultVersion := filepath.Join(repo.path, "00000")
 	resultChunks := filepath.Join(resultVersion, chunksName)
@@ -362,16 +345,16 @@ func assertSameTree(t *testing.T, apply func(t *testing.T, expected string, actu
 
 func assertCompatibleRepoFile(t *testing.T, expected string, actual string, prefix string) {
 	if filepath.Base(expected) == filesName {
-		// Filelist file
-		eFiles := loadFileList(expected)
-		aFiles := loadFileList(actual)
-		testutils.AssertLen(t, len(eFiles), aFiles, prefix)
-		for i, eFile := range eFiles {
-			eFile.Path = filepath.FromSlash(eFile.Path)
-			if eFile != aFiles[i] {
-				t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFile)
-			}
-		}
+		// TODO: Check Filelist file
+		// eFiles := loadFileList(expected)
+		// aFiles := loadFileList(actual)
+		// testutils.AssertLen(t, len(eFiles), aFiles, prefix)
+		// for i, eFile := range eFiles {
+		// 	eFile.Path = filepath.FromSlash(eFile.Path)
+		// 	if eFile != aFiles[i] {
+		// 		t.Fatal(prefix, "file entry do not match:", aFiles[i], ", expected:", eFile)
+		// 	}
+		// }
 	} else if filepath.Base(expected) == recipeName {
 		// TODO: Check Recipe files
 		// eRecipe := loadRecipe(expected)
