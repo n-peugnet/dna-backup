@@ -376,10 +376,7 @@ func assertCompatibleRepoFile(t *testing.T, expected string, actual string, pref
 		// Recipe file
 		eRecipe := loadRecipe(expected)
 		aRecipe := loadRecipe(actual)
-		assertLen(t, len(eRecipe), aRecipe, prefix)
-		for i, eChunk := range eRecipe {
-			assertSame(t, eChunk, aRecipe[i], prefix+" chunks")
-		}
+		assertSame(t, eRecipe, aRecipe, prefix+"recipe")
 	} else if filepath.Base(expected) == hashesName {
 		// Hashes file is checked in TestHashes
 	} else {
@@ -397,7 +394,7 @@ func assertSameFile(t *testing.T, expected string, actual string, prefix string)
 	if err != nil {
 		t.Fatalf("%s Error reading from expected file '%s': %s", prefix, actual, err)
 	}
-	assertSameSlice(t, efContent, afContent, prefix+" files")
+	assertSame(t, efContent, afContent, prefix+" files")
 }
 
 func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
@@ -407,21 +404,12 @@ func assertLen(t *testing.T, expected int, actual interface{}, prefix string) {
 	}
 }
 
-func assertSameSlice(t *testing.T, expected []byte, actual []byte, prefix string) {
-	assertLen(t, len(expected), actual, prefix)
-	for i := 0; i < len(expected); i++ {
-		if expected[i] != actual[i] {
-			t.Fatal(prefix, "incorrect value", i, ", expected:", expected[i], ", actual:", actual[i])
-		}
-	}
-}
-
 func assertChunkContent(t *testing.T, expected []byte, c Chunk, prefix string) {
 	buf, err := io.ReadAll(c.Reader())
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertSameSlice(t, expected, buf, prefix+" Chunk content")
+	assertSame(t, expected, buf, prefix+" Chunk content")
 }
 
 func assertSame(t *testing.T, expected interface{}, actual interface{}, prefix string) {
