@@ -297,6 +297,16 @@ func loadBasicStruct(path string, wrapper utils.ReadWrapper, obj interface{}) {
 	}
 }
 
+func (r *Repo) loadDeltas(versions []string, name string) (ret slice.Slice) {
+	for _, v := range versions {
+		path := filepath.Join(v, name)
+		var delta slice.Delta
+		loadBasicStruct(path, utils.ZlibReader, &delta)
+		ret = slice.Patch(ret, delta)
+	}
+	return
+}
+
 func storeFileList(dest string, files []File) {
 	storeBasicStruct(dest, utils.ZlibWriter, files)
 }
@@ -641,9 +651,6 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 
 func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 	for _, c := range recipe {
-		if rc, isRepo := c.(RepoChunk); isRepo {
-			rc.SetRepo(r)
-		}
 		if n, err := io.Copy(stream, c.Reader()); err != nil {
 			logger.Errorf("copying to stream, read %d bytes from chunk: %s", n, err)
 		}
@@ -652,7 +659,7 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 }
 
 func recipe2slice(r []Chunk) (ret slice.Slice) {
-	ret = make(slice.Slice, len(r), len(r))
+	ret = make(slice.Slice, len(r))
 	for i := range r {
 		ret[i] = r[i]
 	}
@@ -673,19 +680,18 @@ func slice2recipe(s slice.Slice) (ret []Chunk) {
 
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
-	d := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
-	storeBasicStruct(dest, utils.ZlibWriter, d)
+	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
+	storeBasicStruct(dest, utils.ZlibWriter, delta)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
-	var s slice.Slice
-	for _, v := range versions {
-		path := filepath.Join(v, recipeName)
-		var d slice.Delta
-		loadBasicStruct(path, utils.ZlibReader, &d)
-		s = slice.Patch(s, d)
+	recipe := slice2recipe(r.loadDeltas(versions, recipeName))
+	for _, c := range recipe {
+		if rc, isRepo := c.(RepoChunk); isRepo {
+			rc.SetRepo(r)
+		}
 	}
-	r.recipe = slice2recipe(s)
+	r.recipe = recipe
 }
 
 func extractDeltaChunks(chunks []Chunk) (ret []*DeltaChunk) {
