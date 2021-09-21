@@ -582,7 +582,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 		h := hasher.Sum64()
 		chunkId, exists := r.fingerprints[h]
 		if exists {
-			if len(buff) > r.chunkSize && len(buff) < r.chunkSize*2 {
+			if len(buff) > r.chunkSize && len(buff) <= r.chunkSize*2 {
 				size := len(buff) - r.chunkSize
 				temp := NewTempChunk(buff[:size])
 				chunks = append(chunks, r.encodeTempChunks(prev, temp, version, &last, storeQueue)...)
