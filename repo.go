@@ -51,9 +51,9 @@ import (
 
 func init() {
 	// register chunk structs for encoding/decoding using gob
-	gob.Register(&StoredChunk{})
-	gob.Register(&TempChunk{})
-	gob.Register(&DeltaChunk{})
+	gob.RegisterName("*dna-backup.StoredChunk", &StoredChunk{})
+	gob.RegisterName("*dna-backup.TempChunk", &TempChunk{})
+	gob.RegisterName("*dna-backup.DeltaChunk", &DeltaChunk{})
 }
 
 type FingerprintMap map[uint64]*ChunkId
@@ -297,11 +297,11 @@ func loadBasicStruct(path string, wrapper utils.ReadWrapper, obj interface{}) {
 	}
 }
 
-func (r *Repo) loadDeltas(versions []string, name string) (ret slice.Slice) {
+func (r *Repo) loadDeltas(versions []string, wrapper utils.ReadWrapper, name string) (ret slice.Slice) {
 	for _, v := range versions {
 		path := filepath.Join(v, name)
 		var delta slice.Delta
-		loadBasicStruct(path, utils.ZlibReader, &delta)
+		loadBasicStruct(path, wrapper, &delta)
 		ret = slice.Patch(ret, delta)
 	}
 	return
@@ -681,11 +681,11 @@ func slice2recipe(s slice.Slice) (ret []Chunk) {
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
 	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
-	storeBasicStruct(dest, utils.ZlibWriter, delta)
+	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
-	recipe := slice2recipe(r.loadDeltas(versions, recipeName))
+	recipe := slice2recipe(r.loadDeltas(versions, utils.NopReadWrapper, recipeName))
 	for _, c := range recipe {
 		if rc, isRepo := c.(RepoChunk); isRepo {
 			rc.SetRepo(r)
