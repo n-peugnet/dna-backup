@@ -46,7 +46,14 @@ priority 2
 reunion 7/09
 ------------
 - [ ] save recipe consecutive chunks as extents
-- [ ] **TODO: Priority 1** store recipe and files incrementally.
+- [ ] **TODO: Priority 1** store recipe incrementally.
+    - [x] patch and diff for recipes
+    - [ ] store recipe updates per version.
+    - [ ] load all recipes incrementally.
+- [ ] **TODO: Priority 2** store file list incrementally.
+    - [ ] patch and diff for slices
+    - [ ] store file lists updates per version.
+    - [ ] load all file lists incrementally.
 - [x] compress recipe
 - [x] compress file list
 - [ ] make size comparison between recipe and chunks with some datasets

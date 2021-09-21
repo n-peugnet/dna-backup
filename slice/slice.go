@@ -1,25 +1,25 @@
-package main
+package slice
 
 import "reflect"
 
-type Recipe []Chunk
+type Slice []interface{}
 
-type RecipeDel int
+type SliceDel int
 
-type RecipeIns struct {
+type SliceIns struct {
 	Idx   int
-	Value []Chunk
+	Value []interface{}
 }
 
-type RecipePatch struct {
-	Del []RecipeDel
-	Ins []RecipeIns
+type SlicePatch struct {
+	Del []SliceDel
+	Ins []SliceIns
 }
 
-func patchRecipe(source Recipe, patch RecipePatch) (target Recipe) {
+func PatchSlice(source Slice, patch SlicePatch) (target Slice) {
 	// apply Del part from patch to source into temp
 	size := len(source) - len(patch.Del)
-	temp := make(Recipe, size)
+	temp := make(Slice, size)
 	fill := 0
 	prev := 0
 	for _, del := range patch.Del {
@@ -33,7 +33,7 @@ func patchRecipe(source Recipe, patch RecipePatch) (target Recipe) {
 	for _, ins := range patch.Ins {
 		size += len(ins.Value)
 	}
-	target = make(Recipe, size)
+	target = make(Slice, size)
 	fill = 0
 	prev = 0
 	tpos := 0
@@ -49,7 +49,7 @@ func patchRecipe(source Recipe, patch RecipePatch) (target Recipe) {
 	return
 }
 
-func diffRecipe(source Recipe, target Recipe) (patch RecipePatch) {
+func DiffSlice(source Slice, target Slice) (patch SlicePatch) {
 	var si, ti int
 	var found bool
 	for ; si < len(source); si++ {
@@ -57,18 +57,18 @@ func diffRecipe(source Recipe, target Recipe) (patch RecipePatch) {
 			found = reflect.DeepEqual(target[i], source[si])
 			if found {
 				if i != ti {
-					patch.Ins = append(patch.Ins, RecipeIns{ti, target[ti:i]})
+					patch.Ins = append(patch.Ins, SliceIns{ti, target[ti:i]})
 				}
 				ti = i + 1
 				break
 			}
 		}
 		if !found {
-			patch.Del = append(patch.Del, RecipeDel(si))
+			patch.Del = append(patch.Del, SliceDel(si))
 		}
 	}
 	if ti < len(target) {
-		patch.Ins = append(patch.Ins, RecipeIns{ti, target[ti:]})
+		patch.Ins = append(patch.Ins, SliceIns{ti, target[ti:]})
 	}
 	return
 }
