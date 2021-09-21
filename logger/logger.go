@@ -156,15 +156,15 @@ func (l *Logger) Warningf(format string, v ...interface{}) {
 // Error logs with the ERROR severity.
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Error(v ...interface{}) {
+	v = append(v, "\n"+string(debug.Stack()))
 	l.output(sError, v...)
-	debug.PrintStack()
 }
 
 // Errorf logs with the Error severity.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Errorf(format string, v ...interface{}) {
-	l.outputf(sError, format, v...)
-	debug.PrintStack()
+	v = append(v, "\n"+string(debug.Stack()))
+	l.outputf(sError, format+"%s", v...)
 }
 
 // Panic uses the default logger and logs with the Error severity.
@@ -186,16 +186,16 @@ func (l *Logger) Panicf(format string, v ...interface{}) {
 // Fatal logs with the Fatal severity, and ends with os.Exit(1).
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Fatal(v ...interface{}) {
+	v = append(v, "\n"+string(debug.Stack()))
 	l.output(sFatal, v...)
-	debug.PrintStack()
 	os.Exit(1)
 }
 
 // Fatalf logs with the Fatal severity, and ends with os.Exit(1).
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Fatalf(format string, v ...interface{}) {
-	l.outputf(sFatal, format, v...)
-	debug.PrintStack()
+	v = append(v, "\n"+string(debug.Stack()))
+	l.outputf(sFatal, format+"%s", v...)
 	os.Exit(1)
 }
 
@@ -236,15 +236,15 @@ func Warningf(format string, v ...interface{}) {
 // Error uses the default logger and logs with the Error severity.
 // Arguments are handled in the manner of fmt.Print.
 func Error(v ...interface{}) {
+	v = append(v, "\n"+string(debug.Stack()))
 	defaultLogger.output(sError, v...)
-	debug.PrintStack()
 }
 
 // Errorf uses the default logger and logs with the Error severity.
 // Arguments are handled in the manner of fmt.Printf.
 func Errorf(format string, v ...interface{}) {
-	defaultLogger.outputf(sError, format, v...)
-	debug.PrintStack()
+	v = append(v, "\n"+string(debug.Stack()))
+	defaultLogger.outputf(sError, format+"%s", v...)
 }
 
 // Panic uses the default logger and logs with the Error severity.
@@ -267,8 +267,8 @@ func Panicf(format string, v ...interface{}) {
 // and ends with os.Exit(1).
 // Arguments are handled in the manner of fmt.Print.
 func Fatal(v ...interface{}) {
+	v = append(v, "\n"+string(debug.Stack()))
 	defaultLogger.output(sFatal, v...)
-	debug.PrintStack()
 	os.Exit(1)
 }
 
@@ -276,7 +276,8 @@ func Fatal(v ...interface{}) {
 // and ends with os.Exit(1).
 // Arguments are handled in the manner of fmt.Printf.
 func Fatalf(format string, v ...interface{}) {
-	defaultLogger.outputf(sFatal, format, v...)
+	v = append(v, "\n"+string(debug.Stack()))
+	defaultLogger.outputf(sFatal, format+"%s", v...)
 	debug.PrintStack()
 	os.Exit(1)
 }
