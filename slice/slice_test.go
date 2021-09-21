@@ -9,13 +9,13 @@ import (
 func TestPatch(t *testing.T) {
 	source := Slice{1, 2, 3, 4}
 	target := Slice{2, 5, 3, 6, 4, 7, 8}
-	patch := DiffSlice(source, target)
-	testutils.AssertSame(t, []SliceDel{0}, patch.Del, "Patch del part")
-	testutils.AssertSame(t, []SliceIns{
+	patch := Diff(source, target)
+	testutils.AssertSame(t, []Del{0}, patch.Del, "Patch del part")
+	testutils.AssertSame(t, []Ins{
 		{1, Slice{5}},
 		{3, Slice{6}},
 		{5, Slice{7, 8}},
 	}, patch.Ins, "Patch ins part")
-	actual := PatchSlice(source, patch)
+	actual := Patch(source, patch)
 	testutils.AssertSame(t, target, actual, "Target obtained from patch application")
 }

@@ -45,6 +45,7 @@ import (
 	"github.com/n-peugnet/dna-backup/cache"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/sketch"
+	"github.com/n-peugnet/dna-backup/slice"
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
@@ -79,6 +80,7 @@ type Repo struct {
 	patcher           Patcher
 	fingerprints      FingerprintMap
 	sketches          SketchMap
+	recipe            []Chunk
 	chunkCache        cache.Cacher
 	chunkReadWrapper  utils.ReadWrapper
 	chunkWriteWrapper utils.WriteWrapper
@@ -142,16 +144,16 @@ func (r *Repo) Commit(source string) {
 	newPath := filepath.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
 	newChunkPath := filepath.Join(newPath, chunksName)
 	newFilesPath := filepath.Join(newPath, filesName)
-	newRecipePath := filepath.Join(newPath, recipeName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
 	reader, writer := io.Pipe()
 	files := listFiles(source)
 	r.loadHashes(versions)
+	r.loadRecipes(versions)
 	go concatFiles(&files, writer)
 	recipe := r.matchStream(reader, newVersion)
 	storeFileList(newFilesPath, unprefixFiles(files, source))
-	storeRecipe(newRecipePath, recipe)
+	r.storeRecipe(newVersion, recipe)
 	logger.Info(files)
 }
 
@@ -159,11 +161,10 @@ func (r *Repo) Restore(destination string) {
 	versions := r.loadVersions()
 	latest := versions[len(versions)-1]
 	latestFilesPath := filepath.Join(latest, filesName)
-	latestRecipePath := filepath.Join(latest, recipeName)
 	files := loadFileList(latestFilesPath)
-	recipe := loadRecipe(latestRecipePath)
+	r.loadRecipes(versions)
 	reader, writer := io.Pipe()
-	go r.restoreStream(writer, recipe)
+	go r.restoreStream(writer, r.recipe)
 	bufReader := bufio.NewReaderSize(reader, r.chunkSize*2)
 	for _, file := range files {
 		filePath := filepath.Join(destination, file.Path)
@@ -650,56 +651,41 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 	stream.Close()
 }
 
-func storeRecipe(dest string, recipe []Chunk) {
-	file, err := os.Create(dest)
-	if err != nil {
-		logger.Panic(err)
+func recipe2slice(r []Chunk) (ret slice.Slice) {
+	ret = make(slice.Slice, len(r), len(r))
+	for i := range r {
+		ret[i] = r[i]
 	}
-	out := utils.ZlibWriter(file)
-	encoder := gob.NewEncoder(out)
-	for _, c := range recipe {
-		if err = encoder.Encode(&c); err != nil {
-			logger.Panic(err)
-		}
-	}
-	if err != nil {
-		logger.Panic(err)
-	}
-	if err = out.Close(); err != nil {
-		logger.Panic(err)
-	}
-	if err = file.Close(); err != nil {
-		logger.Panic(err)
-	}
+	return
 }
 
-func loadRecipe(path string) []Chunk {
-	var recipe []Chunk
-	file, err := os.Open(path)
-	if err != nil && err != io.EOF {
-		logger.Panic(err)
-	}
-	in, err := utils.ZlibReader(file)
-	if err != nil {
-		logger.Panic(err)
-	}
-	decoder := gob.NewDecoder(in)
-	for i := 0; err == nil; i++ {
-		var c Chunk
-		if err = decoder.Decode(&c); err == nil {
-			recipe = append(recipe, c)
+func slice2recipe(s slice.Slice) (ret []Chunk) {
+	ret = make([]Chunk, len(s), len(s))
+	for i := range s {
+		if c, ok := s[i].(Chunk); ok {
+			ret[i] = c
+		} else {
+			logger.Warningf("could not convert %s into a Chunk", s[i])
 		}
 	}
-	if err != nil && err != io.EOF {
-		logger.Panic(err)
+	return
+}
+
+func (r *Repo) storeRecipe(version int, recipe []Chunk) {
+	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
+	d := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
+	storeBasicStruct(dest, utils.ZlibWriter, d)
+}
+
+func (r *Repo) loadRecipes(versions []string) {
+	var s slice.Slice
+	for _, v := range versions {
+		path := filepath.Join(v, recipeName)
+		var d slice.Delta
+		loadBasicStruct(path, utils.ZlibReader, &d)
+		s = slice.Patch(s, d)
 	}
-	if err = in.Close(); err != nil {
-		logger.Panic(err)
-	}
-	if err = file.Close(); err != nil {
-		logger.Panic(err)
-	}
-	return recipe
+	r.recipe = slice2recipe(s)
 }
 
 func extractDeltaChunks(chunks []Chunk) (ret []*DeltaChunk) {

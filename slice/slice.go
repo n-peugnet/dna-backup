@@ -4,25 +4,25 @@ import "reflect"
 
 type Slice []interface{}
 
-type SliceDel int
+type Del int
 
-type SliceIns struct {
+type Ins struct {
 	Idx   int
 	Value []interface{}
 }
 
-type SlicePatch struct {
-	Del []SliceDel
-	Ins []SliceIns
+type Delta struct {
+	Del []Del
+	Ins []Ins
 }
 
-func PatchSlice(source Slice, patch SlicePatch) (target Slice) {
+func Patch(source Slice, delta Delta) (target Slice) {
 	// apply Del part from patch to source into temp
-	size := len(source) - len(patch.Del)
+	size := len(source) - len(delta.Del)
 	temp := make(Slice, size)
 	fill := 0
 	prev := 0
-	for _, del := range patch.Del {
+	for _, del := range delta.Del {
 		di := int(del)
 		copy(temp[fill:], source[prev:di])
 		fill += di - prev
@@ -30,14 +30,14 @@ func PatchSlice(source Slice, patch SlicePatch) (target Slice) {
 	}
 	copy(temp[fill:], source[prev:])
 	// apply Ins part from patch to temp into target
-	for _, ins := range patch.Ins {
+	for _, ins := range delta.Ins {
 		size += len(ins.Value)
 	}
 	target = make(Slice, size)
 	fill = 0
 	prev = 0
 	tpos := 0
-	for _, ins := range patch.Ins {
+	for _, ins := range delta.Ins {
 		offset := ins.Idx - prev
 		copy(target[fill:], temp[tpos:tpos+offset])
 		fill += offset
@@ -49,7 +49,7 @@ func PatchSlice(source Slice, patch SlicePatch) (target Slice) {
 	return
 }
 
-func DiffSlice(source Slice, target Slice) (patch SlicePatch) {
+func Diff(source Slice, target Slice) (delta Delta) {
 	var si, ti int
 	var found bool
 	for ; si < len(source); si++ {
@@ -57,18 +57,18 @@ func DiffSlice(source Slice, target Slice) (patch SlicePatch) {
 			found = reflect.DeepEqual(target[i], source[si])
 			if found {
 				if i != ti {
-					patch.Ins = append(patch.Ins, SliceIns{ti, target[ti:i]})
+					delta.Ins = append(delta.Ins, Ins{ti, target[ti:i]})
 				}
 				ti = i + 1
 				break
 			}
 		}
 		if !found {
-			patch.Del = append(patch.Del, SliceDel(si))
+			delta.Del = append(delta.Del, Del(si))
 		}
 	}
 	if ti < len(target) {
-		patch.Ins = append(patch.Ins, SliceIns{ti, target[ti:]})
+		delta.Ins = append(delta.Ins, Ins{ti, target[ti:]})
 	}
 	return
 }
