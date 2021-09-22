@@ -89,3 +89,6 @@ The first solution would have an advantage if we were directly streaming the
 output of the program into DNA, as it could start DNA-encode it from the first
 chunk. The second solution will probably have better space-saving performance as
 waiting for better matches will probably lower the size of the patches.
+
+This has been fixed by making multiple passes until no more blocks are added,
+this way we are assured that the result will be the same on the following run.

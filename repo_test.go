@@ -224,7 +224,12 @@ func TestBsdiff(t *testing.T) {
 	newPath := filepath.Join(repo.path, fmt.Sprintf(versionFmt, newVersion))
 	os.MkdirAll(newPath, 0775)
 	reader := getDataStream(dataDir, concatFiles)
-	recipe := repo.matchStream(reader, newVersion)
+	storeQueue := make(chan chunkData, 10)
+	storeEnd := make(chan bool)
+	go repo.storageWorker(newVersion, storeQueue, storeEnd)
+	recipe, _ := repo.matchStream(reader, storeQueue, newVersion, 0)
+	close(storeQueue)
+	<-storeEnd
 	newChunks := extractDeltaChunks(recipe)
 	testutils.AssertLen(t, 2, newChunks, "New delta chunks:")
 	for _, c := range newChunks {
