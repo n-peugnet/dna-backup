@@ -151,14 +151,11 @@ func (r *Repo) Commit(source string) {
 	files := listFiles(source)
 	r.loadHashes(versions)
 	r.loadFileLists(versions)
-	logger.Info(r.files)
 	r.loadRecipes(versions)
-	logger.Info(r.recipe)
 	go concatFiles(&files, writer)
 	recipe := r.matchStream(reader, newVersion)
 	r.storeFileList(newVersion, unprefixFiles(files, source))
 	r.storeRecipe(newVersion, recipe)
-	logger.Info(files)
 }
 
 func (r *Repo) Restore(destination string) {
@@ -200,18 +197,17 @@ func (r *Repo) loadVersions() []string {
 
 func listFiles(path string) []File {
 	var files []File
-	err := filepath.Walk(path,
-		func(p string, i fs.FileInfo, err error) error {
-			if err != nil {
-				logger.Warning(err)
-				return err
-			}
-			if i.IsDir() {
-				return nil
-			}
-			files = append(files, File{p, i.Size()})
+	err := filepath.Walk(path, func(p string, i fs.FileInfo, err error) error {
+		if err != nil {
+			logger.Warning(err)
+			return err
+		}
+		if i.IsDir() {
 			return nil
-		})
+		}
+		files = append(files, File{p, i.Size()})
+		return nil
+	})
 	if err != nil {
 		logger.Error(err)
 	}
@@ -353,7 +349,7 @@ func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<
 		if err != nil {
 			logger.Error(err)
 		}
-		logger.Info("stored", data.id)
+		// logger.Info("stored", data.id)
 	}
 	if err = file.Close(); err != nil {
 		logger.Panic(err)
