@@ -203,7 +203,7 @@ func listFiles(path string) []File {
 	err := filepath.Walk(path,
 		func(p string, i fs.FileInfo, err error) error {
 			if err != nil {
-				logger.Error(err)
+				logger.Warning(err)
 				return err
 			}
 			if i.IsDir() {
@@ -332,7 +332,7 @@ func slice2fileList(s slice.Slice) (ret []File) {
 func (r *Repo) storeFileList(version int, list []File) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
 	delta := slice.Diff(fileList2slice(r.files), fileList2slice(list))
-	logger.Info("files delta: ", delta)
+	logger.Info("files delta del: ", len(delta.Del), ", ins: ", len(delta.Ins))
 	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
 }
 
@@ -705,7 +705,7 @@ func slice2recipe(s slice.Slice) (ret []Chunk) {
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
 	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
-	logger.Info("recipe delta: ", delta)
+	logger.Info("recipe delta del: ", len(delta.Del), ", ins:", len(delta.Ins))
 	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
 }
 
