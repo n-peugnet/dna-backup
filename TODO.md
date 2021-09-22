@@ -61,3 +61,31 @@ ideas
 
 3. If we don't need to reduce read amplification we could compress all chunks if
     it reduces the space used.
+
+mystical bug 22/09
+------------------
+
+On the second run, delta chunks can be encoded against better matching chunks as
+more of them are present in the `sketchMap`. But we don't want this to happen,
+because this adds data to write again, even if it has already been written.
+
+Possible solutions :
+
+- keep IDs for delta chunks, calculate a hash of the target data and store it in
+    a new map. Then, when a chunk is encoded, first check if it exists in
+    the fingerprint map, then in the delta map, and only after that check for
+    matches in the sketch map.
+    This should also probably be used for `TempChunks` as they have more chance
+    to be delta-encoded on a second run.
+- wait the end of the stream before delta-encoding chunks. So if it is not found
+    in the fingerprints map, but it is found in the sketch map, then we wait to
+    see if we found a better candidate for delta-encoding.
+    This would not fix the problem of `TempChunks` that become delta-encoded on
+    the second run. So we would need IDs and a map for these. Tail packing
+    `TempChunks` could also help solve this problem
+    (see [priority 2](#priority-2)).
+
+The first solution would have an advantage if we were directly streaming the
+output of the program into DNA, as it could start DNA-encode it from the first
+chunk. The second solution will probably have better space-saving performance as
+waiting for better matches will probably lower the size of the patches.

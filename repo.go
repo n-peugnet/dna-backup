@@ -577,14 +577,11 @@ func (r *Repo) encodeTempChunks(prev BufferedChunk, curr BufferedChunk, version 
 		c, success := r.encodeTempChunk(tmp, version, last, storeQueue)
 		if success {
 			return []Chunk{c}
-		} else {
-			return []Chunk{prev, curr}
 		}
-	} else {
-		prevD, _ := r.encodeTempChunk(prev, version, last, storeQueue)
-		currD, _ := r.encodeTempChunk(curr, version, last, storeQueue)
-		return []Chunk{prevD, currD}
 	}
+	prevD, _ := r.encodeTempChunk(prev, version, last, storeQueue)
+	currD, _ := r.encodeTempChunk(curr, version, last, storeQueue)
+	return []Chunk{prevD, currD}
 }
 
 func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
