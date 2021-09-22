@@ -104,7 +104,12 @@ type File struct {
 }
 
 func NewRepo(path string) *Repo {
-	err := os.MkdirAll(path, 0775)
+	var err error
+	path, err = filepath.Abs(path)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	err = os.MkdirAll(path, 0775)
 	if err != nil {
 		logger.Panic(err)
 	}
@@ -139,7 +144,10 @@ func (r *Repo) Patcher() Patcher {
 }
 
 func (r *Repo) Commit(source string) {
-	source = utils.TrimTrailingSeparator(source)
+	source, err := filepath.Abs(source)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	versions := r.loadVersions()
 	newVersion := len(versions) // TODO: add newVersion functino
 	newPath := filepath.Join(r.path, fmt.Sprintf(versionFmt, newVersion))
