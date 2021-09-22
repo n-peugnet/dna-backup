@@ -595,9 +595,13 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 	var err error
 	bufStream := bufio.NewReaderSize(stream, r.chunkSize*2)
 	buff := make([]byte, r.chunkSize, r.chunkSize*2)
+	storeQueue := make(chan chunkData, 10)
+	storeEnd := make(chan bool)
+	go r.storageWorker(version, storeQueue, storeEnd)
 	if n, err := io.ReadFull(stream, buff); n < r.chunkSize {
-		if err == io.EOF {
-			chunks = append(chunks, NewTempChunk(buff[:n]))
+		if err == io.ErrUnexpectedEOF {
+			c, _ := r.encodeTempChunk(NewTempChunk(buff[:n]), version, &last, storeQueue)
+			chunks = append(chunks, c)
 			return chunks
 		} else {
 			logger.Panicf("matching stream, read only %d bytes with error '%s'", n, err)
@@ -605,9 +609,6 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 	}
 	hasher := rabinkarp64.NewFromPol(r.pol)
 	hasher.Write(buff)
-	storeQueue := make(chan chunkData, 10)
-	storeEnd := make(chan bool)
-	go r.storageWorker(version, storeQueue, storeEnd)
 	for err != io.EOF {
 		h := hasher.Sum64()
 		chunkId, exists := r.fingerprints[h]
