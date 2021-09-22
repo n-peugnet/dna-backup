@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/n-peugnet/dna-backup/logger"
@@ -128,6 +129,9 @@ func TestReadFiles3(t *testing.T) {
 }
 
 func TestNoSuchFile(t *testing.T) {
+	var output bytes.Buffer
+	logger.SetOutput(&output)
+	defer logger.SetOutput(os.Stderr)
 	tmpDir := t.TempDir()
 	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
 	var buff bytes.Buffer
@@ -136,6 +140,9 @@ func TestNoSuchFile(t *testing.T) {
 	concatFiles(&files, utils.NopCloser(&buff))
 	testutils.AssertLen(t, 0, files, "Files")
 	testutils.AssertLen(t, 0, buff.Bytes(), "Buffer")
+	if !strings.Contains(output.String(), "linknotexisting") {
+		t.Errorf("log should contain a warning, actual %q", &output)
+	}
 }
 
 func TestLoadChunks(t *testing.T) {
