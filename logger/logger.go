@@ -78,9 +78,9 @@ func init() {
 func Init(level int) *Logger {
 	l := Logger{
 		loggers:     newLoggers(),
-		minSeverity: sFatal - severity(level),
 		initialized: true,
 	}
+	l.SetLevel(level)
 
 	logLock.Lock()
 	defer logLock.Unlock()
@@ -126,20 +126,25 @@ func (l *Logger) SetOutput(w io.Writer) {
 	}
 }
 
-// SetFlags sets the output flags for the logger.
+// SetLevel sets the verbosity level of the logger.
+func (l *Logger) SetLevel(lvl int) {
+	l.minSeverity = sFatal - severity(lvl)
+}
+
+// SetFlags sets the output flags of the logger.
 func (l *Logger) SetFlags(flag int) {
 	for _, logger := range l.loggers {
 		logger.SetFlags(flag)
 	}
 }
 
-// Debug logs with the Info severity.
+// Debug logs with the Debug severity.
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Debug(v ...interface{}) {
 	l.output(sDebug, v...)
 }
 
-// Debugf logs with the Info severity.
+// Debugf logs with the Debug severity.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Debugf(format string, v ...interface{}) {
 	l.outputf(sDebug, format, v...)
@@ -169,7 +174,7 @@ func (l *Logger) Warningf(format string, v ...interface{}) {
 	l.outputf(sWarning, format, v...)
 }
 
-// Error logs with the ERROR severity.
+// Error logs with the Error severity.
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Error(v ...interface{}) {
 	v = append(v, "\n"+string(debug.Stack()))
@@ -183,7 +188,7 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.outputf(sError, format+"%s", v...)
 }
 
-// Panic uses the default logger and logs with the Error severity.
+// Panic uses the default logger and logs with the Error severity, and ends up with panic().
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Panic(v ...interface{}) {
 	s := fmt.Sprint(v...)
@@ -191,7 +196,7 @@ func (l *Logger) Panic(v ...interface{}) {
 	panic(s)
 }
 
-// Panicf uses the default logger and logs with the Error severity.
+// Panicf uses the default logger and logs with the Error severity, and ends up with panic().
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Panicf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
@@ -220,18 +225,23 @@ func SetOutput(w io.Writer) {
 	defaultLogger.SetOutput(w)
 }
 
-// SetFlags sets the output flags for the logger.
+// SetLevel sets the verbosity level of the default logger.
+func SetLevel(lvl int) {
+	defaultLogger.SetLevel(lvl)
+}
+
+// SetFlags sets the output flags of the default logger.
 func SetFlags(flag int) {
 	defaultLogger.SetFlags(flag)
 }
 
-// Debug uses the default logger and logs with the Info severity.
+// Debug uses the default logger and logs with the Debug severity.
 // Arguments are handled in the manner of fmt.Print.
 func Debug(v ...interface{}) {
 	defaultLogger.output(sDebug, v...)
 }
 
-// Debugf uses the default logger and logs with the Info severity.
+// Debugf uses the default logger and logs with the Debug severity.
 // Arguments are handled in the manner of fmt.Printf.
 func Debugf(format string, v ...interface{}) {
 	defaultLogger.outputf(sDebug, format, v...)
@@ -275,7 +285,7 @@ func Errorf(format string, v ...interface{}) {
 	defaultLogger.outputf(sError, format+"%s", v...)
 }
 
-// Panic uses the default logger and logs with the Error severity.
+// Panic uses the default logger and logs with the Error severity, and ends up with panic().
 // Arguments are handled in the manner of fmt.Print.
 func Panic(v ...interface{}) {
 	s := fmt.Sprint(v...)
@@ -283,7 +293,7 @@ func Panic(v ...interface{}) {
 	panic(s)
 }
 
-// Panicf uses the default logger and logs with the Error severity.
+// Panicf uses the default logger and logs with the Error severity, and ends up with panic().
 // Arguments are handled in the manner of fmt.Printf.
 func Panicf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
