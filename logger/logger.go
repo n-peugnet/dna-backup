@@ -20,15 +20,18 @@ type logger interface {
 
 // Severity levels.
 const (
-	sInfo severity = iota
+	sDebug severity = iota
+	sInfo
 	sWarning
 	sError
 	sFatal
+	sCount
 )
 
 // Severity tags.
 const (
-	tagInfo    = "\033[0m[INFO]  "
+	tagDebug   = "\033[0m[DEBUG] "
+	tagInfo    = "\033[97m[INFO]  "
 	tagWarning = "\033[33m[WARN]  "
 	tagError   = "\033[31m[ERROR] "
 	tagFatal   = "\033[1;31m[FATAL] "
@@ -44,8 +47,9 @@ var (
 	defaultLogger *Logger
 )
 
-func newLoggers() [4]logger {
-	return [4]logger{
+func newLoggers() [sCount]logger {
+	return [sCount]logger{
+		log.New(os.Stderr, tagDebug, flags),
 		log.New(os.Stderr, tagInfo, flags),
 		log.New(os.Stderr, tagWarning, flags),
 		log.New(os.Stderr, tagError, flags),
@@ -90,7 +94,7 @@ func Init(level int) *Logger {
 // A Logger represents an active logging object. Multiple loggers can be used
 // simultaneously even if they are using the same writers.
 type Logger struct {
-	loggers     [4]logger
+	loggers     [sCount]logger
 	minSeverity severity
 	initialized bool
 }
@@ -127,6 +131,18 @@ func (l *Logger) SetFlags(flag int) {
 	for _, logger := range l.loggers {
 		logger.SetFlags(flag)
 	}
+}
+
+// Debug logs with the Info severity.
+// Arguments are handled in the manner of fmt.Print.
+func (l *Logger) Debug(v ...interface{}) {
+	l.output(sDebug, v...)
+}
+
+// Debugf logs with the Info severity.
+// Arguments are handled in the manner of fmt.Printf.
+func (l *Logger) Debugf(format string, v ...interface{}) {
+	l.outputf(sDebug, format, v...)
 }
 
 // Info logs with the Info severity.
@@ -207,6 +223,18 @@ func SetOutput(w io.Writer) {
 // SetFlags sets the output flags for the logger.
 func SetFlags(flag int) {
 	defaultLogger.SetFlags(flag)
+}
+
+// Debug uses the default logger and logs with the Info severity.
+// Arguments are handled in the manner of fmt.Print.
+func Debug(v ...interface{}) {
+	defaultLogger.output(sDebug, v...)
+}
+
+// Debugf uses the default logger and logs with the Info severity.
+// Arguments are handled in the manner of fmt.Printf.
+func Debugf(format string, v ...interface{}) {
+	defaultLogger.outputf(sDebug, format, v...)
 }
 
 // Info uses the default logger and logs with the Info severity.

@@ -116,8 +116,8 @@ func TestFlags(t *testing.T) {
 	SetOutput(&buf)
 	l.Infof("info %d", sInfo)
 	s := buf.String()
-	if !strings.Contains(s, "info 0") {
-		t.Errorf("log output %q should contain: info 0", s)
+	if !strings.Contains(s, "info 1") {
+		t.Errorf("log output %q should contain: info 1", s)
 	}
 	path := "logger/logger_test.go:117"
 	if !strings.Contains(s, path) {
@@ -133,13 +133,13 @@ func TestFlags(t *testing.T) {
 	if !strings.Contains(s, "warning") {
 		t.Errorf("log output %q should contain: warning", s)
 	}
-	if !strings.Contains(s, "warning 1") {
-		t.Errorf("log output %q should contain: warning 1", s)
+	if !strings.Contains(s, "warning 2") {
+		t.Errorf("log output %q should contain: warning 2", s)
 	}
 	if !strings.Contains(s, "error") {
 		t.Errorf("log output %q should contain: error", s)
 	}
-	if !strings.Contains(s, "error 2") {
-		t.Errorf("log output %q should contain: error 2", s)
+	if !strings.Contains(s, "error 3") {
+		t.Errorf("log output %q should contain: error 3", s)
 	}
 }

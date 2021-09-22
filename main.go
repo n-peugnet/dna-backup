@@ -17,7 +17,7 @@ var (
 )
 
 func init() {
-	flag.IntVar(&logLevel, "v", 2, "log verbosity level (0-3)")
+	flag.IntVar(&logLevel, "v", 3, "log verbosity level (0-4)")
 }
 
 func main() {

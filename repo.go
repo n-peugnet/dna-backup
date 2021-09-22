@@ -209,7 +209,7 @@ func listFiles(path string) []File {
 		return nil
 	})
 	if err != nil {
-		logger.Error(err)
+		// already logged in callback
 	}
 	return files
 }
@@ -242,7 +242,7 @@ func concatFiles(files *[]File, stream io.WriteCloser) {
 		}
 		af := f
 		if n, err := io.Copy(stream, file); err != nil {
-			logger.Error(n, err)
+			logger.Error("read ", n, " bytes, ", err)
 			af.Size = n
 		}
 		actual = append(actual, af)
@@ -349,7 +349,7 @@ func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<
 		if err != nil {
 			logger.Error(err)
 		}
-		// logger.Info("stored", data.id)
+		logger.Debug("stored", data.id)
 	}
 	if err = file.Close(); err != nil {
 		logger.Panic(err)
@@ -472,6 +472,9 @@ func (r *Repo) hashChunk(id *ChunkId, reader io.Reader) (fp uint64, sk []uint64)
 	go r.makeFingerprint(id, &buffFp, &wg, &fp)
 	go r.makeSketch(id, &buffSk, &wg, &sk)
 	wg.Wait()
+	if _, e := r.fingerprints[fp]; e {
+		logger.Error(fp, " already exists in fingerprints map")
+	}
 	r.fingerprints[fp] = id
 	r.sketches.Set(sk, id)
 	return
@@ -510,7 +513,7 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 		for _, id := range chunkIds {
 			count := similarChunks[*id]
 			count += 1
-			logger.Infof("found %d %d time(s)", id, count)
+			logger.Debugf("found %d %d time(s)", id, count)
 			if count > max {
 				max = count
 				similarChunk = id
@@ -544,7 +547,7 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64, storeQueue chan<- chunkData) (chunk Chunk, isDelta bool) {
 	chunk, isDelta = r.tryDeltaEncodeChunk(temp)
 	if isDelta {
-		logger.Info("add new delta chunk")
+		logger.Debug("add new delta chunk")
 		return
 	}
 	if chunk.Len() == r.chunkSize {
@@ -557,10 +560,10 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64, st
 			id:      id,
 		}
 		r.chunkCache.Set(id, temp.Bytes())
-		logger.Info("add new chunk", id)
+		logger.Debug("add new chunk", id)
 		return NewStoredChunk(r, id), false
 	}
-	logger.Info("add new partial chunk of size:", chunk.Len())
+	logger.Debug("add new partial chunk of size:", chunk.Len())
 	return
 }
 
@@ -619,7 +622,7 @@ func (r *Repo) matchStream(stream io.Reader, version int) []Chunk {
 				chunks = append(chunks, c)
 				prev = nil
 			}
-			logger.Infof("add existing chunk: %d", chunkId)
+			logger.Debugf("add existing chunk: %d", chunkId)
 			chunks = append(chunks, NewStoredChunk(r, chunkId))
 			buff = make([]byte, 0, r.chunkSize*2)
 			for i := 0; i < r.chunkSize && err == nil; i++ {
