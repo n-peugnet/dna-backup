@@ -516,12 +516,13 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 			count += 1
 			logger.Infof("found %d %d time(s)", id, count)
 			if count > max {
+				max = count
 				similarChunk = id
 			}
 			similarChunks[*id] = count
 		}
 	}
-	return similarChunk, similarChunk != nil
+	return similarChunk, max > 0
 }
 
 func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
