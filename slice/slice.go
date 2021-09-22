@@ -46,6 +46,7 @@ func Patch(source Slice, delta Delta) (target Slice) {
 		fill += len(ins.Value)
 		prev = ins.Idx + len(ins.Value)
 	}
+	copy(target[fill:], temp[tpos:])
 	return
 }
 
