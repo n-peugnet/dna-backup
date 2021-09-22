@@ -38,7 +38,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
@@ -215,15 +214,14 @@ func listFiles(path string) []File {
 }
 
 func unprefixFiles(files []File, prefix string) (ret []File) {
+	var err error
 	ret = make([]File, len(files))
-	preSize := len(prefix)
 	for i, f := range files {
-		if !strings.HasPrefix(f.Path, prefix) {
-			logger.Warning(f.Path, "is not prefixed by", prefix)
+		if f.Path, err = utils.Unprefix(f.Path, prefix); err != nil {
+			logger.Warning(err)
 		} else {
-			f.Path = f.Path[preSize:]
+			ret[i] = f
 		}
-		ret[i] = f
 	}
 	return
 }
