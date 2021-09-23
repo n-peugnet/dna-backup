@@ -346,11 +346,11 @@ func (r *Repo) storeFileList(version int, list []File) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
 	delta := slice.Diff(fileList2slice(r.files), fileList2slice(list))
 	logger.Infof("files delta %s", delta.String())
-	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
+	storeBasicStruct(dest, r.chunkWriteWrapper, delta)
 }
 
 func (r *Repo) loadFileLists(versions []string) {
-	r.files = slice2fileList(r.loadDeltas(versions, utils.NopReadWrapper, filesName))
+	r.files = slice2fileList(r.loadDeltas(versions, r.chunkReadWrapper, filesName))
 }
 
 func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<- bool) {
@@ -714,11 +714,11 @@ func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
 	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
 	logger.Infof("recipe delta %s", delta.String())
-	storeBasicStruct(dest, utils.NopWriteWrapper, delta)
+	storeBasicStruct(dest, r.chunkWriteWrapper, delta)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
-	recipe := slice2recipe(r.loadDeltas(versions, utils.NopReadWrapper, recipeName))
+	recipe := slice2recipe(r.loadDeltas(versions, r.chunkReadWrapper, recipeName))
 	for _, c := range recipe {
 		if rc, isRepo := c.(RepoChunk); isRepo {
 			rc.SetRepo(r)
