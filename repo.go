@@ -158,7 +158,7 @@ func (r *Repo) Commit(source string) {
 	r.loadHashes(versions)
 	r.loadFileLists(versions)
 	r.loadRecipes(versions)
-	storeQueue := make(chan chunkData, 10)
+	storeQueue := make(chan chunkData, 32)
 	storeEnd := make(chan bool)
 	go r.storageWorker(newVersion, storeQueue, storeEnd)
 	var last, nlast, pass uint64
@@ -218,7 +218,25 @@ func listFiles(path string) []File {
 	err := filepath.Walk(path, func(p string, i fs.FileInfo, err error) error {
 		if err != nil {
 			logger.Warning(err)
-			return err
+			return nil
+		}
+		if i.Mode()&fs.ModeSymlink != 0 {
+			target, err := filepath.EvalSymlinks(p)
+			if err != nil {
+				logger.Warning(err)
+				return nil
+			}
+			i, err = os.Stat(target)
+			if err != nil {
+				logger.Warning(err)
+				return nil
+			}
+			if !i.IsDir() {
+				logger.Warningf("file symlink %s: content will be duplicated", p)
+			} else {
+				logger.Warningf("dir symlink %s: will not be followed", p)
+				return nil
+			}
 		}
 		if i.IsDir() {
 			return nil
@@ -227,7 +245,7 @@ func listFiles(path string) []File {
 		return nil
 	})
 	if err != nil {
-		// already logged in callback
+		logger.Error(err)
 	}
 	return files
 }
@@ -362,10 +380,7 @@ func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<
 	encoder := gob.NewEncoder(file)
 	for data := range storeQueue {
 		err = encoder.Encode(data.hashes)
-		err := r.StoreChunkContent(data.id, bytes.NewReader(data.content))
-		if err != nil {
-			logger.Error(err)
-		}
+		r.StoreChunkContent(data.id, bytes.NewReader(data.content))
 		// logger.Debug("stored ", data.id)
 	}
 	if err = file.Close(); err != nil {
@@ -374,24 +389,23 @@ func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<
 	end <- true
 }
 
-func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) error {
+func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) {
 	path := id.Path(r.path)
 	file, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("creating chunk for '%s'; %s\n", path, err)
+		logger.Panic("chunk store ", err)
 	}
 	wrapper := r.chunkWriteWrapper(file)
 	n, err := io.Copy(wrapper, reader)
 	if err != nil {
-		return fmt.Errorf("writing chunk content for '%s', written %d bytes: %s\n", path, n, err)
+		logger.Errorf("chunk store, %d written, %s", n, err)
 	}
 	if err := wrapper.Close(); err != nil {
-		return fmt.Errorf("closing write wrapper for '%s': %s\n", path, err)
+		logger.Warning("chunk store wrapper ", err)
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("closing chunk for '%s': %s\n", path, err)
+		logger.Warning("chunk store ", err)
 	}
-	return nil
 }
 
 // LoadChunkContent loads a chunk from the repo.
@@ -402,18 +416,21 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 		path := id.Path(r.path)
 		f, err := os.Open(path)
 		if err != nil {
-			logger.Errorf("cannot open chunk '%s': %s", path, err)
+			logger.Panic("chunk load ", err)
 		}
 		wrapper, err := r.chunkReadWrapper(f)
 		if err != nil {
-			logger.Errorf("cannot create read wrapper for chunk '%s': %s", path, err)
+			logger.Error("chunk load wrapper ", err)
 		}
 		value, err = io.ReadAll(wrapper)
 		if err != nil {
-			logger.Panicf("could not read from chunk '%s': %s", path, err)
+			logger.Error("chunk load ", err)
+		}
+		if err = wrapper.Close(); err != nil {
+			logger.Warning("chunk load wrapper", err)
 		}
 		if err = f.Close(); err != nil {
-			logger.Warningf("could not close chunk '%s': %s", path, err)
+			logger.Warning("chunk load ", err)
 		}
 		r.chunkCache.Set(id, value)
 	}
@@ -426,7 +443,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 		p := filepath.Join(v, chunksName)
 		entries, err := os.ReadDir(p)
 		if err != nil {
-			logger.Errorf("reading version '%05d' in '%s' chunks: %s", i, v, err)
+			logger.Error("version dir ", err)
 		}
 		for j, e := range entries {
 			if e.IsDir() {
@@ -444,22 +461,23 @@ func (r *Repo) loadHashes(versions []string) {
 	for i, v := range versions {
 		path := filepath.Join(v, hashesName)
 		file, err := os.Open(path)
-		if err == nil {
-			decoder := gob.NewDecoder(file)
-			for j := 0; err == nil; j++ {
-				var h chunkHashes
-				if err = decoder.Decode(&h); err == nil {
-					id := &ChunkId{i, uint64(j)}
-					r.fingerprints[h.Fp] = id
-					r.sketches.Set(h.Sk, id)
-				}
+		if err != nil {
+			logger.Error("hashes ", err)
+		}
+		decoder := gob.NewDecoder(file)
+		for j := 0; err == nil; j++ {
+			var h chunkHashes
+			if err = decoder.Decode(&h); err == nil {
+				id := &ChunkId{i, uint64(j)}
+				r.fingerprints[h.Fp] = id
+				r.sketches.Set(h.Sk, id)
 			}
 		}
 		if err != nil && err != io.EOF {
 			logger.Panic(err)
 		}
 		if err = file.Close(); err != nil {
-			logger.Panic(err)
+			logger.Warning(err)
 		}
 	}
 }
