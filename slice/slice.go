@@ -1,6 +1,9 @@
 package slice
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 type Slice []interface{}
 
@@ -11,9 +14,22 @@ type Ins struct {
 	Value []interface{}
 }
 
+type insData struct {
+	idx   int
+	count int
+}
+
 type Delta struct {
 	Del []Del
 	Ins []Ins
+}
+
+func (d Delta) String() string {
+	data := make([]insData, len(d.Ins))
+	for i, ins := range d.Ins {
+		data[i] = insData{ins.Idx, len(ins.Value)}
+	}
+	return fmt.Sprintf("{Del: %d Ins: %+v}", d.Del, data)
 }
 
 func Patch(source Slice, delta Delta) (target Slice) {
