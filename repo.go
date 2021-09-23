@@ -125,8 +125,8 @@ func NewRepo(path string) *Repo {
 		sketchSfCount:     3,
 		sketchFCount:      4,
 		pol:               p,
-		differ:            &Bsdiff{},
-		patcher:           &Bsdiff{},
+		differ:            Fdelta{},
+		patcher:           Fdelta{},
 		fingerprints:      make(FingerprintMap),
 		sketches:          make(SketchMap),
 		chunkCache:        cache.NewFifoCache(10000),
@@ -154,9 +154,13 @@ func (r *Repo) Commit(source string) {
 	newChunkPath := filepath.Join(newPath, chunksName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
+	logger.Info("listing files")
 	files := listFiles(source)
+	logger.Info("loading previous hashes")
 	r.loadHashes(versions)
+	logger.Info("loading previous file lists")
 	r.loadFileLists(versions)
+	logger.Info("loading previous recipies")
 	r.loadRecipes(versions)
 	storeQueue := make(chan chunkData, 32)
 	storeEnd := make(chan bool)
@@ -164,7 +168,7 @@ func (r *Repo) Commit(source string) {
 	var last, nlast, pass uint64
 	var recipe []Chunk
 	for ; nlast > last || pass == 0; pass++ {
-		logger.Infof("pass number %d", pass+1)
+		logger.Infof("matcher pass number %d", pass+1)
 		last = nlast
 		reader, writer := io.Pipe()
 		go concatFiles(&files, writer)

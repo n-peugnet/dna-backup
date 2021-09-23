@@ -234,6 +234,8 @@ func TestBsdiff(t *testing.T) {
 	defer os.Remove(addedFile2)
 
 	// configure repo
+	repo.patcher = Bsdiff{}
+	repo.differ = Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -269,6 +271,8 @@ func TestCommit(t *testing.T) {
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
+	repo.patcher = Bsdiff{}
+	repo.differ = Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -281,6 +285,8 @@ func TestCommitZlib(t *testing.T) {
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k_zlib")
 	repo := NewRepo(dest)
+	repo.patcher = Bsdiff{}
+	repo.differ = Bsdiff{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 
@@ -293,6 +299,8 @@ func TestRestore(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
+	repo.patcher = Bsdiff{}
+	repo.differ = Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -305,6 +313,8 @@ func TestRestoreZlib(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k_zlib")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
+	repo.patcher = Bsdiff{}
+	repo.differ = Bsdiff{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 
