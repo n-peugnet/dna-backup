@@ -134,31 +134,15 @@ func TestSymlinks(t *testing.T) {
 	defer logger.SetOutput(os.Stderr)
 	tmpDir := t.TempDir()
 	extDir := t.TempDir()
-	extNotWritable := filepath.Join(extDir, "notwritable")
-	f, err := os.OpenFile(extNotWritable, os.O_CREATE, 0000)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
 	os.Symlink(extDir, filepath.Join(tmpDir, "linktodir"))
 	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
-	os.Symlink(extNotWritable, filepath.Join(tmpDir, "linknotwritable"))
-	var buff bytes.Buffer
 	files := listFiles(tmpDir)
-	testutils.AssertLen(t, 1, files, "Files")
-	concatFiles(&files, utils.NopCloser(&buff))
 	testutils.AssertLen(t, 0, files, "Files")
-	testutils.AssertLen(t, 0, buff.Bytes(), "Buffer")
 	if !strings.Contains(output.String(), "linktodir") {
 		t.Errorf("log should contain a warning for linktodir, actual %q", &output)
 	}
 	if !strings.Contains(output.String(), "notexisting") {
 		t.Errorf("log should contain a warning for notexisting, actual %q", &output)
-	}
-	if !strings.Contains(output.String(), "linknotwritable") {
-		t.Errorf("log should contain a warning for linknotwritable, actual %q", &output)
 	}
 }
 
@@ -219,6 +203,8 @@ func getDataStream(dataDir string, streamFunc func(*[]File, io.WriteCloser)) io.
 }
 
 func TestBsdiff(t *testing.T) {
+	logger.SetLevel(3)
+	defer logger.SetLevel(4)
 	resultDir := t.TempDir()
 	repo := NewRepo(resultDir)
 	dataDir := filepath.Join("testdata", "logs")
