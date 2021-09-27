@@ -17,7 +17,7 @@ priority 1
 - [x] remove errored files from `fileList`
 - [ ] **TODO: Priority 3** add superblock logic.
 - [ ] **TODO: Priority 2** add version blocks or journal logic.
-- [ ] command line with subcommands (like, hmm... git ? for instance).
+- [x] command line with subcommands (like, hmm... git ? for instance).
 
 priority 2
 ----------
@@ -48,6 +48,7 @@ priority 2
         listing could be another solution but with this approach we would have
         to think about what other metadata we want to store
     - [ ] use a symlink aware Walk function (easy enough)
+- [ ] add quick progress bar to CLI
 
 reunion 7/09
 ------------
@@ -65,8 +66,8 @@ ideas
 
 2. Implement the `fs` interface of Go? Not sure if this will be useful.
 
-3. If we don't need to reduce read amplification we could compress all chunks if
-    it reduces the space used.
+3. If we don't need to reduce read amplification we could compress all chunks 
+    together if it reduces the space used.
 
 mystical bug 22/09
 ------------------

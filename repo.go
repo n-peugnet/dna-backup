@@ -182,9 +182,12 @@ func (r *Repo) Commit(source string) {
 
 func (r *Repo) Restore(destination string) {
 	versions := r.loadVersions()
+	logger.Info("loading previous file lists")
 	r.loadFileLists(versions)
+	logger.Info("loading previous recipies")
 	r.loadRecipes(versions)
 	reader, writer := io.Pipe()
+	logger.Info("restoring latest version")
 	go r.restoreStream(writer, r.recipe)
 	bufReader := bufio.NewReaderSize(reader, r.chunkSize*2)
 	for _, file := range r.files {
@@ -353,7 +356,7 @@ func fileList2slice(l []File) (ret slice.Slice) {
 }
 
 func slice2fileList(s slice.Slice) (ret []File) {
-	ret = make([]File, len(s), len(s))
+	ret = make([]File, len(s))
 	for i := range s {
 		if f, ok := s[i].(File); ok {
 			ret[i] = f
@@ -721,7 +724,7 @@ func recipe2slice(r []Chunk) (ret slice.Slice) {
 }
 
 func slice2recipe(s slice.Slice) (ret []Chunk) {
-	ret = make([]Chunk, len(s), len(s))
+	ret = make([]Chunk, len(s))
 	for i := range s {
 		if c, ok := s[i].(Chunk); ok {
 			ret[i] = c
