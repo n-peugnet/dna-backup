@@ -542,11 +542,10 @@ func contains(s []*ChunkId, id *ChunkId) bool {
 	return false
 }
 
-func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
+func (r *Repo) findSimilarChunk(sketch []uint64) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
 	var similarChunk *ChunkId
-	sketch, _ := sketch.SketchChunk(chunk.Reader(), r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 	for _, s := range sketch {
 		chunkIds, exists := r.sketches[s]
 		if !exists {
@@ -566,13 +565,17 @@ func (r *Repo) findSimilarChunk(chunk Chunk) (*ChunkId, bool) {
 	return similarChunk, max > 0
 }
 
-func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
-	id, found := r.findSimilarChunk(temp)
+// encodeTempChunk first tries to delta-encode the given chunk before attributing
+// it an Id and saving it into the fingerprints and sketches maps.
+func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64, storeQueue chan<- chunkData) (Chunk, bool) {
+	sk, _ := sketch.SketchChunk(temp.Reader(), r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
+	id, found := r.findSimilarChunk(sk)
 	if found {
 		var buff bytes.Buffer
 		if err := r.differ.Diff(r.LoadChunkContent(id), temp.Reader(), &buff); err != nil {
 			logger.Error("trying delta encode chunk:", temp, "with source:", id, ":", err)
 		} else {
+			logger.Debugf("add new delta chunk of size %d", len(buff.Bytes()))
 			return &DeltaChunk{
 				repo:   r,
 				Source: id,
@@ -581,21 +584,14 @@ func (r *Repo) tryDeltaEncodeChunk(temp BufferedChunk) (Chunk, bool) {
 			}, true
 		}
 	}
-	return temp, false
-}
-
-// encodeTempChunk first tries to delta-encode the given chunk before attributing
-// it an Id and saving it into the fingerprints and sketches maps.
-func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64, storeQueue chan<- chunkData) (chunk Chunk, isDelta bool) {
-	chunk, isDelta = r.tryDeltaEncodeChunk(temp)
-	if isDelta {
-		logger.Debug("add new delta chunk")
-		return
-	}
-	if chunk.Len() == r.chunkSize {
+	if temp.Len() == r.chunkSize {
 		id := &ChunkId{Ver: version, Idx: *last}
 		*last++
-		fp, sk := r.hashChunk(id, temp.Reader())
+		hasher := rabinkarp64.NewFromPol(r.pol)
+		io.Copy(hasher, temp.Reader())
+		fp := hasher.Sum64()
+		r.fingerprints[fp] = id
+		r.sketches.Set(sk, id)
 		storeQueue <- chunkData{
 			hashes:  chunkHashes{fp, sk},
 			content: temp.Bytes(),
@@ -605,8 +601,8 @@ func (r *Repo) encodeTempChunk(temp BufferedChunk, version int, last *uint64, st
 		logger.Debug("add new chunk ", id)
 		return NewStoredChunk(r, id), false
 	}
-	logger.Debug("add new partial chunk of size: ", chunk.Len())
-	return
+	logger.Debug("add new partial chunk of size: ", temp.Len())
+	return temp, false
 }
 
 // encodeTempChunks encodes the current temporary chunks based on the value of the previous one.

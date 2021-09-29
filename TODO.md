@@ -50,7 +50,7 @@ priority 2
     - [ ] use a symlink aware Walk function (easy enough)
 - [ ] add quick progress bar to CLI
 - [ ] `list` command to list versions
-- [ ] optional arg for `restore` to select the version to restore.
+- [ ] optional argument for `restore` to select the version to restore.
 
 reunion 7/09
 ------------

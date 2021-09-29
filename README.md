@@ -93,10 +93,10 @@ On imagine le _DNA-Drive_ comme un segment de _pools_ :
     1.  Calculer sa _fingerprint_ (hash classique), si elle est présente dans la
         _map_ : le stocker de manière dédupliquée (sous la forme d'identifiant
         faisant référence au _chunk_ trouvé dans la map).
-    2.  Si elle n'était pas présente, calculer son _sketch_ (hash de ressemblance),
+    2.  Sinon, calculer son _sketch_ (hash de ressemblance),
         si il est présent dans la _map_, le stocker sous la forme de delta (calcul
         de sa différence par rapport au _chunk_ trouvé dans la map).
-    3.  Si il n'était pas présent, le stocker sous la forme de nouveau bloc (ajout
+    3.  Sinon, le stocker sous la forme de nouveau bloc (ajout
         de sa _fingerprint_ et de son _sketch_ dans les _maps_ et stockage du
         contenu complet dans un nouveau _chunk_).
 6.  Calcul des différences entre la nouvele version et la précédente pour les
