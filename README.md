@@ -30,14 +30,14 @@ repo/
 │   │   ├── 000000000000000
 │   │   ├── 000000000000001
 │   │   ├── 000000000000002
-│   │   ├── 000000000000003
+│   │   └── 000000000000003
 │   ├── files
 │   ├── hashes
 │   └── recipe
 └── 00001/
     ├── chunks/
     │   ├── 000000000000000
-    │   ├── 000000000000001
+    │   └── 000000000000001
     ├── files
     ├── hashes
     └── recipe
@@ -46,11 +46,11 @@ repo/
 Pour un repo d'une taille totale de 401 Mio:
 
 ```
-/tmp/test-1/00000/recipe	  5076011	(1.20%)
-/tmp/test-1/00000/files		    24664	(0.06%)
-/tmp/test-1/00000/hashes	  3923672	(0.93%)
-/tmp/test-1/00000/chunks	412263137	(97.8%)
-/tmp/test-1/00000		421287604	( 100%)
+/tmp/test-1/00000/recipe    5076011  (1.20%)
+/tmp/test-1/00000/files	      24664  (0.06%)
+/tmp/test-1/00000/hashes    3923672  (0.93%)
+/tmp/test-1/00000/chunks  412263137  (97.8%)
+/tmp/test-1/00000         421287604  ( 100%)
 
 ```
 
@@ -62,7 +62,7 @@ Pour un repo d'une taille totale de 401 Mio:
 -   L'ensemble des données écrites en ADN sont compressées, pour le moment via
     _ZLib_.
 -   Les metadonnées sont stockées de manière incrémentale, chaque version stocke
-    donc les metadonnées sous la forme de delta par rapport à la version
+    donc ses metadonnées sous la forme de delta par rapport à la version
     précédente.
 
 On imagine le _DNA-Drive_ comme un segment de _pools_ :
@@ -117,7 +117,7 @@ On imagine le _DNA-Drive_ comme un segment de _pools_ :
 
 ### Restorer sans le _repo_
 
-#### Reconstruciton complète du _repo_
+#### Reconstruction complète du _repo_
 
 Il est possible de reconstruire le _repo_ en entier en lisant la totalité du
 _DNA-Drive_.
