@@ -8,9 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/logger"
+	"github.com/n-peugnet/dna-backup/sketch"
 	"github.com/n-peugnet/dna-backup/testutils"
 	"github.com/n-peugnet/dna-backup/utils"
 )
@@ -94,6 +97,47 @@ func storeChunks(dest string, chunks <-chan []byte) {
 		}
 		i++
 	}
+}
+
+// hashChunks calculates the hashes for a channel of chunks.
+// For each chunk, both a fingerprint (hash over the full content) and a sketch
+// (resemblance hash based on maximal values of regions) are calculated and
+// stored in an hashmap.
+func (r *Repo) hashChunks(chunks <-chan IdentifiedChunk) {
+	for c := range chunks {
+		r.hashChunk(c.GetId(), c.Reader())
+	}
+}
+
+// hashChunk calculates the hashes for a chunk and store them in th repo hashmaps.
+func (r *Repo) hashChunk(id *ChunkId, reader io.Reader) (fp uint64, sk []uint64) {
+	var buffSk bytes.Buffer
+	var buffFp bytes.Buffer
+	var wg sync.WaitGroup
+	reader = io.TeeReader(reader, &buffSk)
+	io.Copy(&buffFp, reader)
+	wg.Add(2)
+	go r.makeFingerprint(id, &buffFp, &wg, &fp)
+	go r.makeSketch(id, &buffSk, &wg, &sk)
+	wg.Wait()
+	if _, e := r.fingerprints[fp]; e {
+		logger.Error(fp, " already exists in fingerprints map")
+	}
+	r.fingerprints[fp] = id
+	r.sketches.Set(sk, id)
+	return
+}
+
+func (r *Repo) makeFingerprint(id *ChunkId, reader io.Reader, wg *sync.WaitGroup, ret *uint64) {
+	defer wg.Done()
+	hasher := rabinkarp64.NewFromPol(r.pol)
+	io.Copy(hasher, reader)
+	*ret = hasher.Sum64()
+}
+
+func (r *Repo) makeSketch(id *ChunkId, reader io.Reader, wg *sync.WaitGroup, ret *[]uint64) {
+	defer wg.Done()
+	*ret, _ = sketch.SketchChunk(reader, r.pol, r.chunkSize, r.sketchWSize, r.sketchSfCount, r.sketchFCount)
 }
 
 func TestReadFiles1(t *testing.T) {
@@ -306,6 +350,22 @@ func TestRestoreZlib(t *testing.T) {
 
 	repo.Restore(dest)
 	assertSameTree(t, testutils.AssertSameFile, expected, dest, "Restore")
+}
+
+func TestRoundtrip(t *testing.T) {
+	temp := t.TempDir()
+	dest := t.TempDir()
+	source := filepath.Join("testdata", "logs")
+	repo1 := NewRepo(temp)
+	repo2 := NewRepo(temp)
+
+	repo1.Commit(source)
+	// Commit a second version, just to see if it does not destroy everything
+	// TODO: check that the second version is indeed empty
+	repo1.Commit(source)
+	repo2.Restore(dest)
+
+	assertSameTree(t, assertCompatibleRepoFile, source, dest, "Commit")
 }
 
 func TestHashes(t *testing.T) {

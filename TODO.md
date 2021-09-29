@@ -101,3 +101,12 @@ waiting for better matches will probably lower the size of the patches.
 
 This has been fixed by making multiple passes until no more blocks are added,
 this way we are assured that the result will be the same on the following run.
+
+mystical bug number 2 29/09
+---------------------------
+
+After modifying only one file of a big source folder, between the first and the
+second run of `dna-backup`, around 20 blocks in of the beginning of the recipe
+have been replaced by newer ones. These should not have been modified.
+
+I could however not reproduce it...
