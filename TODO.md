@@ -49,6 +49,8 @@ priority 2
         to think about what other metadata we want to store
     - [ ] use a symlink aware Walk function (easy enough)
 - [ ] add quick progress bar to CLI
+- [ ] `list` command to list versions
+- [ ] optional arg for `restore` to select the version to restore.
 
 reunion 7/09
 ------------
