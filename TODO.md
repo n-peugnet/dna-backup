@@ -42,12 +42,16 @@ priority 2
     is implemented
 - [ ] keep hash workers so that they reuse the same hasher and reset it instead
     of creating a new one each time. This could save some processing time
-- [ ] support links (symbolic mainly and also hard)
-    - [ ] store this metadata somewhere, tar could be the solution, but this
+- [x] support symlinks
+    - [x] store this metadata somewhere, tar could be the solution, but this
         would bury the metadata down into the chunks, storing it into the files
         listing could be another solution but with this approach we would have
-        to think about what other metadata we want to store
-    - [ ] use a symlink aware Walk function (easy enough)
+        to think about what other metadata we want to store  
+        I stored it in the _files_ file so that we don't need to read the chunks
+        to get the content of a symlinked file and because it does not seem to
+        add a lot of weight to this file (after compression).
+- [ ] store and restore symlinks relatively if it was relative in source
+    directory.
 - [ ] add quick progress bar to CLI
 - [ ] `list` command to list versions
 - [ ] optional argument for `restore` to select the version to restore.

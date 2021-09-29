@@ -178,12 +178,26 @@ func TestSymlinks(t *testing.T) {
 	defer logger.SetOutput(os.Stderr)
 	tmpDir := t.TempDir()
 	extDir := t.TempDir()
-	os.Symlink(extDir, filepath.Join(tmpDir, "linktodir"))
+	f, err := os.Create(filepath.Join(tmpDir, "existing"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	os.Symlink(extDir, filepath.Join(tmpDir, "linkexternal"))
 	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
+	os.Symlink("./existing", filepath.Join(tmpDir, "linkexisting"))
 	files := listFiles(tmpDir)
-	testutils.AssertLen(t, 0, files, "Files")
-	if !strings.Contains(output.String(), "linktodir") {
-		t.Errorf("log should contain a warning for linktodir, actual %q", &output)
+	testutils.AssertLen(t, 2, files, "Files")
+	if files[0].Link != "" {
+		t.Error("linkexisting should not be a link, actual:", files[0].Link)
+	}
+	if files[1].Link != "existing" {
+		t.Error("linkexisting should point to 'existing', actual:", files[1].Link)
+	}
+	if !strings.Contains(output.String(), "linkexternal") {
+		t.Errorf("log should contain a warning for linkexternal, actual %q", &output)
 	}
 	if !strings.Contains(output.String(), "notexisting") {
 		t.Errorf("log should contain a warning for notexisting, actual %q", &output)
@@ -325,6 +339,8 @@ func TestCommitZlib(t *testing.T) {
 }
 
 func TestRestore(t *testing.T) {
+	logger.SetLevel(2)
+	defer logger.SetLevel(4)
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "repo_8k")
 	expected := filepath.Join("testdata", "logs")
@@ -339,6 +355,8 @@ func TestRestore(t *testing.T) {
 }
 
 func TestRestoreZlib(t *testing.T) {
+	logger.SetLevel(2)
+	defer logger.SetLevel(4)
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "repo_8k_zlib")
 	expected := filepath.Join("testdata", "logs")
@@ -353,6 +371,8 @@ func TestRestoreZlib(t *testing.T) {
 }
 
 func TestRoundtrip(t *testing.T) {
+	logger.SetLevel(2)
+	defer logger.SetLevel(4)
 	temp := t.TempDir()
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "logs")

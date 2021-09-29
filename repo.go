@@ -10,19 +10,17 @@ repo/
 │   │   ├── 000000000000000
 │   │   ├── 000000000000001
 │   │   ├── 000000000000002
-│   │   ├── 000000000000003
+│   │   └── 000000000000003
 │   ├── files
-│   ├── fingerprints
-│   ├── recipe
-│   └── sketches
+│   ├── hashes
+│   └── recipe
 └── 00001/
     ├── chunks/
     │   ├── 000000000000000
-    │   ├── 000000000000001
+    │   └── 000000000000001
     ├── files
-│   ├── fingerprints
-│   ├── recipe
-│   └── sketches
+    ├── hashes
+    └── recipe
 ```
 */
 
@@ -38,6 +36,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/cache"
@@ -100,6 +99,7 @@ type chunkData struct {
 type File struct {
 	Path string
 	Size int64
+	Link string
 }
 
 func NewRepo(path string) *Repo {
@@ -192,14 +192,21 @@ func (r *Repo) Restore(destination string) {
 	for _, file := range r.files {
 		filePath := filepath.Join(destination, file.Path)
 		dir := filepath.Dir(filePath)
-		os.MkdirAll(dir, 0775)      // TODO: handle errors
-		f, _ := os.Create(filePath) // TODO: handle errors
-		n, err := io.CopyN(f, bufReader, file.Size)
-		if err != nil {
-			logger.Errorf("storing file content for '%s', written %d/%d bytes: %s", filePath, n, file.Size, err)
-		}
-		if err := f.Close(); err != nil {
-			logger.Errorf("closing restored file '%s': %s", filePath, err)
+		os.MkdirAll(dir, 0775) // TODO: handle errors
+		if file.Link != "" {
+			err := os.Symlink(filepath.Join(destination, file.Link), filePath)
+			if err != nil {
+				logger.Errorf("restored symlink ", err)
+			}
+		} else {
+			f, _ := os.Create(filePath) // TODO: handle errors
+			n, err := io.CopyN(f, bufReader, file.Size)
+			if err != nil {
+				logger.Errorf("restored file, written %d/%d bytes: %s", filePath, n, file.Size, err)
+			}
+			if err := f.Close(); err != nil {
+				logger.Errorf("restored file ", err)
+			}
 		}
 	}
 }
@@ -226,28 +233,33 @@ func listFiles(path string) []File {
 			logger.Warning(err)
 			return nil
 		}
+		if i.IsDir() {
+			return nil
+		}
+		var link string
+		var size = i.Size()
 		if i.Mode()&fs.ModeSymlink != 0 {
 			target, err := filepath.EvalSymlinks(p)
 			if err != nil {
 				logger.Warning(err)
 				return nil
 			}
-			i, err = os.Stat(target)
+			if !strings.HasPrefix(target, path) {
+				logger.Warningf("skipping external symlink %s -> %s", p, target)
+				return nil
+			}
+			size = 0
+			link, err = filepath.Rel(path, target)
 			if err != nil {
 				logger.Warning(err)
 				return nil
 			}
-			if !i.IsDir() {
-				logger.Warningf("file symlink %s: content will be duplicated", p)
-			} else {
-				logger.Warningf("dir symlink %s: will not be followed", p)
+			if link == "" {
+				logger.Warningf("skipping empty symlink %s", p)
 				return nil
 			}
 		}
-		if i.IsDir() {
-			return nil
-		}
-		files = append(files, File{p, i.Size()})
+		files = append(files, File{p, size, link})
 		return nil
 	})
 	if err != nil {
@@ -276,6 +288,10 @@ func unprefixFiles(files []File, prefix string) (ret []File) {
 func concatFiles(files *[]File, stream io.WriteCloser) {
 	actual := make([]File, 0, len(*files))
 	for _, f := range *files {
+		if f.Link != "" {
+			actual = append(actual, f)
+			continue
+		}
 		file, err := os.Open(f.Path)
 		if err != nil {
 			logger.Warning(err)
