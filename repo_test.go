@@ -192,10 +192,10 @@ func TestSymlinks(t *testing.T) {
 	if err = os.Symlink(extDir, filepath.Join(tmpDir, "linkexternal")); err != nil {
 		t.Fatal(err)
 	}
-	if err = os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting")); err != nil {
+	if err = os.Symlink(filepath.Join(tmpDir, "notexisting"), filepath.Join(tmpDir, "linknotexisting")); err != nil {
 		t.Fatal(err)
 	}
-	if err = os.Symlink("./existing", filepath.Join(tmpDir, "linkexisting")); err != nil {
+	if err = os.Symlink(filepath.Join(tmpDir, "existing"), filepath.Join(tmpDir, "linkexisting")); err != nil {
 		t.Fatal(err)
 	}
 	files := listFiles(tmpDir)
