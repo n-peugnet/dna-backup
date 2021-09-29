@@ -177,7 +177,7 @@ func TestSymlinks(t *testing.T) {
 	multi := io.MultiWriter(&output, os.Stderr)
 	logger.SetOutput(multi)
 	defer logger.SetOutput(os.Stderr)
-	tmpDir := t.TempDir()
+	tmpDir := filepath.Clean(t.TempDir())
 	extDir := t.TempDir()
 	f, err := os.Create(filepath.Join(tmpDir, "existing"))
 	if err != nil {
