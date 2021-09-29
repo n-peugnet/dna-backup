@@ -182,6 +182,9 @@ func TestSymlinks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if n, err := f.Write([]byte("\n")); err != nil {
+		t.Fatal(n, err)
+	}
 	if err = f.Close(); err != nil {
 		t.Fatal(err)
 	}
