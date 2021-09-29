@@ -188,9 +188,15 @@ func TestSymlinks(t *testing.T) {
 	if err = f.Close(); err != nil {
 		t.Fatal(err)
 	}
-	os.Symlink(extDir, filepath.Join(tmpDir, "linkexternal"))
-	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
-	os.Symlink("./existing", filepath.Join(tmpDir, "linkexisting"))
+	if err = os.Symlink(extDir, filepath.Join(tmpDir, "linkexternal")); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting")); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Symlink("./existing", filepath.Join(tmpDir, "linkexisting")); err != nil {
+		t.Fatal(err)
+	}
 	files := listFiles(tmpDir)
 	fmt.Println(files)
 	testutils.AssertLen(t, 2, files, "Files")
