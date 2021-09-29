@@ -174,7 +174,8 @@ func TestReadFiles3(t *testing.T) {
 
 func TestSymlinks(t *testing.T) {
 	var output bytes.Buffer
-	logger.SetOutput(&output)
+	multi := io.MultiWriter(&output, os.Stderr)
+	logger.SetOutput(multi)
 	defer logger.SetOutput(os.Stderr)
 	tmpDir := t.TempDir()
 	extDir := t.TempDir()
