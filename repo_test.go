@@ -192,6 +192,7 @@ func TestSymlinks(t *testing.T) {
 	os.Symlink("./notexisting", filepath.Join(tmpDir, "linknotexisting"))
 	os.Symlink("./existing", filepath.Join(tmpDir, "linkexisting"))
 	files := listFiles(tmpDir)
+	fmt.Println(files)
 	testutils.AssertLen(t, 2, files, "Files")
 	if files[0].Link != "" {
 		t.Error("linkexisting should not be a link, actual:", files[0].Link)
