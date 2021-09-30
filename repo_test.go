@@ -207,8 +207,9 @@ func TestSymlinks(t *testing.T) {
 	if files[0].Link != "" {
 		t.Error("existing should not be a link, actual:", files[0].Link)
 	}
-	if files[1].Link != "/existing" {
-		t.Error("linkexisting should point to '/existing', actual:", files[1].Link)
+	expected := string(filepath.Separator) + "existing"
+	if files[1].Link != expected {
+		t.Error("linkexisting should point to", expected, "actual:", files[1].Link)
 	}
 	if !strings.Contains(output.String(), "linkexternal") {
 		t.Errorf("log should contain a warning for linkexternal, actual %q", &output)
