@@ -142,8 +142,6 @@ des _chunks_ de ce fichier.
 <!-- LTeX: language=en -->
 ## Build instructions
 
-_Classical go_
-
 ### Requirements
 
 - Go >= 1.16
@@ -152,13 +150,13 @@ _Classical go_
 
 ```bash
 # Build
-go build
+make
 
 # Test
-go test ./...
+make test
 
 # Run
-go run . <source-dir> <repository>
+./dna-backup commit <source-dir> <repository>
 ```
 
 [build-img]: https://github.com/n-peugnet/dna-backup/actions/workflows/build.yml/badge.svg
