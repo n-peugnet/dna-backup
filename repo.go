@@ -194,7 +194,11 @@ func (r *Repo) Restore(destination string) {
 		dir := filepath.Dir(filePath)
 		os.MkdirAll(dir, 0775) // TODO: handle errors
 		if file.Link != "" {
-			err := os.Symlink(filepath.Join(destination, file.Link), filePath)
+			link := file.Link
+			if filepath.IsAbs(link) {
+				filepath.Join(destination, file.Link)
+			}
+			err := os.Symlink(link, filePath)
 			if err != nil {
 				logger.Errorf("restored symlink ", err)
 			}
@@ -236,36 +240,54 @@ func listFiles(path string) []File {
 		if i.IsDir() {
 			return nil
 		}
-		var link string
-		var size = i.Size()
+		var file = File{Path: p, Size: i.Size()}
 		if i.Mode()&fs.ModeSymlink != 0 {
-			target, err := filepath.EvalSymlinks(p)
+			file, err = cleanSymlink(path, p, i)
 			if err != nil {
-				logger.Warning(err)
-				return nil
-			}
-			if !strings.HasPrefix(target, path) {
-				logger.Warningf("skipping external symlink %s -> %s", p, target)
-				return nil
-			}
-			size = 0
-			link, err = filepath.Rel(path, target)
-			if err != nil {
-				logger.Warning(err)
-				return nil
-			}
-			if link == "" {
-				logger.Warningf("skipping empty symlink %s", p)
+				logger.Warning("skipping symlink ", err)
 				return nil
 			}
 		}
-		files = append(files, File{p, size, link})
+		files = append(files, file)
 		return nil
 	})
 	if err != nil {
 		logger.Error(err)
 	}
 	return files
+}
+
+func cleanSymlink(root string, p string, i fs.FileInfo) (f File, err error) {
+	dir := filepath.Dir(p)
+	target, err := os.Readlink(p)
+	if err != nil {
+		return
+	}
+	isAbs := filepath.IsAbs(target)
+	cleaned := target
+	if !isAbs {
+		cleaned = filepath.Join(dir, cleaned)
+	}
+	cleaned = filepath.Clean(cleaned)
+	if !strings.HasPrefix(cleaned, root) {
+		err = fmt.Errorf("external %s -> %s", p, cleaned)
+		return
+	}
+	if isAbs {
+		f.Link, err = utils.Unprefix(cleaned, root)
+	} else {
+		f.Link, err = filepath.Rel(dir, filepath.Join(dir, target))
+	}
+	if err != nil {
+		return
+	}
+	if f.Link == "" {
+		err = fmt.Errorf("empty %s", p)
+		return
+	}
+	f.Path = p
+	f.Size = 0
+	return f, nil
 }
 
 func unprefixFiles(files []File, prefix string) (ret []File) {

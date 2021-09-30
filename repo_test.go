@@ -203,18 +203,15 @@ func TestSymlinks(t *testing.T) {
 	}
 	files := listFiles(tmpDir)
 	fmt.Println(files)
-	testutils.AssertLen(t, 2, files, "Files")
+	testutils.AssertLen(t, 3, files, "Files")
 	if files[0].Link != "" {
-		t.Error("linkexisting should not be a link, actual:", files[0].Link)
+		t.Error("existing should not be a link, actual:", files[0].Link)
 	}
-	if files[1].Link != "existing" {
-		t.Error("linkexisting should point to 'existing', actual:", files[1].Link)
+	if files[1].Link != "/existing" {
+		t.Error("linkexisting should point to '/existing', actual:", files[1].Link)
 	}
 	if !strings.Contains(output.String(), "linkexternal") {
 		t.Errorf("log should contain a warning for linkexternal, actual %q", &output)
-	}
-	if !strings.Contains(output.String(), "notexisting") {
-		t.Errorf("log should contain a warning for notexisting, actual %q", &output)
 	}
 }
 

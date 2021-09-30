@@ -50,7 +50,7 @@ priority 2
         I stored it in the _files_ file so that we don't need to read the chunks
         to get the content of a symlinked file and because it does not seem to
         add a lot of weight to this file (after compression).
-- [ ] store and restore symlinks relatively if it was relative in source
+- [x] store and restore symlinks relatively if it was relative in source
     directory.
 - [ ] add quick progress bar to CLI
 - [ ] `list` command to list versions
