@@ -4,16 +4,22 @@ REPO_PATH := repo
 GIT_PATH  := git
 GITC      := git -C $(REPO_PATH)
 
+TEMP      := temp
+
 .PHONY: all
-all: versions
-	@echo "total size    : `awk '{s+=$$1}END{print s}' $<`"
-	@echo "version count : `wc -l $<`"
+all: versions results
+	@echo "total size    : `head --lines=1 results | cut -f1`"
+	@echo "version count : `wc -l versions`"
 
 versions: results
 	grep [0-9]$$ $< | cut -f1 > $@
 
-results: commits ../dna-backup
-	./exp.sh $< $(REPO_PATH) 1| sort -k2 >$@
+results: | $(TEMP)
+	du -bad 2 $(TEMP) | sort -k2 > $@
+
+$(TEMP): commits ../dna-backup
+	rm -rf $(TEMP)
+	./exp.sh $< $(REPO_PATH) $(TEMP)
 
 ../dna-backup: .FORCE
 	@$(MAKE) -C .. --no-print-directory dna-backup
@@ -30,7 +36,7 @@ repo git:
 
 .PHONY: clean
 clean:
-	rm -rf $(REPO_PATH) $(GIT_PATH)
+	rm -rf $(REPO_PATH) $(GIT_PATH) $(TEMP)
 	rm -f commits results versions
 
 .FORCE: ;
