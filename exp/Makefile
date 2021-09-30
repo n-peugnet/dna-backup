@@ -1,21 +1,23 @@
 REPO_URL  := https://club1.fr/~nicolas/git/dna-backup/
 
+TEMP_TEMPLATE := dna-backup-bench-XXXXX
+MKTEMP        := mktemp --tmpdir -d $(TEMP_TEMPLATE)
+
 REPO_PATH := repo
 GIT_PATH  := git
 GITC      := git -C $(REPO_PATH)
 
-BIN_PATH  := ..
-
 .PHONY: apply
-apply: commits ../dna-backup
+apply: TEMP := $(shell $(MKTEMP))
+apply: commits
+	$(MAKE) -C .. dna-backup
 	cat $< | while read i; do \
 		$(GITC) checkout `echo "$$i" | cut -f1`; \
+		../dna-backup commit -v 2 $(REPO_PATH) $(TEMP); \
 	done
+	du -bad 2 $(TEMP)
 
-$(BIN_PATH)/dna-backup: .FORCE
-	$(MAKE) -C $(BIN_PATH) dna-backup
-
-commits: Makefile repo git
+commits: Makefile | repo git
 	$(GITC) log --reverse --no-merges --pretty=tformat:"%H	%as" \
 	| sort --unique --key=2 \
 	> $@
