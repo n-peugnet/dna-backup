@@ -284,6 +284,7 @@ func unprefixFiles(files []File, prefix string) (ret []File) {
 // concatFiles reads the content of all the listed files into a continuous stream.
 // If any errors are encoutered while opening a file, it is then removed from the
 // list.
+//
 // If read is incomplete, then the actual read size is used.
 func concatFiles(files *[]File, stream io.WriteCloser) {
 	actual := make([]File, 0, len(*files))
@@ -382,6 +383,8 @@ func slice2fileList(s slice.Slice) (ret []File) {
 	return
 }
 
+// storeFileList stores the given list in the repo dir as a delta against the
+// previous version's one.
 func (r *Repo) storeFileList(version int, list []File) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
 	delta := slice.Diff(fileList2slice(r.files), fileList2slice(list))
@@ -389,10 +392,15 @@ func (r *Repo) storeFileList(version int, list []File) {
 	storeBasicStruct(dest, r.chunkWriteWrapper, delta)
 }
 
+// loadFileLists loads incrementally the file lists' delta of each given version.
 func (r *Repo) loadFileLists(versions []string) {
 	r.files = slice2fileList(r.loadDeltas(versions, r.chunkReadWrapper, filesName))
 }
 
+// storageWorker is meant to be started in a goroutine and stores each new chunk's
+// data in the repo directory until the store queue channel is closed.
+//
+// it will put true in the end channel once everything is stored.
 func (r *Repo) storageWorker(version int, storeQueue <-chan chunkData, end chan<- bool) {
 	hashesFile := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), hashesName)
 	file, err := os.Create(hashesFile)
@@ -430,7 +438,7 @@ func (r *Repo) StoreChunkContent(id *ChunkId, reader io.Reader) {
 	}
 }
 
-// LoadChunkContent loads a chunk from the repo.
+// LoadChunkContent loads a chunk from the repo directory.
 // If the chunk is in cache, get it from cache, else read it from drive.
 func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 	value, exists := r.chunkCache.Get(id)
@@ -479,6 +487,8 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 	close(chunks)
 }
 
+// loadHashes loads and aggregates the hashes stored for each given version and
+// stores them in the repo maps.
 func (r *Repo) loadHashes(versions []string) {
 	for i, v := range versions {
 		path := filepath.Join(v, hashesName)
@@ -517,6 +527,11 @@ func contains(s []*ChunkId, id *ChunkId) bool {
 	return false
 }
 
+// findSimilarChunk looks in the repo sketch map for a match of the given sketch.
+//
+// There can be multiple matches but only the best one is returned. Indeed, the
+// more superfeature matches, the better the quality of the match. For now we
+// consider that a single superfeature match is enough to count it as valid.
 func (r *Repo) findSimilarChunk(sketch []uint64) (*ChunkId, bool) {
 	var similarChunks = make(map[ChunkId]int)
 	var max int
@@ -600,6 +615,18 @@ func (r *Repo) encodeTempChunks(prev BufferedChunk, curr BufferedChunk, version 
 	return []Chunk{prevD, currD}
 }
 
+// matchStream is the heart of DNA-backup. Thus, it sounded rude not to add some comment to it.
+//
+// It applies a rolling hash on the content of a given stream to look for matching fingerprints
+// in the repo. If no match is found after the equivalent of three chunks of data are processed,
+// then the first unmatched chunk sketch is checked to see if it could be delta-encoded.
+// If not, the chunk is then stored as a new chunk for this version and its fingerprint and
+// sketch are added to the repo maps.
+//
+// If a match happens during the processing of the third chunk, then, if possible, the remaining
+// of the second chunk is merged with the first one to try to delta encode it at once.
+//
+// Each time a new chunk is added it is sent to the store worker through the store queue.
 func (r *Repo) matchStream(stream io.Reader, storeQueue chan<- chunkData, version int, last uint64) ([]Chunk, uint64) {
 	var b byte
 	var chunks []Chunk
