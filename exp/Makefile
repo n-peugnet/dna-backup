@@ -6,10 +6,11 @@ GITC      := git -C $(REPO_PATH)
 
 TEMP      := temp
 
-.PHONY: all
-all: versions results
+.PHONY: all exp
+all exp: versions results
 	@echo "total size    : `head --lines=1 results | cut -f1`"
 	@echo "version count : `wc -l versions`"
+	@echo "repo results  :\n`cat results`"
 
 versions: results
 	grep [0-9]$$ $< | cut -f1 > $@
@@ -18,8 +19,8 @@ results: | $(TEMP)
 	du -bad 2 $(TEMP) | sort -k2 > $@
 
 $(TEMP): commits ../dna-backup
-	rm -rf $(TEMP)
-	./exp.sh $< $(REPO_PATH) $(TEMP)
+	rm -rf $@
+	./exp.sh $< $(REPO_PATH) $@
 
 ../dna-backup: .FORCE
 	@$(MAKE) -C .. --no-print-directory dna-backup

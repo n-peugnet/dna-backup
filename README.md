@@ -150,7 +150,7 @@ des _chunks_ de ce fichier.
 
 ```bash
 # Build
-make
+make build
 
 # Test
 make test
