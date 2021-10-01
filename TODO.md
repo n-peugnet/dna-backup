@@ -18,6 +18,10 @@ priority 1
 - [ ] **TODO: Priority 3** add superblock logic.
 - [ ] **TODO: Priority 2** add version blocks or journal logic.
 - [x] command line with subcommands (like, hmm... git ? for instance).
+- experiences:
+    - [ ] compare against UDF
+    - [ ] make multiple repo versions with multiple parameters
+        - smaller block size
 
 priority 2
 ----------

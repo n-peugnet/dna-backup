@@ -75,7 +75,7 @@ On imagine le _DNA-Drive_ comme un segment de _pools_ :
                                    (recipe+files)
 ```
 
-### Commit algorithme
+### Algorithme du commit
 
 1.  Chargement des métadonnées du _repo_ afin de reconstruire en mémoire l'état
     de la dernière version :
@@ -102,7 +102,7 @@ On imagine le _DNA-Drive_ comme un segment de _pools_ :
 6.  Calcul des différences entre la nouvelle version et la précédente pour les
     métadonnées (_files_ et _recipe_) et stockage des deltas ainsi obtenus.
 
-### Restore algorithme
+### Algorithme du restore
 
 1.  Chargement des métadonnées du _repo_ afin de reconstruire en mémoire l'état
     de la dernière version :
@@ -138,6 +138,54 @@ complète.
 Pour cela, il faudrait en plus stocker en ADN un mapping _chunk_ décompressé →
 _pool_ contenant ce _chunk_ et ainsi n'avoir à lire que les _pools_ contenant
 des _chunks_ de ce fichier.
+
+### Évaluation de performances
+
+Le dossier `exp` contient les scripts permettant de reproduire les expériences.
+Les scripts ne sont prévus pour fonctionner que sur des systèmes Unix.
+
+#### Légende
+
+`backups` : le système dna-backup
+`diffs` : des diffs git minimales gzippées
+
+### Nombre d'octets par version
+
+```
+============== SUMMARY ==============
+backup  diffs
+19552   1451
+3365    638
+3557    4737
+3779    7321
+6208    2665
+6826    1496
+3655    11129
+9953    6004
+7825    2815
+3009    7551
+9052    5804
+9415    2449
+10386   3397
+7536    2143
+8521    13301
+12488   3274
+13314   2162
+13476   9681
+30227   4631
+18880   10147
+27057   4983
+23634   11488
+26857   867
+30352   1768
+20086   4373
+23713   9698
+12258   869
+5255    4188
+16356   23257
+==============  TOTAL  ==============
+386592  164287
+```
 
 <!-- LTeX: language=en -->
 ## Build instructions

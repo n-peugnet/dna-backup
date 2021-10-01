@@ -17,8 +17,13 @@ cat "$commits" | while read line
 do
 	hash=$(echo "$line" | cut -f1)
 	git -C "$repo" checkout "$hash"
+
+	# create diff for this version
 	git -C "$repo" diff --minimal --binary --unified=0 "$prev" | gzip > "$diffs/$i.diff.gz"
+
+	# create backup for this version
 	../dna-backup commit -v 2 "$repo" "$backup"
+
 	prev="$hash"
 	let i++
 	if [[ $i == $max_count ]]
