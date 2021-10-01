@@ -4,23 +4,50 @@ REPO_PATH := repo
 GIT_PATH  := git
 GITC      := git -C $(REPO_PATH)
 
-TEMP      := temp
+MAX_VERSION ?= 3
+
+DATADIRS  := backup diffs
+SIZEFILES := $(DATADIRS:%=%-size)
 
 .PHONY: all exp
-all exp: versions results
-	@echo "total size    : `head --lines=1 results | cut -f1`"
-	@echo "version count : `wc -l versions`"
-	@echo "repo results  :\n`cat results`"
+all exp: summary.csv $(SIZEFILES)
+	@echo "============== SUMMARY =============="
+	@cat $< | tr ',' '\t'
+	@echo "==============  TOTAL  =============="
+	@for i in $(SIZEFILES); do cat $$i | paste -sd+ | bc; done | tr '\n' '\t'
+	@echo
 
-versions: results
-	grep [0-9]$$ $< | cut -f1 > $@
+summary.csv: $(SIZEFILES)
+	echo $(DATADIRS) | tr ' ' ',' > $@
+	paste -d "," $^ >> $@
 
-results: | $(TEMP)
-	du -bad 2 $(TEMP) | sort -k2 > $@
-
-$(TEMP): commits ../dna-backup
+backup-size: versions
 	rm -rf $@
-	./exp.sh $< $(REPO_PATH) $@
+	for i in $</*; do \
+		cut -f1 $$i | paste -sd+ | bc >> $@; \
+	done
+
+diffs-size: diffs
+	find $< -type f -exec du -ba {} + | cut -f1 > $@
+
+versions: results backup
+	rm -rf $@
+	mkdir -p $@
+	for i in backup/*; do \
+		v=`echo $$i | cut -d / -f2`; \
+		grep $$i $< > $@/$$v ; \
+	done
+
+results: backup
+	find $< -type f -exec du -ba {} + \
+	| grep -v hashes \
+	| sort -k2 \
+	> $@
+
+$(DATADIRS): commits ../dna-backup
+	rm -rf $(DATADIRS)
+	./exp.sh $< $(REPO_PATH) $(MAX_VERSION) $(DATADIRS)
+	touch $(DATADIRS)
 
 ../dna-backup: .FORCE
 	@$(MAKE) -C .. --no-print-directory dna-backup
@@ -36,8 +63,12 @@ repo git:
 	$(GITC) config advice.detachedHead false
 
 .PHONY: clean
-clean:
-	rm -rf $(REPO_PATH) $(GIT_PATH) $(TEMP)
-	rm -f commits results versions
+clean: mostlyclean
+	rm -rf $(REPO_PATH) $(GIT_PATH)
+	rm commits
+
+mostlyclean:
+	rm -rf $(DATADIRS) versions
+	rm -f results summary.csv $(SIZEFILES)
 
 .FORCE: ;

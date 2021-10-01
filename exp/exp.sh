@@ -1,12 +1,30 @@
 #!/bin/bash
 
-commits_file=$1
-repo_path=$2
-temp=$3
+commits="$1"
+repo="$2"
+max_count="$3"
+backup="$4"
+diffs="$5"
 
-cat $commits_file | while read i
+mkdir -p $backup $diffs
+
+# "empty tree" commit
+prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+last=$(tail --lines=1 "$commits" | cut -f1)
+
+i=0
+cat "$commits" | while read line
 do
-	hash=$(echo "$i" | cut -f1)
-	git -C $repo_path checkout $hash
-	../dna-backup commit -v 2 $repo_path $temp
+	hash=$(echo "$line" | cut -f1)
+	git -C "$repo" checkout "$hash"
+	git -C "$repo" diff --minimal --binary --unified=0 "$prev" | gzip > "$diffs/$i.diff.gz"
+	../dna-backup commit -v 2 "$repo" "$backup"
+	prev="$hash"
+	let i++
+	if [[ $i == $max_count ]]
+	then
+		break
+	fi
 done
+
+git -C "$repo" checkout "$last"
