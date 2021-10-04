@@ -1,6 +1,7 @@
 REPO_URL  := https://club1.fr/~nicolas/git/dna-backup/
 
-export MAX_VERSION ?= 3
+export DNA_BACKUP  ?= ../dna-backup
+export MAX_VERSION ?= 5
 export COMMITS     ?= commits
 export BACKUP      ?= backup
 export DIFFS       ?= diffs
@@ -47,7 +48,7 @@ results: backup run
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) ../dna-backup | $(DATADIRS)
+run: $(COMMITS) $(DNA_BACKUP) | $(DATADIRS)
 	rm -rf $(DATADIRS:%=%/*)
 	./exp.sh
 	touch $@
@@ -55,8 +56,8 @@ run: $(COMMITS) ../dna-backup | $(DATADIRS)
 backup diffs:
 	mkdir $@
 
-../dna-backup: .FORCE
-	@$(MAKE) -C .. --no-print-directory dna-backup
+$(DNA_BACKUP): .FORCE
+	@$(MAKE) -C $(@D) --no-print-directory $(@F)
 
 $(COMMITS): | repo git
 	$(GITC) log --reverse --no-merges --pretty=tformat:"%H	%as" \
@@ -74,7 +75,7 @@ clean: mostlyclean
 	rm -f $(COMMITS)
 
 mostlyclean: resultsclean
-	rm -rf $(DATADIRS) versions
+	rm -rf $(DATADIRS) versions run
 
 resultsclean:
 	rm -f results summary.csv $(SIZEFILES)
