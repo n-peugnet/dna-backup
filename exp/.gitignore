@@ -1,4 +1,5 @@
 *
+!cdemu
 !.gitignore
 !exp.sh
 !Makefile
