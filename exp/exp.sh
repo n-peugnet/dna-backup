@@ -1,35 +1,37 @@
 #!/bin/bash
 
-commits="$1"
-repo="$2"
-max_count="$3"
-backup="$4"
-diffs="$5"
+# This script expects the following variables to be exported:
+# - REPO_PATH: the path of the repo the experiment is based on
+# - MAX_VERSION: the max number for versions for the experiment
+# - COMMITS: the name of the file that contains the lists of versions
+# - BACKUP: the path fo the dna-backup dir
+# - DIFFS: the path of the git diff dir
 
-mkdir -p $backup $diffs
+GITC="git -C $REPO_PATH"
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-last=$(tail --lines=1 "$commits" | cut -f1)
+last=$(tail --lines=1 $COMMITS | cut -f1)
 
 i=0
-cat "$commits" | while read line
+cat $COMMITS | while read line
 do
 	hash=$(echo "$line" | cut -f1)
-	git -C "$repo" checkout "$hash"
+	$GITC checkout $hash
 
 	# create diff for this version
-	git -C "$repo" diff --minimal --binary --unified=0 "$prev" | gzip > "$diffs/$i.diff.gz"
+	$GITC diff --minimal --binary --unified=0 $prev | gzip > $DIFFS/$i.diff.gz
 
 	# create backup for this version
-	../dna-backup commit -v 2 "$repo" "$backup"
+	../dna-backup commit -v 2 $REPO_PATH $BACKUP
 
-	prev="$hash"
+	prev=$hash
 	let i++
-	if [[ $i == $max_count ]]
+	if [[ $i == $MAX_VERSION ]]
 	then
 		break
 	fi
 done
 
-git -C "$repo" checkout "$last"
+# cleanup
+$GITC checkout $last

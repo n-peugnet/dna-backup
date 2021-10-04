@@ -1,12 +1,15 @@
 REPO_URL  := https://club1.fr/~nicolas/git/dna-backup/
 
-REPO_PATH := repo
+export MAX_VERSION ?= 3
+export COMMITS     ?= commits
+export BACKUP      ?= backup
+export DIFFS       ?= diffs
+
+export REPO_PATH   ?= repo
 GIT_PATH  := git
 GITC      := git -C $(REPO_PATH)
 
-MAX_VERSION ?= 3
-
-DATADIRS  := backup diffs
+DATADIRS  := $(BACKUP) $(DIFFS)
 SIZEFILES := $(DATADIRS:%=%-size)
 
 .PHONY: all exp
@@ -27,10 +30,10 @@ backup-size: versions
 		cut -f1 $$i | paste -sd+ | bc >> $@; \
 	done
 
-diffs-size: diffs
+diffs-size: diffs run
 	find $< -type f -exec du -ba {} + | cut -f1 > $@
 
-versions: results backup
+versions: results
 	rm -rf $@
 	mkdir -p $@
 	for i in backup/*; do \
@@ -38,26 +41,29 @@ versions: results backup
 		grep $$i $< > $@/$$v ; \
 	done
 
-results: backup
+results: backup run
 	find $< -type f -exec du -ba {} + \
 	| grep -v hashes \
 	| sort -k2 \
 	> $@
 
-$(DATADIRS): commits ../dna-backup
-	rm -rf $(DATADIRS)
-	./exp.sh $< $(REPO_PATH) $(MAX_VERSION) $(DATADIRS)
-	touch $(DATADIRS)
+run: $(COMMITS) ../dna-backup | $(DATADIRS)
+	rm -rf $(DATADIRS:%=%/*)
+	./exp.sh
+	touch $@
+
+backup diffs:
+	mkdir $@
 
 ../dna-backup: .FORCE
 	@$(MAKE) -C .. --no-print-directory dna-backup
 
-commits: | repo git
+$(COMMITS): | repo git
 	$(GITC) log --reverse --no-merges --pretty=tformat:"%H	%as" \
 	| sort --unique --key=2 \
 	> $@
 
-repo git:
+repo git &:
 	git clone --separate-git-dir=$(GIT_PATH) $(REPO_URL) $(REPO_PATH)
 # remove warning about detached head state
 	$(GITC) config advice.detachedHead false
@@ -65,10 +71,12 @@ repo git:
 .PHONY: clean
 clean: mostlyclean
 	rm -rf $(REPO_PATH) $(GIT_PATH)
-	rm commits
+	rm -f $(COMMITS)
 
-mostlyclean:
+mostlyclean: resultsclean
 	rm -rf $(DATADIRS) versions
+
+resultsclean:
 	rm -f results summary.csv $(SIZEFILES)
 
 .FORCE: ;
