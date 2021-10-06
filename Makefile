@@ -17,15 +17,15 @@ $(BIN): $(SRC)
 	go build $V -o $@
 
 .PHONY: clean
-clean: buildclean $(SUBDIRS)
+clean: mostlyclean $(SUBDIRS)
 
-.PHONY: buildclean
-buildclean:
+.PHONY: mostlyclean
+mostlyclean: $(SUBDIRS)
 	rm -rf $(BIN)
 
 .PHONY: test
 test:
-	go test $V ./... 
+	go test $V ./...
 
 .PHONY: install
 install: $(BIN)
