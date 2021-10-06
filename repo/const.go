@@ -1,4 +1,4 @@
-package main
+package repo
 
 const (
 	chunksName = "chunks"

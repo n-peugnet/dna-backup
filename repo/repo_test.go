@@ -1,10 +1,11 @@
-package main
+package repo
 
 import (
 	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,11 +13,25 @@ import (
 	"testing"
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
+	"github.com/n-peugnet/dna-backup/delta"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/sketch"
 	"github.com/n-peugnet/dna-backup/testutils"
 	"github.com/n-peugnet/dna-backup/utils"
 )
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	shutdown()
+	os.Exit(code)
+}
+
+func setup() {
+	logger.SetFlags(log.Lshortfile)
+}
+
+func shutdown() {}
 
 func chunkCompare(t *testing.T, dataDir string, repo *Repo, testFiles []string, chunkCount int) {
 	reader, writer := io.Pipe()
@@ -290,8 +305,8 @@ func TestBsdiff(t *testing.T) {
 	defer os.Remove(addedFile2)
 
 	// configure repo
-	repo.patcher = Bsdiff{}
-	repo.differ = Bsdiff{}
+	repo.patcher = delta.Bsdiff{}
+	repo.differ = delta.Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -327,8 +342,8 @@ func TestCommit(t *testing.T) {
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k")
 	repo := NewRepo(dest)
-	repo.patcher = Bsdiff{}
-	repo.differ = Bsdiff{}
+	repo.patcher = delta.Bsdiff{}
+	repo.differ = delta.Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -341,8 +356,8 @@ func TestCommitZlib(t *testing.T) {
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k_zlib")
 	repo := NewRepo(dest)
-	repo.patcher = Bsdiff{}
-	repo.differ = Bsdiff{}
+	repo.patcher = delta.Bsdiff{}
+	repo.differ = delta.Bsdiff{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 
@@ -357,8 +372,8 @@ func TestRestore(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
-	repo.patcher = Bsdiff{}
-	repo.differ = Bsdiff{}
+	repo.patcher = delta.Bsdiff{}
+	repo.differ = delta.Bsdiff{}
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
@@ -373,8 +388,8 @@ func TestRestoreZlib(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k_zlib")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
-	repo.patcher = Bsdiff{}
-	repo.differ = Bsdiff{}
+	repo.patcher = delta.Bsdiff{}
+	repo.differ = delta.Bsdiff{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 

@@ -24,7 +24,7 @@ repo/
 ```
 */
 
-package main
+package repo
 
 import (
 	"bufio"
@@ -40,6 +40,7 @@ import (
 
 	"github.com/chmduquesne/rollinghash/rabinkarp64"
 	"github.com/n-peugnet/dna-backup/cache"
+	"github.com/n-peugnet/dna-backup/delta"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/sketch"
 	"github.com/n-peugnet/dna-backup/slice"
@@ -74,8 +75,8 @@ type Repo struct {
 	sketchSfCount     int
 	sketchFCount      int
 	pol               rabinkarp64.Pol
-	differ            Differ
-	patcher           Patcher
+	differ            delta.Differ
+	patcher           delta.Patcher
 	fingerprints      FingerprintMap
 	sketches          SketchMap
 	recipe            []Chunk
@@ -124,8 +125,8 @@ func NewRepo(path string) *Repo {
 		sketchSfCount:     3,
 		sketchFCount:      4,
 		pol:               p,
-		differ:            Fdelta{},
-		patcher:           Fdelta{},
+		differ:            delta.Fdelta{},
+		patcher:           delta.Fdelta{},
 		fingerprints:      make(FingerprintMap),
 		sketches:          make(SketchMap),
 		chunkCache:        cache.NewFifoCache(10000),
@@ -134,11 +135,11 @@ func NewRepo(path string) *Repo {
 	}
 }
 
-func (r *Repo) Differ() Differ {
+func (r *Repo) Differ() delta.Differ {
 	return r.differ
 }
 
-func (r *Repo) Patcher() Patcher {
+func (r *Repo) Patcher() delta.Patcher {
 	return r.patcher
 }
 

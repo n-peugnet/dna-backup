@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/n-peugnet/dna-backup/logger"
+	"github.com/n-peugnet/dna-backup/repo"
 )
 
-func streamFilesTar(files []File, stream io.WriteCloser) {
+func streamFilesTar(files []repo.File, stream io.WriteCloser) {
 	tarStream := tar.NewWriter(stream)
 	for _, f := range files {
 		file, err := os.Open(f.Path)

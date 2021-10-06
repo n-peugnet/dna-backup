@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/n-peugnet/dna-backup/logger"
+	"github.com/n-peugnet/dna-backup/repo"
 )
 
 type command struct {
@@ -84,7 +85,7 @@ func commitMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := NewRepo(dest)
+	repo := repo.NewRepo(dest)
 	repo.Commit(source)
 	return nil
 }
@@ -95,7 +96,7 @@ func restoreMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := NewRepo(source)
+	repo := repo.NewRepo(source)
 	repo.Restore(dest)
 	return nil
 }
