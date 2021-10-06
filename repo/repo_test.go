@@ -337,48 +337,18 @@ func TestBsdiff(t *testing.T) {
 	}
 }
 
-func TestCommit(t *testing.T) {
-	dest := t.TempDir()
-	source := filepath.Join("testdata", "logs")
-	expected := filepath.Join("testdata", "repo_8k")
-	repo := NewRepo(dest)
-	repo.patcher = delta.Bsdiff{}
-	repo.differ = delta.Bsdiff{}
-	repo.chunkReadWrapper = utils.NopReadWrapper
-	repo.chunkWriteWrapper = utils.NopWriteWrapper
-
-	repo.Commit(source)
-	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
-}
-
 func TestCommitZlib(t *testing.T) {
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k_zlib")
 	repo := NewRepo(dest)
-	repo.patcher = delta.Bsdiff{}
-	repo.differ = delta.Bsdiff{}
+	repo.patcher = delta.Fdelta{}
+	repo.differ = delta.Fdelta{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 
 	repo.Commit(source)
 	assertSameTree(t, assertCompatibleRepoFile, expected, dest, "Commit")
-}
-
-func TestRestore(t *testing.T) {
-	logger.SetLevel(2)
-	defer logger.SetLevel(4)
-	dest := t.TempDir()
-	source := filepath.Join("testdata", "repo_8k")
-	expected := filepath.Join("testdata", "logs")
-	repo := NewRepo(source)
-	repo.patcher = delta.Bsdiff{}
-	repo.differ = delta.Bsdiff{}
-	repo.chunkReadWrapper = utils.NopReadWrapper
-	repo.chunkWriteWrapper = utils.NopWriteWrapper
-
-	repo.Restore(dest)
-	assertSameTree(t, testutils.AssertSameFile, expected, dest, "Restore")
 }
 
 func TestRestoreZlib(t *testing.T) {
@@ -388,8 +358,8 @@ func TestRestoreZlib(t *testing.T) {
 	source := filepath.Join("testdata", "repo_8k_zlib")
 	expected := filepath.Join("testdata", "logs")
 	repo := NewRepo(source)
-	repo.patcher = delta.Bsdiff{}
-	repo.differ = delta.Bsdiff{}
+	repo.patcher = delta.Fdelta{}
+	repo.differ = delta.Fdelta{}
 	repo.chunkReadWrapper = utils.ZlibReader
 	repo.chunkWriteWrapper = utils.ZlibWriter
 

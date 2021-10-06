@@ -43,7 +43,6 @@ import (
 	"github.com/n-peugnet/dna-backup/delta"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/sketch"
-	"github.com/n-peugnet/dna-backup/slice"
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
@@ -335,16 +334,31 @@ func concatFiles(files *[]File, stream io.WriteCloser) {
 	*files = actual
 }
 
-func storeBasicStruct(dest string, wrapper utils.WriteWrapper, obj interface{}) {
+func storeDelta(prev interface{}, curr interface{}, dest string, differ delta.Differ, wrapper utils.WriteWrapper) {
+	var prevBytes, currBytes, deltaBytes bytes.Buffer
+	var encoder *gob.Encoder
+	var err error
+
+	encoder = gob.NewEncoder(&prevBytes)
+	if err = encoder.Encode(prev); err != nil {
+		logger.Panic(err)
+	}
+	encoder = gob.NewEncoder(&currBytes)
+	if err = encoder.Encode(curr); err != nil {
+		logger.Panic(err)
+	}
+	if err = differ.Diff(&prevBytes, &currBytes, &deltaBytes); err != nil {
+		logger.Panic(err)
+	}
+
 	file, err := os.Create(dest)
 	if err != nil {
 		logger.Panic(err)
 	}
 	out := wrapper(file)
-	encoder := gob.NewEncoder(out)
-	err = encoder.Encode(obj)
+	n, err := io.Copy(out, &deltaBytes)
 	if err != nil {
-		logger.Panic(err)
+		logger.Panic(n, err)
 	}
 	if err = out.Close(); err != nil {
 		logger.Panic(err)
@@ -354,70 +368,53 @@ func storeBasicStruct(dest string, wrapper utils.WriteWrapper, obj interface{}) 
 	}
 }
 
-func loadBasicStruct(path string, wrapper utils.ReadWrapper, obj interface{}) {
-	file, err := os.Open(path)
-	if err != nil {
-		logger.Panic(err)
-	}
-	in, err := wrapper(file)
-	if err != nil {
-		logger.Panic(err)
-	}
-	decoder := gob.NewDecoder(in)
-	err = decoder.Decode(obj)
-	if err != nil {
-		logger.Panic(err)
-	}
-	if err = in.Close(); err != nil {
-		logger.Panic(err)
-	}
-	if err = file.Close(); err != nil {
-		logger.Panic(err)
-	}
-}
+func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) {
+	var prev bytes.Buffer
+	var encoder *gob.Encoder
+	var err error
 
-func (r *Repo) loadDeltas(versions []string, wrapper utils.ReadWrapper, name string) (ret slice.Slice) {
+	encoder = gob.NewEncoder(&prev)
+	if err = encoder.Encode(target); err != nil {
+		logger.Panic(err)
+	}
+
 	for _, v := range versions {
+		var curr bytes.Buffer
 		path := filepath.Join(v, name)
-		var delta slice.Delta
-		loadBasicStruct(path, wrapper, &delta)
-		ret = slice.Patch(ret, delta)
-	}
-	return
-}
-
-func fileList2slice(l []File) (ret slice.Slice) {
-	ret = make(slice.Slice, len(l))
-	for i := range l {
-		ret[i] = l[i]
-	}
-	return
-}
-
-func slice2fileList(s slice.Slice) (ret []File) {
-	ret = make([]File, len(s))
-	for i := range s {
-		if f, ok := s[i].(File); ok {
-			ret[i] = f
-		} else {
-			logger.Warningf("could not convert %s into a File", s[i])
+		file, err := os.Open(path)
+		if err != nil {
+			logger.Panic(err)
+		}
+		in, err := wrapper(file)
+		if err != nil {
+			logger.Panic(err)
+		}
+		if err = patcher.Patch(&prev, &curr, in); err != nil {
+			logger.Panic(err)
+		}
+		prev = curr
+		if err = in.Close(); err != nil {
+			logger.Panic(err)
 		}
 	}
-	return
+	decoder := gob.NewDecoder(&prev)
+	if err = decoder.Decode(target); err != nil {
+		logger.Panic(err)
+	}
 }
 
 // storeFileList stores the given list in the repo dir as a delta against the
 // previous version's one.
 func (r *Repo) storeFileList(version int, list []File) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
-	delta := slice.Diff(fileList2slice(r.files), fileList2slice(list))
-	logger.Infof("files delta %s", delta.String())
-	storeBasicStruct(dest, r.chunkWriteWrapper, delta)
+	storeDelta(r.files, list, dest, r.differ, r.chunkWriteWrapper)
 }
 
 // loadFileLists loads incrementally the file lists' delta of each given version.
 func (r *Repo) loadFileLists(versions []string) {
-	r.files = slice2fileList(r.loadDeltas(versions, r.chunkReadWrapper, filesName))
+	var files []File
+	loadDeltas(&files, versions, r.patcher, r.chunkReadWrapper, filesName)
+	r.files = files
 }
 
 // storageWorker is meant to be started in a goroutine and stores each new chunk's
@@ -736,35 +733,14 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 	stream.Close()
 }
 
-func recipe2slice(r []Chunk) (ret slice.Slice) {
-	ret = make(slice.Slice, len(r))
-	for i := range r {
-		ret[i] = r[i]
-	}
-	return
-}
-
-func slice2recipe(s slice.Slice) (ret []Chunk) {
-	ret = make([]Chunk, len(s))
-	for i := range s {
-		if c, ok := s[i].(Chunk); ok {
-			ret[i] = c
-		} else {
-			logger.Warningf("could not convert %s into a Chunk", s[i])
-		}
-	}
-	return
-}
-
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
-	delta := slice.Diff(recipe2slice(r.recipe), recipe2slice(recipe))
-	logger.Infof("recipe delta %s", delta.String())
-	storeBasicStruct(dest, r.chunkWriteWrapper, delta)
+	storeDelta(r.recipe, recipe, dest, r.differ, r.chunkWriteWrapper)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
-	recipe := slice2recipe(r.loadDeltas(versions, r.chunkReadWrapper, recipeName))
+	var recipe []Chunk
+	loadDeltas(&recipe, versions, r.patcher, r.chunkReadWrapper, recipeName)
 	for _, c := range recipe {
 		if rc, isRepo := c.(RepoChunk); isRepo {
 			rc.SetRepo(r)
