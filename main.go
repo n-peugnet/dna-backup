@@ -10,29 +10,33 @@ import (
 
 type command struct {
 	Flag  *flag.FlagSet
+	Run   func([]string) error
 	Usage string
 	Help  string
-	Run   func([]string) error
 }
 
 const (
-	name         = "dna-backup"
-	baseUsage    = "<command> [<options>] [--] <args>"
-	commitUsage  = "[<options>] [--] <source> <dest>"
-	commitHelp   = "Create a new version of folder <source> into repo <dest>"
-	restoreUsage = "[<options>] [--] <source> <dest>"
-	restoreHelp  = "Restore the last version from repo <source> into folder <dest>"
+	name      = "dna-backup"
+	baseUsage = "<command> [<options>] [--] <args>"
 )
 
 var (
-	logLevel    int
-	commitCmd   = flag.NewFlagSet("commit", flag.ExitOnError)
-	restoreCmd  = flag.NewFlagSet("restore", flag.ExitOnError)
-	subcommands = map[string]command{
-		commitCmd.Name():  {commitCmd, commitUsage, commitHelp, commitMain},
-		restoreCmd.Name(): {restoreCmd, restoreUsage, restoreHelp, restoreMain},
-	}
+	logLevel int
+	format   string
 )
+
+var commit = command{flag.NewFlagSet("commit", flag.ExitOnError), commitMain,
+	"[<options>] [--] <source> <dest>",
+	"Create a new version of folder <source> into repo <dest>",
+}
+var restore = command{flag.NewFlagSet("restore", flag.ExitOnError), restoreMain,
+	"[<options>] [--] <source> <dest>",
+	"Restore the last version from repo <source> into folder <dest>",
+}
+var subcommands = map[string]command{
+	commit.Flag.Name():  commit,
+	restore.Flag.Name(): restore,
+}
 
 func init() {
 	// init default help message

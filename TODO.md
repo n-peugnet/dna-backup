@@ -15,8 +15,9 @@ priority 1
 - [x] add chunk cache to uniquely store chunks in RAM
 - [x] better tests for `(*Repo).Commit`
 - [x] remove errored files from `fileList`
-- [ ] **TODO: Priority 3** add superblock logic.
-- [ ] **TODO: Priority 2** add version blocks or journal logic.
+- [ ] export in `dir` format
+    - [ ] add superblock.
+    - [ ] add version blocks.
 - [x] command line with subcommands (like, hmm... git ? for instance).
 - experiences:
     - [ ] compare against UDF
