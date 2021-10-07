@@ -79,7 +79,9 @@ type Repo struct {
 	fingerprints      FingerprintMap
 	sketches          SketchMap
 	recipe            []Chunk
+	recipeRaw         []byte
 	files             []File
+	filesRaw          []byte
 	chunkCache        cache.Cacher
 	chunkReadWrapper  utils.ReadWrapper
 	chunkWriteWrapper utils.WriteWrapper
@@ -334,31 +336,30 @@ func concatFiles(files *[]File, stream io.WriteCloser) {
 	*files = actual
 }
 
-func storeDelta(prev interface{}, curr interface{}, dest string, differ delta.Differ, wrapper utils.WriteWrapper) {
-	var prevBytes, currBytes, deltaBytes bytes.Buffer
+func storeDelta(prevRaw []byte, curr interface{}, dest string, differ delta.Differ, wrapper utils.WriteWrapper) {
+	var prevBuff, currBuff bytes.Buffer
 	var encoder *gob.Encoder
 	var err error
 
-	encoder = gob.NewEncoder(&prevBytes)
-	if err = encoder.Encode(prev); err != nil {
-		logger.Panic(err)
+	if len(prevRaw) == 0 {
+		encoder = gob.NewEncoder(&prevBuff)
+		if err = encoder.EncodeValue(reflect.ValueOf(curr)); err != nil {
+			logger.Panic(err)
+		}
+	} else {
+		prevBuff = *bytes.NewBuffer(prevRaw)
 	}
-	encoder = gob.NewEncoder(&currBytes)
+	encoder = gob.NewEncoder(&currBuff)
 	if err = encoder.Encode(curr); err != nil {
 		logger.Panic(err)
 	}
-	if err = differ.Diff(&prevBytes, &currBytes, &deltaBytes); err != nil {
-		logger.Panic(err)
-	}
-
 	file, err := os.Create(dest)
 	if err != nil {
 		logger.Panic(err)
 	}
 	out := wrapper(file)
-	n, err := io.Copy(out, &deltaBytes)
-	if err != nil {
-		logger.Panic(n, err)
+	if err = differ.Diff(&prevBuff, &currBuff, out); err != nil {
+		logger.Panic(err)
 	}
 	if err = out.Close(); err != nil {
 		logger.Panic(err)
@@ -368,7 +369,7 @@ func storeDelta(prev interface{}, curr interface{}, dest string, differ delta.Di
 	}
 }
 
-func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) {
+func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) []byte {
 	var prev bytes.Buffer
 	var encoder *gob.Encoder
 	var err error
@@ -396,24 +397,29 @@ func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wr
 		if err = in.Close(); err != nil {
 			logger.Panic(err)
 		}
+		if err = file.Close(); err != nil {
+			logger.Panic(err)
+		}
 	}
+	ret := prev.Bytes()
 	decoder := gob.NewDecoder(&prev)
 	if err = decoder.Decode(target); err != nil {
 		logger.Panic(err)
 	}
+	return ret
 }
 
 // storeFileList stores the given list in the repo dir as a delta against the
 // previous version's one.
 func (r *Repo) storeFileList(version int, list []File) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
-	storeDelta(r.files, list, dest, r.differ, r.chunkWriteWrapper)
+	storeDelta(r.filesRaw, list, dest, r.differ, r.chunkWriteWrapper)
 }
 
 // loadFileLists loads incrementally the file lists' delta of each given version.
 func (r *Repo) loadFileLists(versions []string) {
 	var files []File
-	loadDeltas(&files, versions, r.patcher, r.chunkReadWrapper, filesName)
+	r.filesRaw = loadDeltas(&files, versions, r.patcher, r.chunkReadWrapper, filesName)
 	r.files = files
 }
 
@@ -735,12 +741,12 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
-	storeDelta(r.recipe, recipe, dest, r.differ, r.chunkWriteWrapper)
+	storeDelta(r.recipeRaw, recipe, dest, r.differ, r.chunkWriteWrapper)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
 	var recipe []Chunk
-	loadDeltas(&recipe, versions, r.patcher, r.chunkReadWrapper, recipeName)
+	r.recipeRaw = loadDeltas(&recipe, versions, r.patcher, r.chunkReadWrapper, recipeName)
 	for _, c := range recipe {
 		if rc, isRepo := c.(RepoChunk); isRepo {
 			rc.SetRepo(r)

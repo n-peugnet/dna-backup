@@ -1,6 +1,7 @@
 package delta
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
@@ -44,15 +45,15 @@ func (Fdelta) Diff(source io.Reader, target io.Reader, patch io.Writer) error {
 func (Fdelta) Patch(source io.Reader, target io.Writer, patch io.Reader) error {
 	sourceBuf, err := io.ReadAll(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("source read all: %s", err)
 	}
 	patchBuf, err := io.ReadAll(patch)
 	if err != nil {
-		return err
+		return fmt.Errorf("patch read all: %s", err)
 	}
 	targetBuf, err := fdelta.Apply(sourceBuf, patchBuf)
 	if err != nil {
-		return err
+		return fmt.Errorf("apply patch: %s", err)
 	}
 	_, err = target.Write(targetBuf)
 	return err
