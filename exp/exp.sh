@@ -8,7 +8,12 @@
 # - BACKUP: the path fo the dna-backup dir
 # - DIFFS: the path of the git diff dir
 
+log() {
+	echo -e "\033[90m$(date +%T.%3N)\033[0m" $*
+}
+
 GITC="git -C $REPO_PATH"
+OUT=/tmp/dna-backup-exp-out
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -18,36 +23,41 @@ i=0
 cat $COMMITS | while read line
 do
 	hash=$(echo "$line" | cut -f1)
-	$GITC checkout $hash
 
-	# create diff for this version
-	$GITC diff --minimal --binary --unified=0 $prev \
+	log "check out $hash"
+	$GITC checkout $hash 2> $OUT \
+	|| (log "error checking out"; cat $OUT; exit 1)
+
+	log "create diff for this version"
+	$GITC diff --minimal --binary --unified=0 -l0 $prev \
 	| gzip \
 	> "$DIFFS/$i.diff.gz"
 
-	# create backup for this version
+	log "create backup for this version"
 	$DNA_BACKUP commit -v 2 $REPO_PATH $BACKUP
 
 	if [[ $(( $i % 4 )) == 0 ]]
 	then
-		# check diff correctness
+		log "restore from diffs"
 		TEMP=$(mktemp -d)
 		for n in $(seq 0 $i)
 		do
 			cat "$DIFFS/$n.diff.gz" \
 			| gzip --decompress \
-			| git -C $TEMP apply --binary --unidiff-zero --whitespace=nowarn - \
-			|| echo "Git patchs do not match source"
+			| git -C $TEMP apply --binary --unidiff-zero --whitespace=nowarn -
 		done
 		cp $REPO_PATH/.git $TEMP/
+		log "check restore from diffs"
 		diff --brief --recursive $REPO_PATH $TEMP \
-		|| echo "dna-backup restore do not match source"
+		|| log "git patchs restore do not match source"
 		rm -rf $TEMP
 
-		# check backup correctness
+		log "restore from backup"
 		TEMP=$(mktemp -d)
 		$DNA_BACKUP restore -v 2 $BACKUP $TEMP
-		diff --brief --recursive $REPO_PATH $TEMP
+		log "check restore from backup"
+		diff --brief --recursive $REPO_PATH $TEMP \
+		|| log "dna backup restore do not match source"
 		rm -rf $TEMP
 	fi
 
@@ -60,4 +70,6 @@ do
 done
 
 # cleanup
-$GITC checkout $last
+log "clean up $REPO_PATH"
+$GITC checkout $last 2> $OUT \
+|| (log "error checking out back to latest commit"; cat $OUT; exit 2)
