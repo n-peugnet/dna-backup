@@ -104,7 +104,7 @@ type File struct {
 	Link string
 }
 
-func NewRepo(path string) *Repo {
+func NewRepo(path string, chunkSize int) *Repo {
 	var err error
 	path, err = filepath.Abs(path)
 	if err != nil {
@@ -121,7 +121,7 @@ func NewRepo(path string) *Repo {
 	}
 	return &Repo{
 		path:              path,
-		chunkSize:         8 << 10,
+		chunkSize:         chunkSize,
 		sketchWSize:       32,
 		sketchSfCount:     3,
 		sketchFCount:      4,
@@ -155,13 +155,9 @@ func (r *Repo) Commit(source string) {
 	newChunkPath := filepath.Join(newPath, chunksName)
 	os.Mkdir(newPath, 0775)      // TODO: handle errors
 	os.Mkdir(newChunkPath, 0775) // TODO: handle errors
-	logger.Info("listing files")
 	files := listFiles(source)
-	logger.Info("loading previous hashes")
 	r.loadHashes(versions)
-	logger.Info("loading previous file lists")
 	r.loadFileLists(versions)
-	logger.Info("loading previous recipies")
 	r.loadRecipes(versions)
 	storeQueue := make(chan chunkData, 32)
 	storeEnd := make(chan bool)
@@ -183,7 +179,6 @@ func (r *Repo) Commit(source string) {
 
 func (r *Repo) Restore(destination string) {
 	versions := r.loadVersions()
-	logger.Info("loading previous file lists")
 	r.loadFileLists(versions)
 	logger.Info("loading previous recipies")
 	r.loadRecipes(versions)
@@ -233,6 +228,7 @@ func (r *Repo) loadVersions() []string {
 }
 
 func listFiles(path string) []File {
+	logger.Infof("list files from %s", path)
 	var files []File
 	err := filepath.Walk(path, func(p string, i fs.FileInfo, err error) error {
 		if err != nil {
@@ -353,6 +349,7 @@ func storeDelta(prevRaw []byte, curr interface{}, dest string, differ delta.Diff
 	if err = encoder.Encode(curr); err != nil {
 		logger.Panic(err)
 	}
+	logger.Infof("store before delta: %d", currBuff.Len())
 	file, err := os.Create(dest)
 	if err != nil {
 		logger.Panic(err)
@@ -412,12 +409,14 @@ func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wr
 // storeFileList stores the given list in the repo dir as a delta against the
 // previous version's one.
 func (r *Repo) storeFileList(version int, list []File) {
+	logger.Info("store files")
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), filesName)
 	storeDelta(r.filesRaw, list, dest, r.differ, r.chunkWriteWrapper)
 }
 
 // loadFileLists loads incrementally the file lists' delta of each given version.
 func (r *Repo) loadFileLists(versions []string) {
+	logger.Info("load previous file lists")
 	var files []File
 	r.filesRaw = loadDeltas(&files, versions, r.patcher, r.chunkReadWrapper, filesName)
 	r.files = files
@@ -516,6 +515,7 @@ func (r *Repo) loadChunks(versions []string, chunks chan<- IdentifiedChunk) {
 // loadHashes loads and aggregates the hashes stored for each given version and
 // stores them in the repo maps.
 func (r *Repo) loadHashes(versions []string) {
+	logger.Info("load previous hashes")
 	for i, v := range versions {
 		path := filepath.Join(v, hashesName)
 		file, err := os.Open(path)
@@ -740,11 +740,13 @@ func (r *Repo) restoreStream(stream io.WriteCloser, recipe []Chunk) {
 }
 
 func (r *Repo) storeRecipe(version int, recipe []Chunk) {
+	logger.Info("store recipe")
 	dest := filepath.Join(r.path, fmt.Sprintf(versionFmt, version), recipeName)
 	storeDelta(r.recipeRaw, recipe, dest, r.differ, r.chunkWriteWrapper)
 }
 
 func (r *Repo) loadRecipes(versions []string) {
+	logger.Info("load previous recipies")
 	var recipe []Chunk
 	r.recipeRaw = loadDeltas(&recipe, versions, r.patcher, r.chunkReadWrapper, recipeName)
 	for _, c := range recipe {

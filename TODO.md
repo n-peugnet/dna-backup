@@ -5,13 +5,6 @@ priority 1
         chunks if no similar chunk is found. Thus, it will need to be of
         `chunkSize` or less. Otherwise, it could not be possibly used for
         deduplication.
-- [ ] read individual files
-- [ ] properly store information to be DNA encoded
-    - [ ] tar source to keep files metadata ?
-    - [x] store chunks compressed
-        - [x] compress before storing
-        - [x] decompress before loading
-    - [ ] store compressed chunks into tracks of `trackSize` (1024o)
 - [x] add chunk cache to uniquely store chunks in RAM
 - [x] better tests for `(*Repo).Commit`
 - [x] remove errored files from `fileList`
@@ -20,15 +13,15 @@ priority 1
     - [ ] add version blocks.
 - [x] command line with subcommands (like, hmm... git ? for instance).
 - experiences:
-    - [ ] compare against UDF
+    - [ ] compare against UDF (this will not be possible, unless we use a real
+        CR-ROM)
     - [ ] make multiple repo versions with multiple parameters
         - smaller block size
 
 priority 2
 ----------
-- [ ] use more the `Reader` API (which is analogous to the `IOStream` in Java)
+- [ ] read individual files
 - [ ] refactor `matchStream` as right now it is quite complex
-- [x] better test for `(*Repo).matchStream`
 - [ ] tail packing of `PartialChunks` (this Struct does not exist yet as it is
     in fact just `TempChunks` for now).
     This might not be useful if we store the recipe incrementally.
@@ -68,7 +61,7 @@ reunion 7/09
 - [x] store file list incrementally.
 - [x] compress recipe
 - [x] compress file list
-- [ ] make size comparison between recipe and chunks with some datasets
+- [x] make size comparison between recipe and chunks with some datasets
 
 ideas
 -----

@@ -157,7 +157,7 @@ func (r *Repo) makeSketch(id *ChunkId, reader io.Reader, wg *sync.WaitGroup, ret
 
 func TestReadFiles1(t *testing.T) {
 	tmpDir := t.TempDir()
-	repo := NewRepo(tmpDir)
+	repo := NewRepo(tmpDir, 8<<10)
 	chunkCount := 590/repo.chunkSize + 1
 	dataDir := filepath.Join("testdata", "logs", "1")
 	files := []string{"logTest.log"}
@@ -166,7 +166,7 @@ func TestReadFiles1(t *testing.T) {
 
 func TestReadFiles2(t *testing.T) {
 	tmpDir := t.TempDir()
-	repo := NewRepo(tmpDir)
+	repo := NewRepo(tmpDir, 8<<10)
 	chunkCount := 22899/repo.chunkSize + 1
 	dataDir := filepath.Join("testdata", "logs", "2")
 	files := []string{"csvParserTest.log", "slipdb.log"}
@@ -175,7 +175,7 @@ func TestReadFiles2(t *testing.T) {
 
 func TestReadFiles3(t *testing.T) {
 	tmpDir := t.TempDir()
-	repo := NewRepo(tmpDir)
+	repo := NewRepo(tmpDir, 8<<10)
 	chunkCount := 119398/repo.chunkSize + 1
 	dataDir := filepath.Join("testdata", "logs")
 	files := []string{
@@ -234,7 +234,7 @@ func TestSymlinks(t *testing.T) {
 func TestLoadChunks(t *testing.T) {
 	resultDir := t.TempDir()
 	dataDir := filepath.Join("testdata", "logs")
-	repo := NewRepo(resultDir)
+	repo := NewRepo(resultDir, 8<<10)
 	repo.chunkReadWrapper = utils.NopReadWrapper
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 	resultVersion := filepath.Join(resultDir, "00000")
@@ -291,7 +291,7 @@ func TestBsdiff(t *testing.T) {
 	logger.SetLevel(3)
 	defer logger.SetLevel(4)
 	resultDir := t.TempDir()
-	repo := NewRepo(resultDir)
+	repo := NewRepo(resultDir, 8<<10)
 	dataDir := filepath.Join("testdata", "logs")
 	addedFile1 := filepath.Join(dataDir, "2", "slogTest.log")
 	addedFile2 := filepath.Join(dataDir, "3", "slogTest.log")
@@ -341,7 +341,7 @@ func TestCommitZlib(t *testing.T) {
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "logs")
 	expected := filepath.Join("testdata", "repo_8k_zlib")
-	repo := NewRepo(dest)
+	repo := NewRepo(dest, 8<<10)
 	repo.patcher = delta.Fdelta{}
 	repo.differ = delta.Fdelta{}
 	repo.chunkReadWrapper = utils.ZlibReader
@@ -357,7 +357,7 @@ func TestRestoreZlib(t *testing.T) {
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "repo_8k_zlib")
 	expected := filepath.Join("testdata", "logs")
-	repo := NewRepo(source)
+	repo := NewRepo(source, 8<<10)
 	repo.patcher = delta.Fdelta{}
 	repo.differ = delta.Fdelta{}
 	repo.chunkReadWrapper = utils.ZlibReader
@@ -373,8 +373,8 @@ func TestRoundtrip(t *testing.T) {
 	temp := t.TempDir()
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "logs")
-	repo1 := NewRepo(temp)
-	repo2 := NewRepo(temp)
+	repo1 := NewRepo(temp, 8<<10)
+	repo2 := NewRepo(temp, 8<<10)
 
 	repo1.Commit(source)
 	// Commit a second version, just to see if it does not destroy everything
@@ -393,7 +393,7 @@ func TestHashes(t *testing.T) {
 	storeQueue := make(chan chunkData, 16)
 	storeEnd := make(chan bool)
 
-	repo1 := NewRepo(source)
+	repo1 := NewRepo(source, 8<<10)
 	repo1.chunkReadWrapper = utils.NopReadWrapper
 	repo1.chunkWriteWrapper = utils.NopWriteWrapper
 	go repo1.loadChunks([]string{filepath.Join(source, "00000")}, chunks)
@@ -409,7 +409,7 @@ func TestHashes(t *testing.T) {
 			id:      c.GetId(),
 		}
 	}
-	repo2 := NewRepo(dest)
+	repo2 := NewRepo(dest, 8<<10)
 	repo2.chunkReadWrapper = utils.NopReadWrapper
 	repo2.chunkWriteWrapper = utils.NopWriteWrapper
 	os.MkdirAll(filepath.Join(dest, "00000", chunksName), 0775)

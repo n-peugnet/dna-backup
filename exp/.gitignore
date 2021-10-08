@@ -1,5 +1,6 @@
 *
 !.gitignore
 !exp.sh
+!go.mod
 !Makefile
 !README.md

@@ -22,8 +22,9 @@ const (
 )
 
 var (
-	logLevel int
-	format   string
+	logLevel  int
+	chunkSize int
+	format    string
 )
 
 var commit = command{flag.NewFlagSet("commit", flag.ExitOnError), commitMain,
@@ -51,6 +52,7 @@ func init() {
 	// setup subcommands
 	for _, s := range subcommands {
 		s.Flag.IntVar(&logLevel, "v", 3, "log verbosity level (0-4)")
+		s.Flag.IntVar(&chunkSize, "c", 8<<10, "chunk size")
 	}
 }
 
@@ -85,7 +87,7 @@ func commitMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := repo.NewRepo(dest)
+	repo := repo.NewRepo(dest, chunkSize)
 	repo.Commit(source)
 	return nil
 }
@@ -96,7 +98,7 @@ func restoreMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := repo.NewRepo(source)
+	repo := repo.NewRepo(source, chunkSize)
 	repo.Restore(dest)
 	return nil
 }
