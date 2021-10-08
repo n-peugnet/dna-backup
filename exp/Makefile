@@ -11,13 +11,15 @@ export COMMITS     ?= commits
 export DNA_4K      ?= dna_4k
 export DNA_8K      ?= dna_8k
 export DIFFS       ?= diffs
+NOPACK             ?= nopack
+export GIT_NOPACK  ?= $(abspath $(NOPACK))
 
 export REPO_PATH   ?= repo
-GIT_PATH  := git
+export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
 
 DNADIRS   := $(DNA_4K) $(DNA_8K)
-DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS)
+DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK)
 SIZEFILES := $(DATADIRS:%=%.size)
 
 .PHONY: all exp
@@ -39,7 +41,7 @@ summary.csv: $(SIZEFILES)
 	echo $(DATADIRS) | tr ' ' ',' > $@
 	paste -d "," $^ >> $@
 
-$(DNADIRS:%=%.size): %.size: %.versions
+$(DNADIRS:%=%.size) $(NOPACK).size: %.size: %.versions run
 	rm -rf $@
 	for i in $</*; do \
 		cut -f1 $$i | paste -sd+ | bc >> $@; \
@@ -62,12 +64,12 @@ $(DNADIRS:%=%.size): %.size: %.versions
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) $(DNA_BACKUP) | $(DATADIRS)
+run: $(COMMITS) $(DNA_BACKUP) | $(DATADIRS) $(NOPACK).versions
 	rm -rf $(DATADIRS:%=%/*)
 	./exp.sh
 	touch $@
 
-$(DATADIRS):
+$(DATADIRS) $(NOPACK).versions:
 	mkdir $@
 
 $(DNA_BACKUP): .FORCE
@@ -89,7 +91,8 @@ clean: mostlyclean
 	rm -f $(COMMITS)
 
 mostlyclean: resultsclean
-	rm -rf $(DATADIRS) $(DNADIRS:%=%.versions) run
+	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
+	rm -f run $(DATADIRS:%=%.results)
 
 resultsclean:
 	rm -f summary.csv $(SIZEFILES)

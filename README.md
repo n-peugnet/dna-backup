@@ -14,7 +14,7 @@ sur un support de stockage classique : le _repo_.
  | +---------+          +---------+ |          +-----------+
  | |         |          |         | |          |           |
  | | Source  |--------->|  Repo   |----------->| DNA-Drive |
- | |         |  COMMIT  |         | | SYMTHESE |           |
+ | |         |  COMMIT  |         | | SYNTHESE |           |
  | +---------+          +---------+ |          +-----------+
  |                                  |
  | Ordinateur                       |

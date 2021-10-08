@@ -3,18 +3,31 @@
 # This script expects the following variables to be exported:
 # - DNA_BACKUP: the path to dna-backup binary
 # - REPO_PATH: the path of the repo the experiment is based on
+# - GIT_PATH: the path of the repo git-dir
 # - MAX_VERSION: the max number for versions for the experiment
 # - COMMITS: the name of the file that contains the lists of versions
 # - DNA_4K: the path fo the dna-backup dir with 4K chunksize
 # - DNA_8K: the path fo the dna-backup dir with 8K chunksize
 # - DIFFS: the path of the git diff dir
+# - GIT_NOPACK: the path of the git nopack dir
 
 log() {
 	echo -e "\033[90m$(date +%T.%3N)\033[0m" $*
 }
 
+set-git-dir() {
+	echo gitdir: $1 > $REPO_PATH/.git
+}
+
 GITC="git -C $REPO_PATH"
 OUT=/tmp/dna-backup-exp-out
+
+# Init git nopack dir
+rm $REPO_PATH/.git
+$GITC init --separate-git-dir=$GIT_NOPACK
+$GITC --git-dir=$GIT_NOPACK config gc.auto 0
+set-git-dir $GIT_PATH
+nopack_prev=0
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -37,6 +50,22 @@ do
 	$GITC diff --minimal --binary --unified=0 -l0 $prev \
 	| gzip \
 	> $diff
+
+	# Create git nopack for this version
+	log "create git nopack for this version"
+	set-git-dir $GIT_NOPACK
+	$GITC add .
+	$GITC commit -m $hash &> $OUT \
+	|| (log "error commiting to nopack"; cat $OUT; exit 1)
+	ls $GIT_NOPACK/objects/pack
+	find $GIT_NOPACK -type f -exec du -ba {} + \
+	| grep -v /logs/ \
+	| cut -f1 \
+	| paste -sd+ \
+	| xargs -i echo {} - $nopack_prev \
+	| bc \
+	> $(printf "%s.versions/%05d" $GIT_NOPACK $i)
+	set-git-dir $GIT_PATH
 
 	# Create 4k dna backup for this version
 	log "create 4k dna backup for this version"
