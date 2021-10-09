@@ -57,13 +57,15 @@ do
 	$GITC commit -m $hash &> $OUT \
 	|| (log "error commiting to nopack"; cat $OUT; exit 1)
 	ls $GIT_NOPACK/objects/pack
+	nopack_curr=$(printf "%s.versions/%05d" $GIT_NOPACK $i)
 	find $GIT_NOPACK -type f -exec du -ba {} + \
 	| grep -v /logs/ \
 	| cut -f1 \
 	| paste -sd+ \
 	| xargs -i echo {} - $nopack_prev \
 	| bc \
-	> $(printf "%s.versions/%05d" $GIT_NOPACK $i)
+	> $nopack_curr
+	let nopack_prev+=$(cat $nopack_curr)
 	set-git-dir $GIT_PATH
 
 	# Create dna backups for this version
