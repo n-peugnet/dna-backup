@@ -6,13 +6,14 @@ SHELL := /bin/bash
 export LC_NUMERIC  :=
 
 export DNA_BACKUP  ?= ../dna-backup
+export DNA_PARAMS  ?= dna_params
 export MAX_VERSION ?= 5
 export COMMITS     ?= commits
-export DNA_4K      ?= dna_4k
-export DNA_8K      ?= dna_8k
-export DIFFS       ?= diffs
+DNA_4K             ?= dna_4k
+DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
 export GIT_NOPACK  ?= $(abspath $(NOPACK))
+export DIFFS       ?= diffs
 
 export REPO_PATH   ?= repo
 export GIT_PATH    ?= $(abspath git)
@@ -64,10 +65,14 @@ $(DNADIRS:%=%.size) $(NOPACK).size: %.size: %.versions run
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) $(DNA_BACKUP) | $(DATADIRS) $(NOPACK).versions
+run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | $(DATADIRS) $(NOPACK).versions
 	rm -rf $(DATADIRS:%=%/*)
 	./exp.sh
 	touch $@
+
+$(DNA_PARAMS):
+	echo "$(DNA_4K)	-c 4096" >> $@
+	echo "$(DNA_8K)	-c 8192" >> $@
 
 $(DATADIRS) $(NOPACK).versions:
 	mkdir $@
@@ -92,7 +97,7 @@ clean: mostlyclean
 
 mostlyclean: resultsclean
 	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
-	rm -f run $(DATADIRS:%=%.results)
+	rm -f run $(DATADIRS:%=%.results) $(DNA_PARAMS)
 
 resultsclean:
 	rm -f summary.csv $(SIZEFILES)

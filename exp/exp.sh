@@ -2,12 +2,11 @@
 
 # This script expects the following variables to be exported:
 # - DNA_BACKUP: the path to dna-backup binary
+# - DNA_PARAMS: the path of the files that desscribes the multiple parameters to test
 # - REPO_PATH: the path of the repo the experiment is based on
 # - GIT_PATH: the path of the repo git-dir
 # - MAX_VERSION: the max number for versions for the experiment
 # - COMMITS: the name of the file that contains the lists of versions
-# - DNA_4K: the path fo the dna-backup dir with 4K chunksize
-# - DNA_8K: the path fo the dna-backup dir with 8K chunksize
 # - DIFFS: the path of the git diff dir
 # - GIT_NOPACK: the path of the git nopack dir
 
@@ -67,13 +66,12 @@ do
 	> $(printf "%s.versions/%05d" $GIT_NOPACK $i)
 	set-git-dir $GIT_PATH
 
-	# Create 4k dna backup for this version
-	log "create 4k dna backup for this version"
-	$DNA_BACKUP commit -v 2 -c 4096 $REPO_PATH $DNA_4K
-
-	# Create 8k dna backup for this version
-	log "create 8k dna backup for this version"
-	$DNA_BACKUP commit -v 2 $REPO_PATH $DNA_8K
+	# Create dna backups for this version
+	cat $DNA_PARAMS | while read name flags
+	do
+		log "create $name backup for this version"
+		$DNA_BACKUP commit -v 2 $flags $REPO_PATH $name
+	done
 
 	if [[ $(( $i % 4 )) == 0 ]]
 	then
@@ -93,23 +91,18 @@ do
 		|| log "git patchs restore do not match source"
 		rm -rf $TEMP
 
-		# Check restore from 4k dna backup
-		log "restore from 4k dna backup"
-		TEMP=$(mktemp -d)
-		$DNA_BACKUP restore -v 2 -c 4096 $DNA_4K $TEMP
-		log "check restore from backup"
-		diff --brief --recursive $REPO_PATH $TEMP \
-		|| log "dna backup restore do not match source"
-		rm -rf $TEMP
 
-		# Check restore from 8k dna backup
-		log "restore from 8k dna backup"
-		TEMP=$(mktemp -d)
-		$DNA_BACKUP restore -v 2 $DNA_8K $TEMP
-		log "check restore from backup"
-		diff --brief --recursive $REPO_PATH $TEMP \
-		|| log "dna backup restore do not match source"
-		rm -rf $TEMP
+		# Check restore from dna backups
+		cat $DNA_PARAMS | while read name flags
+		do
+			log "restore from $name backup"
+			TEMP=$(mktemp -d)
+			$DNA_BACKUP restore -v 2 $flags $name $TEMP
+			log "check restore from backup"
+			diff --brief --recursive $REPO_PATH $TEMP \
+			|| log "dna backup restore do not match source"
+			rm -rf $TEMP
+		done
 	fi
 
 	prev=$hash
