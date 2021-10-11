@@ -53,10 +53,12 @@ $(DNADIRS:%=%.size) $(REAL).size: %.size: %.versions run
 		cut -f1 $$i | paste -sd+ | bc >> $@; \
 	done
 
-$(NOPACK).size: $(NOPACK).versions
+$(NOPACK).size: $(NOPACK).versions run
+	rm -rf $@
 	prev=/dev/null; for i in $</*; do \
 		diff -u0 $$prev $$i \
 		| sed -e '1,2d' -e '/^-/d' -e 's/^+//' -e '/^@@/d' \
+		| grep /objects/ \
 		| cut -f1 \
 		| paste -sd+ \
 		| bc \
@@ -82,7 +84,7 @@ $(NOPACK).size: $(NOPACK).versions
 	> $@
 
 run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | $(DATADIRS) $(NOPACK).versions $(REAL).versions
-	rm -rf $(DATADIRS:%=%/*)
+	rm -rf $(DATADIRS:%=%/*) $(DATADIRS:%=%.versions/*)
 	./exp.sh
 	touch $@
 
