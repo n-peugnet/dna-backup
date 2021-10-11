@@ -207,7 +207,7 @@ Lecture des metadonnées puis des chunks de cette version
 </td>
 <td>Lecture de la totalité du DNA-Drive</td>
 <td>
-Lecture récursive des différents objets composant la backup
+Lecture récursive des différents objets composant la version
 (répartis dans différents pools)
 </td>
 <td>Lecture de la zone correspondant à la dernière version</td>
