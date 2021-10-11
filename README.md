@@ -140,7 +140,7 @@ Pour cela, il faudrait en plus stocker en ADN un mapping _chunk_ décompressé �
 _pool_ contenant ce _chunk_ et ainsi n'avoir à lire que les _pools_ contenant
 des _chunks_ de ce fichier.
 
-### Évaluation de performances
+## Évaluation de performances
 
 Le dossier `exp` contient les scripts permettant de reproduire les expériences.
 Les scripts ne sont prévus pour fonctionner que sur Linux.
@@ -150,7 +150,7 @@ en effet d'une bonne simulation de modification de dossiers, car l'historique
 contient toutes les modifications qui ont été apportées petit à petit à
 l'ensemble des fichiers. 
 
-#### Bases de comparaison
+### Bases de comparaison
 
 Pour évaluer les performances du système dna-backup, trois autres systèmes de
 stockage versionnés ont été choisis comme base de comparaison :
@@ -159,15 +159,16 @@ stockage versionnés ont été choisis comme base de comparaison :
 - **git objects**
 - **taille réelle**
 
-##### Git diffs
+#### Git diffs
 
 
+#### Git objects
 
-##### Git objects
+
+#### Taille réelle
 
 
-##### Taille réelle
-
+#### Tableau récapitulatif
 
 <table>
 <tr>
@@ -213,9 +214,9 @@ Lecture récursive des différents objets composant la backup
 </tr>
 </table>
 
-#### Nombre d'octets par version
+### Nombre d'octets par version
 
-##### Légende
+#### Légende
 
 -   `dna_4K` : le système dna-backup avec des blocks de 4 Kio.
 -   `dna_8K` : le système dna-backup avec des blocks de 8 Kio.
@@ -225,7 +226,7 @@ Lecture récursive des différents objets composant la backup
 -   `real`   : le poid réel de chaque version et donc l'espace nécessaire à
     stocker l'ensemble des versions de manière non-dé-dupliquées.
 
-##### Résultats
+#### Résultats
 
 Daily commit:
 
