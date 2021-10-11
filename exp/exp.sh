@@ -8,6 +8,7 @@
 # - MAX_VERSION: the max number for versions for the experiment
 # - COMMITS: the name of the file that contains the lists of versions
 # - DIFFS: the path of the git diff dir
+# - REAL: the path of the real size dir
 # - GIT_NOPACK: the path of the git nopack dir
 
 log() {
@@ -26,14 +27,13 @@ rm $REPO_PATH/.git
 $GITC init --separate-git-dir=$GIT_NOPACK
 $GITC --git-dir=$GIT_NOPACK config gc.auto 0
 set-git-dir $GIT_PATH
-nopack_prev=0
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 last=$(tail --lines=1 $COMMITS | cut -f1)
 
 i=0
-cat $COMMITS | while read line
+head -n $MAX_VERSION $COMMITS | while read line
 do
 	# Get hash
 	hash=$(echo "$line" | cut -f1)
@@ -42,6 +42,10 @@ do
 	log "check out $hash"
 	$GITC checkout $hash 2> $OUT \
 	|| (log "error checking out"; cat $OUT; exit 1)
+
+	# Save real size for this version
+	log "save real size for this version"
+	du -b --summarize $REPO_PATH > $(printf "%s.versions/%05d" $REAL $i)
 
 	# Create git diff for this version
 	log "create git diff for this version"
@@ -57,15 +61,8 @@ do
 	$GITC commit -m $hash &> $OUT \
 	|| (log "error commiting to nopack"; cat $OUT; exit 1)
 	ls $GIT_NOPACK/objects/pack
-	nopack_curr=$(printf "%s.versions/%05d" $GIT_NOPACK $i)
 	find $GIT_NOPACK -type f -exec du -ba {} + \
-	| grep -v /logs/ \
-	| cut -f1 \
-	| paste -sd+ \
-	| xargs -i echo {} - $nopack_prev \
-	| bc \
-	> $nopack_curr
-	let nopack_prev+=$(cat $nopack_curr)
+	> $(printf "%s.versions/%05d" $GIT_NOPACK $i)
 	set-git-dir $GIT_PATH
 
 	# Create dna backups for this version
@@ -109,10 +106,6 @@ do
 
 	prev=$hash
 	let i++
-	if [[ $i == $MAX_VERSION ]]
-	then
-		break
-	fi
 done
 
 # cleanup
