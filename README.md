@@ -152,12 +152,13 @@ l'ensemble des fichiers.
 
 ### Bases de comparaison
 
-Pour évaluer les performances du système dna-backup, trois autres systèmes de
+Pour évaluer les performances du système DNA-Backup, trois autres systèmes de
 stockage versionnés ont été choisis comme base de comparaison :
 
-- **git diffs**
-- **git objects**
-- **taille réelle**
+- **Git diffs**
+- **Git objects**
+- **Targz**
+- **Taille réelle**
 
 #### Git diffs
 
@@ -186,12 +187,23 @@ l'ensemble des dossiers de la branche contenant ce fichier.
 C'est de cette manière que Git est capable de créer un système de fichiers
 modifiable à partir d'objets immuables.
 
+#### Targz
+
+Une technique d'archivage assez classique à laquelle il peut être intéressant de
+nous comparer est de stocker chaque version en tant qu'une nouvelle archive Tar
+elle-même compressée à l'aide de Gzip. Cette technique produit des archives
+d'une taille très réduite, car la compression est appliquée à l'ensemble des
+fichiers d'un seul coup, contrairement à une compression fichier par fichier.
+
+Elle a cependant l'inconvénient de ne pas faire de dé-duplication ni d'encodage
+delta, et ne tire donc pas du tout parti des données déjà écrites sur le support.
+
 #### Taille réelle
 
 Cette base de comparaison n'est en réalité pas un système viable. Elle
 correspond à la taille que prend en réalité le dossier _source_ au moment de la
 sauvegarde.
-Cet un indicateur qui permet de se rendre compte du poids que prendrait la
+C'est un indicateur qui permet de se rendre compte du poids que prendrait la
 sauvegarde de multiples versions sans aucune déduplication ou compression.
 
 #### Tableau récapitulatif
@@ -199,30 +211,34 @@ sauvegarde de multiples versions sans aucune déduplication ou compression.
 <table>
 <tr>
 <th>Feature\Système</th>
-<th>dna-backup</th>
-<th>git diffs</th>
-<th>git objects</th>
-<th>taille réelle</th>
+<th>DNA-Backup</th>
+<th>Git diffs</th>
+<th>Git objects</th>
+<th>Targz</th>
+<th>Taille réelle</th>
 </tr>
 <tr>
 <th>Déduplication</th>
-<td>Niveau chunk</td>
-<td>Niveau fichier (lors du renommage)</td>
-<td>Niveau fichier</td>
+<td><ul><li>Niveau chunk</li><li>Transversal aux versions</li></ul></td>
+<td>Aucune</td>
+<td><ul><li>Niveau fichier</li><li>Transversal aux versions</li></ul></td>
+<td>Aucune</td>
 <td>Aucune</td>
 </tr>
 <tr>
 <th>Encodage delta</th>
-<td>Niveau chunk</td>
-<td>D'une version à l'autre</td>
+<td><ul><li>Niveau chunk</li><li>Transversal aux versions</li></ul></td>
+<td><ul><li>Niveau version</li><li>Par rapport à la précédente</li></ul></td>
+<td>Aucun</td>
 <td>Aucun</td>
 <td>Aucun</td>
 </tr>
 <tr>
 <th>Compression</th>
-<td>Niveau chunk (pour le moment indépendamment)</td>
+<td>Niveau chunk</td>
 <td>Niveau version</td>
 <td>Niveau fichier</td>
+<td>Niveau version</td>
 <td>Aucune</td>
 </tr>
 <tr>
@@ -237,6 +253,7 @@ Lecture récursive des différents objets composant la version
 (répartis dans différents pools)
 </td>
 <td>Lecture de la zone correspondant à la dernière version</td>
+<td>Lecture de la zone correspondant à la dernière version</td>
 </tr>
 </table>
 
@@ -244,11 +261,12 @@ Lecture récursive des différents objets composant la version
 
 #### Légende
 
--   `dna_4K` : le système dna-backup avec des blocs de 4 Kio.
--   `dna_8K` : le système dna-backup avec des blocs de 8 Kio.
--   `diffs`  : des diffs git minimales gzippées.
--   `nopack` : le dossier `objects` de Git, contenant l'ensemble des données
+-   `dna_4K` : le système DNA-Backup avec des blocs de 4 Kio.
+-   `dna_8K` : le système DNA-Backup avec des blocs de 8 Kio.
+-   `diffs`  : une somme de diffs Git minimales Gzippées.
+-   `nopack` : le dossier `objects de Git, contenant l'ensemble des données
     des fichiers et dossiers d'un dépôt.
+-   `targz`  : une somme d'archives Tar Gzippées.
 -   `real`   : le poids réel de chaque version et donc l'espace nécessaire à
     stocker l'ensemble des versions de manière non-dé-dupliquées.
 
@@ -258,26 +276,26 @@ Commits journaliers :
 
 ```
 =============================== SUMMARY ===============================
-        dna_4k         dna_8k          diffs         nopack           real
-    66,403,731     60,453,345     47,304,239     63,594,887    202,628,603
-    21,779,553     24,378,156      9,902,241     43,580,981    214,273,512
-       339,032        230,797      9,905,079         35,489    202,628,471
-       650,649        778,139        252,846      4,717,317    202,453,713
-       174,127         91,398        253,535          3,432    202,628,093
-           561            485            552         45,292    202,628,344
-     2,987,849      2,736,896      9,911,248         72,885    214,276,336
-         4,768          4,696          1,175         26,967    214,278,164
-       347,636        247,112      9,912,728         76,073    202,636,078
-         7,641         10,974          3,307         56,203    202,639,214
-     2,914,343      2,716,445      9,911,148         41,606    214,283,553
-       347,449        257,531      9,910,361        139,913    202,641,133
-     2,923,844      2,746,697      9,912,341         69,243    214,285,297
-         1,330          7,476            214          9,792    214,285,426
-       404,258        242,004      9,914,620         13,702    202,641,398
-       415,937        359,261        266,905        130,934    202,455,083
-       207,470        291,050        142,110      1,976,823    202,272,761
+      dna_4k       dna_8k        diffs       nopack        targz           real
+  66,399,072   60,446,750   47,304,261   63,594,844   47,877,584    202,628,344
+  21,873,958   24,422,316    9,911,248   43,598,822   50,529,069    214,276,336
+       4,724        4,747        1,175       26,968   50,529,943    214,278,164
+     347,460      242,271    9,912,728       76,072   47,893,781    202,636,078
+     159,814       16,899        3,307       56,203   47,894,249    202,639,214
+   2,918,706    2,762,164    9,911,148       41,606   50,531,041    214,283,553
+     349,216      253,022    9,910,361      139,911   47,890,923    202,641,133
+   2,865,631    2,794,693    9,912,341       69,243   50,530,875    214,285,297
+     233,171        2,504          214        9,789   50,531,578    214,285,426
+     343,483      234,834    9,914,620       13,703   47,894,718    202,641,398
+     833,810      871,476      266,905    4,764,839   47,843,104    202,455,083
+     237,510      270,660      142,110    1,976,823   47,793,819    202,272,761
+     167,305       87,432       18,611        6,256   47,791,775    202,244,796
+         113          140          289        2,009   47,791,778    202,244,779
+   2,930,957    2,796,716   10,165,351       64,393   50,534,975    214,286,010
+      20,364       32,883        7,841       48,219   50,533,061    214,283,569
+     351,923      235,867    9,923,334      117,287   47,896,130    202,642,396
 ================================ TOTAL ================================
-    99,910,178     95,552,462    127,504,649    114,591,539  3,513,935,179 
+ 100,037,217   95,475,374  127,305,844  114,606,987  832,288,403  3,525,024,337 
 ```
 
 Commits hebdomadaires :

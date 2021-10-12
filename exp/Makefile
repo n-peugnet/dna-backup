@@ -13,6 +13,7 @@ DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
 export GIT_NOPACK  ?= $(abspath $(NOPACK))
+export TARGZ       ?= targz
 export REAL        ?= real
 export DIFFS       ?= diffs
 
@@ -25,21 +26,21 @@ GITC      := git -C $(REPO_PATH)
 SKIP_COMMITS ?= 30
 
 DNADIRS   := $(DNA_4K) $(DNA_8K)
-DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(REAL)
+DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
 
 .PHONY: all exp
 all exp: summary.csv $(SIZEFILES)
 	@echo "=============== SUMMARY ==============="
 	@head -n 1 $< | while IFS="," read -r $(DATADIRS); do \
-		printf "$(DATADIRS:%=\%14s)\n" $(DATADIRS:%=$$%); \
+		printf "$(DATADIRS:%=\%13s)\n" $(DATADIRS:%=$$%); \
 	done
 	@tail -n +2 $< | while IFS="," read -r $(DATADIRS); do \
-		printf "$(DATADIRS:%=\%'14d)\n" $(DATADIRS:%=$$%); \
+		printf "$(DATADIRS:%=\%'13d)\n" $(DATADIRS:%=$$%); \
 	done
 	@echo "================ TOTAL ================"
 	@for i in $(SIZEFILES); do cat $$i | paste -sd+ | bc; done | while read j; do \
-		printf "%'14d " $$j; \
+		printf "%'13d " $$j; \
 	done
 	@echo
 
@@ -83,10 +84,16 @@ $(NOPACK).size: $(NOPACK).versions run
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | $(DATADIRS) $(NOPACK).versions $(REAL).versions
+run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | printvars $(DATADIRS) $(NOPACK).versions $(REAL).versions
 	rm -rf $(DATADIRS:%=%/*) $(DATADIRS:%=%.versions/*)
 	./exp.sh
 	touch $@
+
+.PHONY: printvars
+printvars:
+	@$(foreach V,$(sort $(.VARIABLES)),\
+		$(if $(filter-out environment% default automatic,$(origin $V)),\
+		$(info $V=$($V))))
 
 $(DNA_PARAMS):
 	echo "$(DNA_4K)	-c 4096" >> $@

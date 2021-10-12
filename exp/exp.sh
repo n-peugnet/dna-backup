@@ -7,6 +7,7 @@
 # - GIT_PATH: the path of the repo git-dir
 # - MAX_VERSION: the max number for versions for the experiment
 # - COMMITS: the name of the file that contains the lists of versions
+# - TARGZ: the path of the tar.gz dir
 # - DIFFS: the path of the git diff dir
 # - REAL: the path of the real size dir
 # - GIT_NOPACK: the path of the git nopack dir
@@ -46,6 +47,10 @@ do
 	# Save real size for this version
 	log "save real size for this version"
 	du -b --summarize $REPO_PATH > $(printf "%s.versions/%05d" $REAL $i)
+
+	# Create tar.gz for this version
+	log "create targ.gz for this version"
+	tar -czf $(printf "%s/%05d.tar.gz" $TARGZ $i) $REPO_PATH
 
 	# Create git diff for this version
 	log "create git diff for this version"
