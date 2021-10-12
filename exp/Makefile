@@ -1,6 +1,13 @@
-REPO_URL  := https://club1.fr/~nicolas/git/dna-backup/
-
 SHELL := /bin/bash
+
+################# Principal parameters #################
+
+REPO_URL     ?= https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+REPO_BRANCH  ?= master
+RANGE        ?= daily
+# Number of initial commits to skip. This option has been added for the
+# Linux kernel repo, as the first commits are too far away date wise.
+SKIP_COMMITS ?= 0
 
 # Reset LC_NUMERIC to make printf thousands separator work as expected
 export LC_NUMERIC  :=
@@ -8,7 +15,7 @@ export LC_NUMERIC  :=
 export DNA_BACKUP  ?= ../dna-backup
 export DNA_PARAMS  ?= dna_params
 export MAX_VERSION ?= 5
-export COMMITS     ?= commits.daily
+export COMMITS     ?= commits.$(RANGE)
 DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
@@ -20,10 +27,6 @@ export DIFFS       ?= diffs
 export REPO_PATH   ?= repo
 export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
-
-# Number of initial commits to skip. This option has been added for the
-# Linux kernel repo, as the first commits are too far away date wise.
-SKIP_COMMITS ?= 30
 
 DNADIRS   := $(DNA_4K) $(DNA_8K)
 DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(TARGZ) $(REAL)
@@ -65,7 +68,7 @@ $(NOPACK).size: $(NOPACK).versions run
 		| bc \
 		>> $@; \
 		prev=$$i; \
-        done
+	done
 
 %.size: % run
 	find $< -type f -exec du -ba {} + | sort -k2 | cut -f1 > $@
@@ -105,16 +108,21 @@ $(DATADIRS) $(NOPACK).versions $(REAL).versions:
 $(DNA_BACKUP): .FORCE
 	@$(MAKE) -C $(@D) --no-print-directory $(@F)
 
+.INTERMEDIATE: commits.monthly
 commits.monthly: commits.daily
 	sed -n '0~30p' $< > $@
 
+.INTERMEDIATE: commits.weekly
 commits.weekly: commits.daily
 	sed -n '0~7p' $< > $@
 
-commits.daily: | repo git
-	$(GITC) log --reverse --no-merges --pretty=tformat:"%H	%as" \
+.INTERMEDIATE: commits.daily
+commits.daily: commits
+	tail -n +$(SKIP_COMMITS) $< > $@
+
+commits: | repo git
+	$(GITC) log $(REPO_BRANCH) --reverse --date-order --first-parent --pretty=tformat:"%H	%as" \
 	| sort --unique --key=2 \
-	| tail -n +$(SKIP_COMMITS) \
 	> $@
 
 repo git &:
@@ -125,11 +133,11 @@ repo git &:
 .PHONY: clean
 clean: mostlyclean
 	rm -rf $(REPO_PATH) $(GIT_PATH)
-	rm -f commits.*
+	rm -f commits
 
 mostlyclean: resultsclean
 	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
-	rm -f run $(DATADIRS:%=%.results) $(DNA_PARAMS)
+	rm -f run $(DATADIRS:%=%.results) $(DNA_PARAMS) commits.*
 
 resultsclean:
 	rm -f summary.csv $(SIZEFILES)

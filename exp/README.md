@@ -4,7 +4,7 @@
 
 ```bash
 # run experiences
-make [SKIP_COMMITS=<count>] [MAX_VERSION=<count>] [COMMITS=<file>]
+make [SKIP_COMMITS=<count>] [MAX_VERSION=<count>] [RANGE=<range>]
 
 # clean results
 make mostlyclean
@@ -13,12 +13,13 @@ make mostlyclean
 make clean
 ```
 
-Les 3 fichiers de commits suivants peuvent être automatiquement générés :
+`<range>` can be one of these: 
+- `daily`
+- `weekly`
+- `monthly`
 
-- `commits.daily`
-- `commits.weekly`
-- `commits.monthly`
+By default:
 
-Par défaut les 30 premiers commits journaliers sont skippés, le nombre
-max de version utilisés pour l'expérience est 5 et le fichier
-`commits.daily` est utiliser comme source de commits.
+- `SKIP_COMMITS` = 0
+- `MAX_VERSION` = 5
+- `RANGE` = daily
