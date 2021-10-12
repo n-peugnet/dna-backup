@@ -118,7 +118,7 @@ repo git &:
 .PHONY: clean
 clean: mostlyclean
 	rm -rf $(REPO_PATH) $(GIT_PATH)
-	rm -f $(COMMITS)
+	rm -f commits.*
 
 mostlyclean: resultsclean
 	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
