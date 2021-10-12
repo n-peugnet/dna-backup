@@ -145,7 +145,7 @@ des _chunks_ de ce fichier.
 Le dossier `exp` contient les scripts permettant de reproduire les expériences.
 Les scripts ne sont prévus pour fonctionner que sur Linux.
 
-On utilise le dépôt git du kernel Linux comme base de donnée de test. Il s'agit
+On utilise le dépôt Git du noyau Linux comme base de donnée de test. Il s'agit
 en effet d'une bonne simulation de modification de dossiers, car l'historique
 contient toutes les modifications qui ont été apportées petit à petit à
 l'ensemble des fichiers. 
@@ -161,12 +161,38 @@ stockage versionnés ont été choisis comme base de comparaison :
 
 #### Git diffs
 
+Ce système utilise le delta généré par la commande `git diff` pour sauvegarder
+une nouvelle version. Les données à stocker consistent donc en une somme de
+deltas. Pour restaurer les données, il faut appliquer séquentiellement
+l'ensemble des deltas jusqu'à obtenir l'état de la version voulue.
 
 #### Git objects
 
+Ce système nous permet de simuler un système de fichier qui ne serait pas
+autorisé à modifier des données sur le support tout en gardant la possibilité de
+modifier les données.
+Il s'agit de la manière dont Git sauvegarde les données des fichiers d'un dépôt.
+Le contenu de chaque fichier et de chaque dossier est hashé afin d'en obtenir
+une signature. Il est ensuite compressé et stocké sous la forme d'_object_
+immuable, référencé par la signature obtenue.
+Si un fichier est modifié, il produira une signature différente et sera donc
+stocké sous la forme d'un nouvel _object_.
+Par contre, si deux fichiers ont un contenu strictement identique, ils produiront
+alors la même signature et seront donc automatiquement dé-dupliqués.
+Les dossiers sont également stockés en tant qu'_objects_, mais les fichiers
+qu'ils contiennent sont référencés non pas par leur nom, mais par leur signature.
+La modification d'un fichier entrainera donc l'ajout de nouveaux _objects_ pour
+l'ensemble des dossiers de la branche contenant ce fichier.
+C'est de cette manière que Git est capable de créer un système de fichiers
+modifiable à partir d'objets immuables.
 
 #### Taille réelle
 
+Cette base de comparaison n'est en réalité pas un système viable. Elle
+correspond à la taille que prend en réalité le dossier _source_ au moment de la
+sauvegarde.
+Cet un indicateur qui permet de se rendre compte du poids que prendrait la
+sauvegarde de multiples versions sans aucune déduplication ou compression.
 
 #### Tableau récapitulatif
 
@@ -218,17 +244,17 @@ Lecture récursive des différents objets composant la version
 
 #### Légende
 
--   `dna_4K` : le système dna-backup avec des blocks de 4 Kio.
--   `dna_8K` : le système dna-backup avec des blocks de 8 Kio.
+-   `dna_4K` : le système dna-backup avec des blocs de 4 Kio.
+-   `dna_8K` : le système dna-backup avec des blocs de 8 Kio.
 -   `diffs`  : des diffs git minimales gzippées.
--   `nopack` : le dossier `objects` de git, contenant l'ensemble des données
+-   `nopack` : le dossier `objects` de Git, contenant l'ensemble des données
     des fichiers et dossiers d'un dépôt.
--   `real`   : le poid réel de chaque version et donc l'espace nécessaire à
+-   `real`   : le poids réel de chaque version et donc l'espace nécessaire à
     stocker l'ensemble des versions de manière non-dé-dupliquées.
 
 #### Résultats
 
-Daily commit:
+Commits journaliers :
 
 ```
 =============================== SUMMARY ===============================
@@ -254,7 +280,7 @@ Daily commit:
     99,910,178     95,552,462    127,504,649    114,591,539  3,513,935,179 
 ```
 
-Weekly commit:
+Commits hebdomadaires :
 
 ```
 =============================== SUMMARY ===============================
@@ -280,7 +306,7 @@ Weekly commit:
     93,905,224     91,292,820     64,501,619    130,380,169  3,476,932,493 
 ```
 
-Monthly commits:
+Commits mensuels :
 
 ```
 =============================== SUMMARY ===============================
