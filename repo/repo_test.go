@@ -189,8 +189,7 @@ func TestReadFiles3(t *testing.T) {
 
 func TestSymlinks(t *testing.T) {
 	var output bytes.Buffer
-	multi := io.MultiWriter(&output, os.Stderr)
-	logger.SetOutput(multi)
+	logger.SetOutput(&output)
 	defer logger.SetOutput(os.Stderr)
 	tmpDir, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
@@ -251,8 +250,8 @@ func TestLoadChunks(t *testing.T) {
 	go repo.chunkStream(reader1, chunks1)
 	go repo.chunkStream(reader2, chunks2)
 	storeChunks(resultChunks, chunks1)
-	versions := []string{resultVersion}
-	go repo.loadChunks(versions, chunks3)
+	repo.versions = []string{resultVersion}
+	go repo.LoadChunks(chunks3)
 
 	i := 0
 	for c2 := range chunks2 {
@@ -312,12 +311,12 @@ func TestBsdiff(t *testing.T) {
 
 	// Load previously stored chunks
 	oldChunks := make(chan IdentifiedChunk, 16)
-	versions := repo.loadVersions()
-	go repo.loadChunks(versions, oldChunks)
+	repo.loadVersions()
+	go repo.LoadChunks(oldChunks)
 	repo.hashChunks(oldChunks)
 
 	// Read new data
-	newVersion := len(versions)
+	newVersion := len(repo.versions)
 	newPath := filepath.Join(repo.path, fmt.Sprintf(versionFmt, newVersion))
 	os.MkdirAll(newPath, 0775)
 	reader := getDataStream(dataDir, concatFiles)
@@ -396,7 +395,8 @@ func TestHashes(t *testing.T) {
 	repo1 := NewRepo(source, 8<<10)
 	repo1.chunkReadWrapper = utils.ZlibReader
 	repo1.chunkWriteWrapper = utils.ZlibWriter
-	go repo1.loadChunks([]string{filepath.Join(source, "00000")}, chunks)
+	repo1.versions = []string{filepath.Join(source, "00000")}
+	go repo1.LoadChunks(chunks)
 	for c := range chunks {
 		fp, sk := repo1.hashChunk(c.GetId(), c.Reader())
 		content, err := io.ReadAll(c.Reader())
@@ -418,7 +418,10 @@ func TestHashes(t *testing.T) {
 	<-storeEnd
 	testutils.AssertLen(t, 0, repo2.fingerprints, "Fingerprints")
 	testutils.AssertLen(t, 0, repo2.sketches, "Sketches")
-	repo2.loadHashes([]string{filepath.Join(dest, "00000")})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go repo2.loadHashes([]string{filepath.Join(dest, "00000")}, &wg)
+	wg.Wait()
 	testutils.AssertSame(t, repo1.fingerprints, repo2.fingerprints, "Fingerprint maps")
 	testutils.AssertSame(t, repo1.sketches, repo2.sketches, "Sketches maps")
 }
