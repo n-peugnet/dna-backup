@@ -15,6 +15,7 @@ export LC_NUMERIC  :=
 export DNA_BACKUP  ?= ../dna-backup
 export DNA_PARAMS  ?= dna_params
 export MAX_VERSION ?= 5
+export SKIP_CHECK  ?= 4
 export COMMITS     ?= commits.$(RANGE)
 DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k

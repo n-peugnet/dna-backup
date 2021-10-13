@@ -6,6 +6,7 @@
 # - REPO_PATH: the path of the repo the experiment is based on
 # - GIT_PATH: the path of the repo git-dir
 # - MAX_VERSION: the max number for versions for the experiment
+# - SKIP_CHECK: the number of versions to skip checking
 # - COMMITS: the name of the file that contains the lists of versions
 # - TARGZ: the path of the tar.gz dir
 # - DIFFS: the path of the git diff dir
@@ -77,7 +78,7 @@ do
 		$DNA_BACKUP commit -v 2 $flags $REPO_PATH $name
 	done
 
-	if [[ $(( $i % 4 )) == 0 ]]
+	if [[ $(( $i % $SKIP_CHECK )) == 0 ]]
 	then
 		# Check restore from git diffs
 		log "restore from git diffs"

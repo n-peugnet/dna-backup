@@ -4,7 +4,7 @@
 
 ```bash
 # run experiences
-make [SKIP_COMMITS=<count>] [MAX_VERSION=<count>] [RANGE=<range>]
+make [SKIP_COMMITS=<count>] [SKIP_CHECK=<count>] [MAX_VERSION=<count>] [RANGE=<range>]
 
 # clean results
 make mostlyclean
@@ -21,5 +21,6 @@ make clean
 By default:
 
 - `SKIP_COMMITS` = 0
+- `SKIP_CHECK` = 4
 - `MAX_VERSION` = 5
 - `RANGE` = daily
