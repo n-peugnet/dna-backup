@@ -387,15 +387,15 @@ func TestRoundtrip(t *testing.T) {
 
 func TestHashes(t *testing.T) {
 	dest := t.TempDir()
-	source := filepath.Join("testdata", "repo_8k")
+	source := filepath.Join("testdata", "repo_8k_zlib")
 
 	chunks := make(chan IdentifiedChunk, 16)
 	storeQueue := make(chan chunkData, 16)
 	storeEnd := make(chan bool)
 
 	repo1 := NewRepo(source, 8<<10)
-	repo1.chunkReadWrapper = utils.NopReadWrapper
-	repo1.chunkWriteWrapper = utils.NopWriteWrapper
+	repo1.chunkReadWrapper = utils.ZlibReader
+	repo1.chunkWriteWrapper = utils.ZlibWriter
 	go repo1.loadChunks([]string{filepath.Join(source, "00000")}, chunks)
 	for c := range chunks {
 		fp, sk := repo1.hashChunk(c.GetId(), c.Reader())
