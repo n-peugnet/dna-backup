@@ -337,14 +337,7 @@ func storeDelta(prevRaw []byte, curr interface{}, dest string, differ delta.Diff
 	var encoder *gob.Encoder
 	var err error
 
-	if len(prevRaw) == 0 {
-		encoder = gob.NewEncoder(&prevBuff)
-		if err = encoder.EncodeValue(reflect.ValueOf(curr)); err != nil {
-			logger.Panic(err)
-		}
-	} else {
-		prevBuff = *bytes.NewBuffer(prevRaw)
-	}
+	prevBuff = *bytes.NewBuffer(prevRaw)
 	encoder = gob.NewEncoder(&currBuff)
 	if err = encoder.Encode(curr); err != nil {
 		logger.Panic(err)
@@ -366,15 +359,9 @@ func storeDelta(prevRaw []byte, curr interface{}, dest string, differ delta.Diff
 	}
 }
 
-func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) []byte {
+func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) (ret []byte) {
 	var prev bytes.Buffer
-	var encoder *gob.Encoder
 	var err error
-
-	encoder = gob.NewEncoder(&prev)
-	if err = encoder.Encode(target); err != nil {
-		logger.Panic(err)
-	}
 
 	for _, v := range versions {
 		var curr bytes.Buffer
@@ -398,12 +385,15 @@ func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wr
 			logger.Panic(err)
 		}
 	}
-	ret := prev.Bytes()
+	ret = prev.Bytes()
+	if len(ret) == 0 {
+		return
+	}
 	decoder := gob.NewDecoder(&prev)
 	if err = decoder.Decode(target); err != nil {
 		logger.Panic(err)
 	}
-	return ret
+	return
 }
 
 // storeFileList stores the given list in the repo dir as a delta against the
