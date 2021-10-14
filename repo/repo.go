@@ -380,31 +380,36 @@ func storeDelta(prevRaw []byte, curr interface{}, dest string, differ delta.Diff
 	}
 }
 
+func readDelta(version string, name string, wrapper utils.ReadWrapper, callback func(io.ReadCloser)) {
+	path := filepath.Join(version, name)
+	file, err := os.Open(path)
+	if err != nil {
+		logger.Panic(err)
+	}
+	in, err := wrapper(file)
+	if err != nil {
+		logger.Panic(err)
+	}
+	callback(in)
+	if err = in.Close(); err != nil {
+		logger.Panic(err)
+	}
+	if err = file.Close(); err != nil {
+		logger.Panic(err)
+	}
+}
+
 func loadDeltas(target interface{}, versions []string, patcher delta.Patcher, wrapper utils.ReadWrapper, name string) (ret []byte) {
 	var prev bytes.Buffer
 	var err error
-
 	for _, v := range versions {
-		var curr bytes.Buffer
-		path := filepath.Join(v, name)
-		file, err := os.Open(path)
-		if err != nil {
-			logger.Panic(err)
-		}
-		in, err := wrapper(file)
-		if err != nil {
-			logger.Panic(err)
-		}
-		if err = patcher.Patch(&prev, &curr, in); err != nil {
-			logger.Panic(err)
-		}
-		prev = curr
-		if err = in.Close(); err != nil {
-			logger.Panic(err)
-		}
-		if err = file.Close(); err != nil {
-			logger.Panic(err)
-		}
+		readDelta(v, name, wrapper, func(in io.ReadCloser) {
+			var curr bytes.Buffer
+			if err = patcher.Patch(&prev, &curr, in); err != nil {
+				logger.Panic(err)
+			}
+			prev = curr
+		})
 	}
 	ret = prev.Bytes()
 	if len(ret) == 0 {
@@ -505,8 +510,9 @@ func (r *Repo) LoadChunkContent(id *ChunkId) *bytes.Reader {
 }
 
 // TODO: use atoi for chunkid ?
-func (r *Repo) LoadChunks(chunks chan<- IdentifiedChunk) {
-	for i, v := range r.versions {
+func (r *Repo) loadChunks(versions []string) (chunks [][]IdentifiedChunk) {
+	for i, v := range versions {
+		vc := make([]IdentifiedChunk, 0)
 		p := filepath.Join(v, chunksName)
 		entries, err := os.ReadDir(p)
 		if err != nil {
@@ -518,10 +524,11 @@ func (r *Repo) LoadChunks(chunks chan<- IdentifiedChunk) {
 			}
 			id := &ChunkId{Ver: i, Idx: uint64(j)}
 			c := NewStoredChunk(r, id)
-			chunks <- c
+			vc = append(vc, c)
 		}
+		chunks = append(chunks, vc)
 	}
-	close(chunks)
+	return chunks
 }
 
 // loadHashes loads and aggregates the hashes stored for each given version and

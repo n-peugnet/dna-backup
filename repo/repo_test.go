@@ -135,8 +135,8 @@ func storeChunks(dest string, chunks <-chan []byte) {
 // For each chunk, both a fingerprint (hash over the full content) and a sketch
 // (resemblance hash based on maximal values of regions) are calculated and
 // stored in an hashmap.
-func (r *Repo) hashChunks(chunks <-chan IdentifiedChunk) {
-	for c := range chunks {
+func (r *Repo) hashChunks(chunks []IdentifiedChunk) {
+	for _, c := range chunks {
 		r.hashChunk(c.GetId(), c.Reader())
 	}
 }
@@ -260,7 +260,6 @@ func TestLoadChunks(t *testing.T) {
 	reader2, writer2 := io.Pipe()
 	chunks1 := make(chan []byte, 16)
 	chunks2 := make(chan []byte, 16)
-	chunks3 := make(chan IdentifiedChunk, 16)
 	files := listFiles(dataDir)
 	go concatFiles(&files, writer1)
 	go concatFiles(&files, writer2)
@@ -268,11 +267,11 @@ func TestLoadChunks(t *testing.T) {
 	go repo.chunkStream(reader2, chunks2)
 	storeChunks(resultChunks, chunks1)
 	repo.versions = []string{resultVersion}
-	go repo.LoadChunks(chunks3)
+	chunks3 := repo.loadChunks(repo.versions)
 
 	i := 0
 	for c2 := range chunks2 {
-		c3 := <-chunks3
+		c3 := chunks3[0][i]
 		buff, err := io.ReadAll(c3.Reader())
 		if err != nil {
 			t.Errorf("Error reading from chunk %d: %s\n", c3, err)
@@ -285,7 +284,6 @@ func TestLoadChunks(t *testing.T) {
 		i++
 	}
 }
-
 func prepareChunks(dataDir string, repo *Repo, streamFunc func(*[]File, io.WriteCloser)) {
 	resultVersion := filepath.Join(repo.path, "00000")
 	resultChunks := filepath.Join(resultVersion, chunksName)
@@ -327,10 +325,8 @@ func TestBsdiff(t *testing.T) {
 	repo.chunkWriteWrapper = utils.NopWriteWrapper
 
 	// Load previously stored chunks
-	oldChunks := make(chan IdentifiedChunk, 16)
 	repo.loadVersions()
-	go repo.LoadChunks(oldChunks)
-	repo.hashChunks(oldChunks)
+	repo.hashChunks(repo.loadChunks(repo.versions)[0])
 
 	// Read new data
 	newVersion := len(repo.versions)
@@ -405,7 +401,6 @@ func TestHashes(t *testing.T) {
 	dest := t.TempDir()
 	source := filepath.Join("testdata", "repo_8k_zlib")
 
-	chunks := make(chan IdentifiedChunk, 16)
 	storeQueue := make(chan chunkData, 16)
 	storeEnd := make(chan bool)
 
@@ -413,8 +408,8 @@ func TestHashes(t *testing.T) {
 	repo1.chunkReadWrapper = utils.ZlibReader
 	repo1.chunkWriteWrapper = utils.ZlibWriter
 	repo1.versions = []string{filepath.Join(source, "00000")}
-	go repo1.LoadChunks(chunks)
-	for c := range chunks {
+	chunks := repo1.loadChunks(repo1.versions)
+	for _, c := range chunks[0] {
 		fp, sk := repo1.hashChunk(c.GetId(), c.Reader())
 		content, err := io.ReadAll(c.Reader())
 		if err != nil {

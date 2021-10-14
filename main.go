@@ -42,19 +42,25 @@ var (
 	logLevel  int
 	chunkSize int
 	format    string
+	trackSize int
 )
 
-var commit = command{flag.NewFlagSet("commit", flag.ExitOnError), commitMain,
+var Commit = command{flag.NewFlagSet("commit", flag.ExitOnError), commitMain,
 	"[<options>] [--] <source> <dest>",
 	"Create a new version of folder <source> into repo <dest>",
 }
-var restore = command{flag.NewFlagSet("restore", flag.ExitOnError), restoreMain,
+var Restore = command{flag.NewFlagSet("restore", flag.ExitOnError), restoreMain,
 	"[<options>] [--] <source> <dest>",
 	"Restore the last version from repo <source> into folder <dest>",
 }
+var Export = command{flag.NewFlagSet("export", flag.ExitOnError), exportMain,
+	"[<options>] [--] <source> <dest>",
+	"Export versions from repo <source> into folder <dest>",
+}
 var subcommands = map[string]command{
-	commit.Flag.Name():  commit,
-	restore.Flag.Name(): restore,
+	Commit.Flag.Name():  Commit,
+	Restore.Flag.Name(): Restore,
+	Export.Flag.Name():  Export,
 }
 
 func init() {
@@ -71,6 +77,8 @@ func init() {
 		s.Flag.IntVar(&logLevel, "v", 3, "log verbosity level (0-4)")
 		s.Flag.IntVar(&chunkSize, "c", 8<<10, "chunk size")
 	}
+	Export.Flag.StringVar(&format, "format", "dir", "format of the export (dir, csv)")
+	Export.Flag.IntVar(&trackSize, "track", 1020, "size of a DNA track")
 }
 
 func main() {
@@ -104,8 +112,8 @@ func commitMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := repo.NewRepo(dest, chunkSize)
-	repo.Commit(source)
+	r := repo.NewRepo(dest, chunkSize)
+	r.Commit(source)
 	return nil
 }
 
@@ -115,7 +123,25 @@ func restoreMain(args []string) error {
 	}
 	source := args[0]
 	dest := args[1]
-	repo := repo.NewRepo(source, chunkSize)
-	repo.Restore(dest)
+	r := repo.NewRepo(source, chunkSize)
+	r.Restore(dest)
+	return nil
+}
+
+func exportMain(args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("wrong number args")
+	}
+	source := args[0]
+	dest := args[1]
+	r := repo.NewRepo(source, chunkSize)
+	switch format {
+	case "dir":
+		r.ExportDir(dest, trackSize)
+	case "csv":
+		fmt.Println("csv")
+	default:
+		logger.Errorf("unknown format %s", format)
+	}
 	return nil
 }

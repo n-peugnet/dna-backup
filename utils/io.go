@@ -54,3 +54,22 @@ func NopReadWrapper(r io.Reader) (io.ReadCloser, error) {
 func NopWriteWrapper(w io.Writer) io.WriteCloser {
 	return NopCloser(w)
 }
+
+type WriteCounter struct {
+	w     io.Writer
+	count int
+}
+
+func NewWriteCounter(writer io.Writer) *WriteCounter {
+	return &WriteCounter{w: writer}
+}
+
+func (c *WriteCounter) Write(p []byte) (n int, err error) {
+	n, err = c.w.Write(p)
+	c.count += n
+	return
+}
+
+func (c *WriteCounter) Count() int {
+	return c.count
+}
