@@ -1,3 +1,20 @@
+/* Copyright (C) 2021 Nicolas Peugnet <n.peugnet@free.fr>
+
+   This file is part of dna-backup.
+
+   dna-backup is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   dna-backup is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with dna-backup.  If not, see <https://www.gnu.org/licenses/>. */
+
 package logger
 
 import (
@@ -119,7 +136,7 @@ func TestFlags(t *testing.T) {
 	if !strings.Contains(s, "info 1") {
 		t.Errorf("log output %q should contain: info 1", s)
 	}
-	path := "logger/logger_test.go:117"
+	path := "logger/logger_test.go:134"
 	if !strings.Contains(s, path) {
 		t.Errorf("log output %q should contain: %s", s, path)
 	}
