@@ -218,28 +218,37 @@ sauvegarde de multiples versions sans aucune déduplication ou compression.
 <th>Taille réelle</th>
 </tr>
 <tr>
-<th>Déduplication</th>
-<td><ul><li>Niveau chunk</li><li>Transversal aux versions</li></ul></td>
-<td>Aucune</td>
-<td><ul><li>Niveau fichier</li><li>Transversal aux versions</li></ul></td>
-<td>Aucune</td>
-<td>Aucune</td>
+<th rowspan="2">Déduplication</th>
+<td>Niveau chunk</td>
+<td rowspan="2">❌</td>
+<td>Niveau fichier</td>
+<td rowspan="2">❌</td>
+<td rowspan="2">❌</td>
 </tr>
 <tr>
-<th>Encodage delta</th>
-<td><ul><li>Niveau chunk</li><li>Transversal aux versions</li></ul></td>
-<td><ul><li>Niveau version</li><li>Par rapport à la précédente</li></ul></td>
-<td>Aucun</td>
-<td>Aucun</td>
-<td>Aucun</td>
+<td>Transversal aux versions</td>
+<td>Transversal aux versions</td>
 </tr>
+<tr>
+<th rowspan="2">Encodage delta</th>
+<td>Niveau chunk</td>
+<td>Niveau version</td>
+<td rowspan="2">❌</td>
+<td rowspan="2">❌</td>
+<td rowspan="2">❌</td>
+</tr>
+<tr>
+<td>Transversal aux versions</td>
+<td>Par rapport à la précédente</td>
+</tr>
+
 <tr>
 <th>Compression</th>
 <td>Niveau chunk</td>
 <td>Niveau version</td>
 <td>Niveau fichier</td>
 <td>Niveau version</td>
-<td>Aucune</td>
+<td>❌</td>
 </tr>
 <tr>
 <th>Restauration de la dernière version</th>
