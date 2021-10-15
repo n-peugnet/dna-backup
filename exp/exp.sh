@@ -28,6 +28,7 @@
 # - TARGZ: the path of the tar.gz dir
 # - DIFFS: the path of the git diff dir
 # - REAL: the path of the real size dir
+# - BORG: the path to borg dir
 # - GIT_NOPACK: the path of the git nopack dir
 
 log() {
@@ -46,6 +47,9 @@ rm $REPO_PATH/.git
 $GITC init --separate-git-dir=$GIT_NOPACK
 $GITC --git-dir=$GIT_NOPACK config gc.auto 0
 set-git-dir $GIT_PATH
+
+# Init borg dir
+borg init -e none $BORG
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -87,6 +91,15 @@ do
 	find $GIT_NOPACK -type f -exec du -ba {} + \
 	> $(printf "%s.versions/%05d" $GIT_NOPACK $i)
 	set-git-dir $GIT_PATH
+
+	# Create borg backup for this versions
+	log "create borg backup for this versions"
+	borg create $BORG::$i $REPO_PATH
+	find $BORG/data -type f -exec du -ba {} + \
+	| cut -f1 \
+	| paste -sd+ \
+	| bc \
+	> $(printf "%s.versions/%05d" $BORG $i)
 
 	# Create dna backups for this version
 	cat $DNA_PARAMS | while read name flags

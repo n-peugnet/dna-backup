@@ -38,6 +38,7 @@ DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
 export GIT_NOPACK  ?= $(abspath $(NOPACK))
+export BORG        ?= borg
 export TARGZ       ?= targz
 export REAL        ?= real
 export DIFFS       ?= diffs
@@ -47,7 +48,7 @@ export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
 
 DNADIRS   := $(DNA_4K) $(DNA_8K)
-DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(TARGZ) $(REAL)
+DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
 
 .PHONY: all exp
@@ -73,6 +74,15 @@ $(DNADIRS:%=%.size) $(REAL).size: %.size: %.versions run
 	rm -rf $@
 	for i in $</*; do \
 		cut -f1 $$i | paste -sd+ | bc >> $@; \
+	done
+
+$(BORG).size: $(BORG).versions run
+	rm -rf $@
+	prev=0; for i in $</*; do \
+		last=`cut -f1 $$i`; \
+		let curr=$$last-$$prev; \
+		echo $$curr >> $@; \
+		prev=$$last; \
 	done
 
 $(NOPACK).size: $(NOPACK).versions run
@@ -105,7 +115,7 @@ $(NOPACK).size: $(NOPACK).versions run
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | printvars $(DATADIRS) $(NOPACK).versions $(REAL).versions
+run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | printvars $(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions
 	rm -rf $(DATADIRS:%=%/*) $(DATADIRS:%=%.versions/*)
 	./exp.sh
 	touch $@
@@ -120,7 +130,7 @@ $(DNA_PARAMS):
 	echo "$(DNA_4K)	-c 4096" >> $@
 	echo "$(DNA_8K)	-c 8192" >> $@
 
-$(DATADIRS) $(NOPACK).versions $(REAL).versions:
+$(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions:
 	mkdir $@
 
 $(DNA_BACKUP): .FORCE
