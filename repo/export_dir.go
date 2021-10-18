@@ -18,9 +18,6 @@
 package repo
 
 import (
-	"bytes"
-	"compress/zlib"
-	"encoding/binary"
 	"io"
 
 	"github.com/n-peugnet/dna-backup/dna"
@@ -28,61 +25,36 @@ import (
 	"github.com/n-peugnet/dna-backup/utils"
 )
 
-type Version struct {
-	Chunks uint64
-	Recipe uint64
-	Files  uint64
-}
-
 func (r *Repo) ExportDir(dest string, trackSize int) {
 	r.Init()
-	versions := make([]Version, len(r.versions))
+	exporter := dna.New(dest, 96, trackSize, 10000, utils.ZlibWriter, utils.ZlibReader)
 	chunks := r.loadChunks(r.versions)
-	for i := range versions {
-		var count int64
-		var content bytes.Buffer // replace with a reader capable of switching files
-		var recipe, fileList []byte
+	for i := range r.versions {
 		var err error
-		tracker := dna.NewWriter(&content, trackSize)
-		counter := utils.NewWriteCounter(tracker)
-		compressor := zlib.NewWriter(counter)
-		for _, c := range chunks[i] {
-			n, err := io.Copy(compressor, c.Reader())
-			if err != nil {
-				logger.Error(err)
+		input, end := exporter.VersionInput()
+		if len(chunks[i]) > 0 {
+			for _, c := range chunks[i] {
+				_, err := io.Copy(input.Chunks, c.Reader())
+				if err != nil {
+					logger.Error(err)
+				}
 			}
-			count += n
+			input.Chunks.Close()
 		}
-		compressor.Close()
-		tracker.Close()
-		readDelta(r.versions[i], recipeName, utils.NopReadWrapper, func(rc io.ReadCloser) {
-			recipe, err = io.ReadAll(rc)
+		readDelta(r.versions[i], recipeName, r.chunkReadWrapper, func(rc io.ReadCloser) {
+			_, err = io.Copy(input.Recipe, rc)
 			if err != nil {
 				logger.Error("load recipe ", err)
 			}
+			input.Recipe.Close()
 		})
-		readDelta(r.versions[i], filesName, utils.NopReadWrapper, func(rc io.ReadCloser) {
-			fileList, err = io.ReadAll(rc)
+		readDelta(r.versions[i], filesName, r.chunkReadWrapper, func(rc io.ReadCloser) {
+			_, err = io.Copy(input.Files, rc)
 			if err != nil {
 				logger.Error("load files ", err)
 			}
+			input.Files.Close()
 		})
-		versions[i] = Version{
-			uint64(counter.Count()),
-			uint64(len(recipe)),
-			uint64(len(fileList)),
-		}
-		header := versions[i].createHeader()
-		logger.Info(header)
+		<-end
 	}
-}
-
-func (v Version) createHeader() []byte {
-	buf := make([]byte, binary.MaxVarintLen64*3)
-	i := 0
-	for _, x := range []uint64{v.Chunks, v.Recipe, v.Files} {
-		n := binary.PutUvarint(buf[i:], x)
-		i += n
-	}
-	return buf[:i]
 }
