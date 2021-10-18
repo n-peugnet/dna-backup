@@ -22,8 +22,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/n-peugnet/dna-backup/dna"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/repo"
+	"github.com/n-peugnet/dna-backup/utils"
 )
 
 type command struct {
@@ -137,7 +139,8 @@ func exportMain(args []string) error {
 	r := repo.NewRepo(source, chunkSize)
 	switch format {
 	case "dir":
-		r.ExportDir(dest, trackSize)
+		exporter := dna.New(dest, 96, trackSize, 10000, utils.ZlibWriter, utils.ZlibReader)
+		r.Export(exporter)
 	case "csv":
 		fmt.Println("csv")
 	default:

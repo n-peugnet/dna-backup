@@ -20,18 +20,16 @@ package repo
 import (
 	"io"
 
-	"github.com/n-peugnet/dna-backup/dna"
+	"github.com/n-peugnet/dna-backup/export"
 	"github.com/n-peugnet/dna-backup/logger"
-	"github.com/n-peugnet/dna-backup/utils"
 )
 
-func (r *Repo) ExportDir(dest string, trackSize int) {
+func (r *Repo) Export(exporter export.Exporter) {
 	r.Init()
-	exporter := dna.New(dest, 96, trackSize, 10000, utils.ZlibWriter, utils.ZlibReader)
 	chunks := r.loadChunks(r.versions)
 	for i := range r.versions {
 		var err error
-		input, end := exporter.VersionInput()
+		input, end := exporter.ExportVersion()
 		if len(chunks[i]) > 0 {
 			for _, c := range chunks[i] {
 				_, err := io.Copy(input.Chunks, c.Reader())

@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/n-peugnet/dna-backup/export"
 	"github.com/n-peugnet/dna-backup/logger"
 	"github.com/n-peugnet/dna-backup/utils"
 )
@@ -54,23 +55,6 @@ type Header struct {
 	Chunks uint64
 	Recipe uint64
 	Files  uint64
-}
-
-type dnaVersion struct {
-	Input  dnaInput
-	Output dnaOutput
-}
-
-type dnaInput struct {
-	Chunks io.WriteCloser
-	Recipe io.WriteCloser
-	Files  io.WriteCloser
-}
-
-type dnaOutput struct {
-	Chunks io.ReadCloser
-	Recipe io.ReadCloser
-	Files  io.ReadCloser
 }
 
 func New(
@@ -105,20 +89,28 @@ func New(
 	}
 }
 
-func (d *DnaDrive) VersionInput() (dnaInput, <-chan bool) {
+func (d *DnaDrive) ExportVersion() (export.Input, <-chan bool) {
 	rChunks, wChunks := io.Pipe()
 	rRecipe, wRecipe := io.Pipe()
 	rFiles, wFiles := io.Pipe()
-	version := dnaVersion{
-		Input:  dnaInput{wChunks, wRecipe, wFiles},
-		Output: dnaOutput{rChunks, rRecipe, rFiles},
+	version := export.Version{
+		Input: export.Input{
+			Chunks: wChunks,
+			Recipe: wRecipe,
+			Files:  wFiles,
+		},
+		Output: export.Output{
+			Chunks: rChunks,
+			Recipe: rRecipe,
+			Files:  rFiles,
+		},
 	}
 	end := make(chan bool)
 	go d.writeVersion(version.Output, end)
 	return version.Input, end
 }
 
-func (d *DnaDrive) writeVersion(output dnaOutput, end chan<- bool) {
+func (d *DnaDrive) writeVersion(output export.Output, end chan<- bool) {
 	var err error
 	var recipe, files, version bytes.Buffer
 	n := d.write(output.Chunks, d.pools[1:], Forward)
