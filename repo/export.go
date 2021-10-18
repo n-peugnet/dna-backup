@@ -29,7 +29,8 @@ func (r *Repo) Export(exporter export.Exporter) {
 	chunks := r.loadChunks(r.versions)
 	for i := range r.versions {
 		var err error
-		input, end := exporter.ExportVersion()
+		end := make(chan bool)
+		input := exporter.ExportVersion(end)
 		if len(chunks[i]) > 0 {
 			for _, c := range chunks[i] {
 				_, err := io.Copy(input.Chunks, c.Reader())

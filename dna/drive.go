@@ -89,7 +89,7 @@ func New(
 	}
 }
 
-func (d *DnaDrive) ExportVersion() (export.Input, <-chan bool) {
+func (d *DnaDrive) ExportVersion(end chan<- bool) export.Input {
 	rChunks, wChunks := io.Pipe()
 	rRecipe, wRecipe := io.Pipe()
 	rFiles, wFiles := io.Pipe()
@@ -105,9 +105,8 @@ func (d *DnaDrive) ExportVersion() (export.Input, <-chan bool) {
 			Files:  rFiles,
 		},
 	}
-	end := make(chan bool)
 	go d.writeVersion(version.Output, end)
-	return version.Input, end
+	return version.Input
 }
 
 func (d *DnaDrive) writeVersion(output export.Output, end chan<- bool) {

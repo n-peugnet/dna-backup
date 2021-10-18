@@ -20,5 +20,5 @@ type Output struct {
 }
 
 type Exporter interface {
-	ExportVersion() (input Input, end <-chan bool)
+	ExportVersion(end chan<- bool) Input
 }
