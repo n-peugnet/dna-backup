@@ -40,10 +40,12 @@ const (
 )
 
 var (
-	logLevel  int
-	chunkSize int
-	format    string
-	trackSize int
+	logLevel      int
+	chunkSize     int
+	format        string
+	poolCount     int
+	trackSize     int
+	tracksPerPool int
 )
 
 var Commit = command{flag.NewFlagSet("commit", flag.ExitOnError), commitMain,
@@ -79,7 +81,9 @@ func init() {
 		s.Flag.IntVar(&chunkSize, "c", 8<<10, "chunk size")
 	}
 	Export.Flag.StringVar(&format, "format", "dir", "format of the export (dir, csv)")
+	Export.Flag.IntVar(&poolCount, "pools", 96, "number of pools")
 	Export.Flag.IntVar(&trackSize, "track", 1020, "size of a DNA track")
+	Export.Flag.IntVar(&tracksPerPool, "tracks-per-pool", 10000, "number of tracks per pool")
 }
 
 func main() {
@@ -138,10 +142,10 @@ func exportMain(args []string) error {
 	r := repo.NewRepo(source, chunkSize)
 	switch format {
 	case "dir":
-		exporter := dna.New(dest, 96, trackSize, 10000)
+		exporter := dna.New(dest, poolCount, trackSize, tracksPerPool)
 		r.Export(exporter)
 	case "csv":
-		fmt.Println("csv")
+		fmt.Println("not yet implemented")
 	default:
 		logger.Errorf("unknown format %s", format)
 	}

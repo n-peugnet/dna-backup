@@ -9,14 +9,26 @@ priority 1
 - [x] better tests for `(*Repo).Commit`
 - [x] remove errored files from `fileList`
 - [ ] export in `dir` format
-    - [ ] add superblock.
-    - [ ] add version blocks.
+    - [ ] add superblock (this is related to the `init` cmd).
+    - [x] add version blocks (these are filled with the recipe and files if
+        there is space left)
 - [x] command line with subcommands (like, hmm... git ? for instance).
-- experiences:
-    - [ ] compare against UDF (this will not be possible, unless we use a real
-        CR-ROM)
-    - [ ] make multiple repo versions with multiple parameters
+- [ ] experiences:
+    - [x] compare against UDF (this will not be possible, unless we use a real
+        CR-ROM) (we used git storage for an approximation)
+    - [x] make multiple repo versions with multiple parameters
         - smaller block size
+    - [ ] use export in bench to compare the performance when all chunks are
+        compressed at once.
+- [ ] `init` command to initialize repo
+    - [ ] remove `chunkSize` parameter from all commands, keep it only on `init`
+    - [ ] `init` would save the important parameters of the repo, such as:
+        - the bloc size
+        - the delta algorithm
+        - the compression algorithm
+        - the sketch parameters
+        - ...and almost every value of the `NewRepo` constructor
+    - [ ] these parameters would be loaded in the `*Repo.Init()` function
 
 priority 2
 ----------
