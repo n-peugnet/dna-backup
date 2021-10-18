@@ -12,6 +12,7 @@ priority 1
     - [ ] add superblock (this is related to the `init` cmd).
     - [x] add version blocks (these are filled with the recipe and files if
         there is space left)
+- [ ] import from `dir` format
 - [x] command line with subcommands (like, hmm... git ? for instance).
 - [ ] experiences:
     - [x] compare against UDF (this will not be possible, unless we use a real
