@@ -22,6 +22,7 @@ import (
 
 	"github.com/n-peugnet/dna-backup/export"
 	"github.com/n-peugnet/dna-backup/logger"
+	"github.com/n-peugnet/dna-backup/utils"
 )
 
 func (r *Repo) Export(exporter export.Exporter) {
@@ -32,22 +33,24 @@ func (r *Repo) Export(exporter export.Exporter) {
 		end := make(chan bool)
 		input := exporter.ExportVersion(end)
 		if len(chunks[i]) > 0 {
+			compressed := r.chunkWriteWrapper(input.Chunks)
 			for _, c := range chunks[i] {
-				_, err := io.Copy(input.Chunks, c.Reader())
+				_, err := io.Copy(compressed, c.Reader())
 				if err != nil {
 					logger.Error(err)
 				}
 			}
-			input.Chunks.Close()
+			compressed.Close()
 		}
-		readDelta(r.versions[i], recipeName, r.chunkReadWrapper, func(rc io.ReadCloser) {
+		input.Chunks.Close()
+		readDelta(r.versions[i], recipeName, utils.NopReadWrapper, func(rc io.ReadCloser) {
 			_, err = io.Copy(input.Recipe, rc)
 			if err != nil {
 				logger.Error("load recipe ", err)
 			}
 			input.Recipe.Close()
 		})
-		readDelta(r.versions[i], filesName, r.chunkReadWrapper, func(rc io.ReadCloser) {
+		readDelta(r.versions[i], filesName, utils.NopReadWrapper, func(rc io.ReadCloser) {
 			_, err = io.Copy(input.Files, rc)
 			if err != nil {
 				logger.Error("load files ", err)

@@ -27,7 +27,6 @@ import (
 
 	"github.com/n-peugnet/dna-backup/export"
 	"github.com/n-peugnet/dna-backup/logger"
-	"github.com/n-peugnet/dna-backup/utils"
 )
 
 type Direction int
@@ -42,8 +41,6 @@ type DnaDrive struct {
 	trackSize     int
 	tracksPerPool int
 	pools         []Pool
-	writeWrapper  utils.WriteWrapper
-	readWrapper   utils.ReadWrapper
 }
 
 type Pool struct {
@@ -62,8 +59,6 @@ func New(
 	poolCount int,
 	trackSize int,
 	tracksPerPool int,
-	writeWrapper utils.WriteWrapper,
-	readWrapper utils.ReadWrapper,
 ) *DnaDrive {
 	pools := make([]Pool, poolCount)
 	os.MkdirAll(destination, 0755)
@@ -84,8 +79,6 @@ func New(
 		trackSize:     trackSize,
 		tracksPerPool: tracksPerPool,
 		pools:         pools,
-		writeWrapper:  writeWrapper,
-		readWrapper:   readWrapper,
 	}
 }
 
@@ -112,7 +105,7 @@ func (d *DnaDrive) ExportVersion(end chan<- bool) export.Input {
 func (d *DnaDrive) writeVersion(output export.Output, end chan<- bool) {
 	var err error
 	var recipe, files, version bytes.Buffer
-	n := d.write(output.Chunks, d.pools[1:], Forward)
+	n := write(output.Chunks, d.pools[1:], d.trackSize, d.tracksPerPool, Forward)
 	_, err = io.Copy(&recipe, output.Recipe)
 	if err != nil {
 		logger.Error("dna export recipe ", err)
@@ -148,19 +141,19 @@ func (d *DnaDrive) writeVersion(output export.Output, end chan<- bool) {
 		} else if err != nil { // another error than EOF happened
 			logger.Error("dna export files: ", err)
 		} else { // files has not been fully written so we write what is left to pools
-			d.write(&files, d.pools[1:], Backward)
+			write(&files, d.pools[1:], d.trackSize, d.tracksPerPool, Backward)
 		}
 	} else if err != nil { // another error than EOF happened
 		logger.Error("dna export recipe: ", err)
 	} else { // recipe has not been fully written so we concat with files and write what is left to pools
 		io.Copy(&recipe, &files)
-		d.write(&recipe, d.pools[1:], Backward)
+		write(&recipe, d.pools[1:], d.trackSize, d.tracksPerPool, Backward)
 	}
-	d.write(&version, d.pools[:1], Forward)
+	write(&version, d.pools[:1], d.trackSize, d.tracksPerPool, Forward)
 	end <- true
 }
 
-func (d *DnaDrive) write(r io.Reader, pools []Pool, direction Direction) int64 {
+func write(r io.Reader, pools []Pool, trackSize int, tracksPerPool int, direction Direction) int64 {
 	var err error
 	var i, n int
 	var count int64
@@ -168,7 +161,7 @@ func (d *DnaDrive) write(r io.Reader, pools []Pool, direction Direction) int64 {
 		i = len(pools) - 1
 	}
 	for err != io.ErrUnexpectedEOF && err != io.EOF {
-		if pools[i].TrackCount == d.tracksPerPool {
+		if pools[i].TrackCount == tracksPerPool {
 			if direction == Backward {
 				i--
 			} else {
@@ -179,7 +172,7 @@ func (d *DnaDrive) write(r io.Reader, pools []Pool, direction Direction) int64 {
 			}
 			continue
 		}
-		buf := make([]byte, d.trackSize)
+		buf := make([]byte, trackSize)
 		n, err = io.ReadFull(r, buf)
 		if err == io.EOF {
 			break
