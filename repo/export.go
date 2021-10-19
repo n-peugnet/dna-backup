@@ -32,31 +32,39 @@ func (r *Repo) Export(exporter export.Exporter) {
 		var err error
 		end := make(chan bool)
 		input := exporter.ExportVersion(end)
-		if len(chunks[i]) > 0 {
-			compressed := r.chunkWriteWrapper(input.Chunks)
-			for _, c := range chunks[i] {
-				_, err := io.Copy(compressed, c.Reader())
-				if err != nil {
-					logger.Error(err)
-				}
-			}
-			compressed.Close()
-		}
-		input.Chunks.Close()
+		go exportChunks(chunks[i], r.chunkWriteWrapper, input.Chunks)
 		readDelta(r.versions[i], recipeName, utils.NopReadWrapper, func(rc io.ReadCloser) {
 			_, err = io.Copy(input.Recipe, rc)
 			if err != nil {
 				logger.Error("load recipe ", err)
 			}
-			input.Recipe.Close()
+			if err = input.Recipe.Close(); err != nil {
+				logger.Error("export recipe ", err)
+			}
 		})
 		readDelta(r.versions[i], filesName, utils.NopReadWrapper, func(rc io.ReadCloser) {
 			_, err = io.Copy(input.Files, rc)
 			if err != nil {
 				logger.Error("load files ", err)
 			}
-			input.Files.Close()
+			if err = input.Files.Close(); err != nil {
+				logger.Error("export files ", err)
+			}
 		})
 		<-end
 	}
+}
+
+func exportChunks(chunks []IdentifiedChunk, wrapper utils.WriteWrapper, input io.WriteCloser) {
+	if len(chunks) > 0 {
+		compressed := wrapper(input)
+		for _, c := range chunks {
+			_, err := io.Copy(compressed, c.Reader())
+			if err != nil {
+				logger.Error(err)
+			}
+		}
+		compressed.Close()
+	}
+	input.Close()
 }

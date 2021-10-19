@@ -64,7 +64,7 @@ func New(
 	os.MkdirAll(destination, 0755)
 	for i := range pools {
 		path := filepath.Join(destination, fmt.Sprintf("%02d", i))
-		file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+		file, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			logger.Panic(err)
 		}
