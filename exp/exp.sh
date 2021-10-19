@@ -130,6 +130,16 @@ do
 		do
 			log "create $name backup for this version"
 			$DNA_BACKUP commit -v 2 $flags $REPO_PATH $name
+
+			log "create $name export for this version"
+			export=/tmp/dna-backup-exp-export
+			rm -rf $export
+			$DNA_BACKUP export -v 2 $flags $name $export
+			find $export -type f -exec du -ba {} + \
+			| cut -f1 \
+			| paste -sd+ \
+			| bc \
+			> $(printf "%s_export.versions/%05d" $name $i)
 		done
 	fi
 

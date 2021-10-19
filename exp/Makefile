@@ -48,7 +48,8 @@ export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
 
 DNADIRS   := $(DNA_4K) $(DNA_8K)
-DATADIRS  := $(DNA_4K) $(DNA_8K) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
+DNAEXPORT := $(DNADIRS:%=%_export)
+DATADIRS  := $(DNADIRS) $(DNAEXPORT) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
 
 .PHONY: all exp
@@ -76,7 +77,7 @@ $(DNADIRS:%=%.size) $(REAL).size: %.size: %.versions run
 		cut -f1 $$i | paste -sd+ | bc >> $@; \
 	done
 
-$(BORG).size: $(BORG).versions run
+$(BORG).size $(DNAEXPORT:%=%.size): %.size: %.versions run
 	rm -rf $@
 	prev=0; for i in $</*; do \
 		last=`cut -f1 $$i`; \
@@ -115,7 +116,7 @@ $(NOPACK).size: $(NOPACK).versions run
 	| sort -k2 \
 	> $@
 
-run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | printvars $(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions
+run: $(COMMITS) $(DNA_BACKUP) $(DNA_PARAMS) | printvars $(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions $(DNAEXPORT:%=%.versions)
 	rm -rf $(DATADIRS:%=%/*) $(DATADIRS:%=%.versions/*)
 	./exp.sh
 	touch $@
@@ -130,7 +131,7 @@ $(DNA_PARAMS):
 	echo "$(DNA_4K)	-c 4096" >> $@
 	echo "$(DNA_8K)	-c 8192" >> $@
 
-$(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions:
+$(DATADIRS) $(NOPACK).versions $(BORG).versions $(REAL).versions $(DNAEXPORT:%=%.versions):
 	mkdir $@
 
 $(DNA_BACKUP): .FORCE
