@@ -18,7 +18,7 @@
 BIN := dna-backup
 SRC := $(shell find . -not \( -path './exp' -prune \) -type f -name '*.go')
 V   := $(if $(CI),-v)
-SUBDIRS := exp
+SUBDIRS := exp pdf
 
 # Default installation paths
 PREFIX ?= /usr/local
