@@ -126,7 +126,7 @@ do
 	if [ -n "$DNA_PARAMS" ]
 	then
 		# Create dna backups for this version
-		cat $DNA_PARAMS | while read name flags
+		while read name flags
 		do
 			log "create $name backup for this version"
 			$DNA_BACKUP commit -v 2 $flags $REPO_PATH $name
@@ -140,7 +140,7 @@ do
 			| paste -sd+ \
 			| bc \
 			> $(printf "%s_export.versions/%05d" $name $i)
-		done
+		done < $DNA_PARAMS
 	fi
 
 	if [[ $(( $i % $SKIP_CHECK )) == 0 ]]

@@ -1,8 +1,9 @@
 ## Project generated files
+# binaries
 dna-backup
-
-## Test directories
-test_*
+*.test
+# profiling
+*.prof
 
 ## IDE files
 .vscode

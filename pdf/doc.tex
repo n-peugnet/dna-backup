@@ -1,0 +1,62 @@
+\documentclass[a4paper,twocolumn,french]{article}
+
+% Set page dimentions
+\usepackage[margin=22mm]{geometry}
+
+% Packages for french documents
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Define some colors
+\usepackage{color}
+\definecolor{string}{RGB}{100, 200, 0}
+\definecolor{comment}{RGB}{150, 150, 150}
+\definecolor{identifier}{RGB}{100, 100, 200}
+
+% Source code style
+\usepackage{listings}
+\lstset{
+	basicstyle=\footnotesize\ttfamily, % sets font style for the code
+	frame=single,                 % adds a frame around the code
+	showstringspaces=false,       % underline spaces within strings
+	tabsize=4,                    % sets default tabsize to 2 spaces
+	breaklines=true,              % sets automatic line breaking
+	breakatwhitespace=true,       % sets if automatic breaks should only happen at whitespace
+	keywordstyle=\color{magenta}, % sets color for keywords
+	stringstyle=\color{string},   % sets color for strings
+	commentstyle=\color{comment}, % sets color for comments
+	emphstyle=\color{identifier}, % sets color for comments
+}
+
+% Hyperlinks
+\usepackage[hyphens]{url}
+\usepackage[hidelinks]{hyperref}
+
+% Graphics
+\usepackage{graphicx}
+\graphicspath{ {img} }
+
+\title{DNA-Backup}
+
+\date{Octobre 2021}
+
+\author{Nicolas Peugnet}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+
+% \begin{figure}[h]
+% 	\centering
+% 	\includegraphics[width=0.4\linewidth]{wtf.png} % changer ici l'image
+% 	\caption{WTF ??\protect\footnotemark}
+% 	\label{fig:wtf}
+% \end{figure}
+% \footnotetext{Cette image n'a été ajouté que pour avoir un modèle et pouvoir tester l'inclusion d'images}
+
+
+\end{document}

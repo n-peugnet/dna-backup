@@ -30,6 +30,9 @@ priority 1
         - the sketch parameters
         - ...and almost every value of the `NewRepo` constructor
     - [ ] these parameters would be loaded in the `*Repo.Init()` function
+- [ ] stop using `gob` everywhere. As this encoder, despite its simplicity and
+    overall good performance, is not cross compatible between languages and its
+    specification might be subject to changes.
 
 priority 2
 ----------
@@ -125,3 +128,10 @@ second run of `dna-backup`, around 20 blocks in of the beginning of the recipe
 have been replaced by newer ones. These should not have been modified.
 
 I could however not reproduce it...
+
+mystical bug number 3 21/10
+---------------------------
+
+When running `dna-backup commit` a second time after nothing has changed in the
+source folder, there are still some differences with the previous version. I
+don't know where these come from.
