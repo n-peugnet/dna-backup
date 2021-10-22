@@ -16,8 +16,9 @@ all pdf: $(PDF)
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c
+	rm -f $(FILES:%=%.synctex.*)
 
-clean:
-	latexmk $(LATEXMK_FLAGS) -C
+clean: mostlyclean
+	rm -f $(PDF)
 
 .PHONY: all pdf mostlyclean clean

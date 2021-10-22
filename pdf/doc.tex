@@ -34,14 +34,19 @@
 \usepackage[hidelinks]{hyperref}
 
 % Graphics
-\usepackage{graphicx}
-\graphicspath{ {img} }
+\usepackage{graphicx}        % images and figures
+\graphicspath{ {img} }       % path containing images
+\usepackage{tikz}            % to generate graphics
+\usetikzlibrary{arrows.meta} % setup arrows
 
 % Complex tables
 \usepackage{multirow,tabularx}
 % Ragged right auto-span columns
 \usepackage{array}
 \newcolumntype{R}{>{\raggedright\arraybackslash}X}
+
+% Directory tree
+\usepackage{dirtree}
 
 %--------------------------------------- Content ---------------------------------------%
 
@@ -57,54 +62,67 @@
 
 \tableofcontents
 
-\section{Introduction}
+\section{Situation}
+\section{Problématique}
+\section{Réponse}
 
 Le système part du principe qu'on a une copie des données stockées en
 ADN sur un support de stockage classique : le \emph{repo}.
+\smallskip
 
-\begin{verbatim}
- +----------------------------------+
- | +---------+          +---------+ |          +-----------+
- | |         |          |         | |          |           |
- | | Source  |--------->|  Repo   |----------->| DNA-Drive |
- | |         |  COMMIT  |         | | SYNTHESE |           |
- | +---------+          +---------+ |          +-----------+
- |                                  |
- | Ordinateur                       |
- +----------------------------------+
-\end{verbatim}
+\noindent
+\begin{tikzpicture}
+
+\draw (0,0) node[anchor=south west] {Ordinateur} rectangle (8, 3.5) ;
+
+\draw (.5,1) rectangle (3,3) node[midway] {Source};
+
+\draw[-{Stealth[scale=1.5]}] (3,2) -- (5,2) node[midway,below] {Commit};
+
+\draw (5,1) rectangle (7.5,3) node[midway] {Repo};
+
+\draw[-{Stealth[scale=1.5]}] (7.5,2) -- (10,2) node[midway,below] {Synthèse};
+
+\draw (10,1) rectangle (12.5,3) node[midway] {DNA-Drive};
+
+\end{tikzpicture}
+\bigskip
 
 La structure du \emph{repo} est la suivante :
+\smallskip
 
-\begin{verbatim}
-repo/
-+-- 00000/
-|   +-- chunks/
-|   |   +-- 000000000000000
-|   |   +-- 000000000000001
-|   |   +-- 000000000000002
-|   |   +-- 000000000000003
-|   +-- files
-|   +-- hashes
-|   +-- recipe
-+-- 00001/
-    +-- chunks/
-    |   +-- 000000000000000
-    |   +-- 000000000000001
-    +-- files
-    +-- hashes
-    +-- recipe
-\end{verbatim}
+\dirtree{%
+.1 repo/. 
+.2 00000/. 
+.3 chunks/. 
+.4 000000000000000. 
+.4 000000000000001. 
+.4 000000000000002. 
+.4 000000000000003. 
+.3 files. 
+.3 hashes. 
+.3 recipe. 
+.2 00001/. 
+.3 chunks/. 
+.4 000000000000000. 
+.4 000000000000001. 
+.3 files. 
+.3 hashes. 
+.3 recipe. 
+}
+\bigskip
 
 Pour un repo d'une taille totale de 401 Mio :
+\smallskip
 
-\begin{verbatim}
-/tmp/test-1/00000/recipe    5076011  (1.20%)
-/tmp/test-1/00000/files       24664  (0.06%)
-/tmp/test-1/00000/hashes    3923672  (0.93%)
-/tmp/test-1/00000/chunks  412263137  (97.8%)
-/tmp/test-1/00000         421287604  ( 100%)
-\end{verbatim}
+\begin{tabular}{l l r}
+\verb|repo/00000/recipe| &   5076011 &   1.2\% \\
+\verb|repo/00000/files| &      24664 &   0.1\% \\
+\verb|repo/00000/hashes| &   3923672 &   0.9\% \\
+\verb|repo/00000/chunks| & 412263137 &  97.8\% \\
+\verb|repo/00000| &        421287604 & 100.0\% \\
+\end{tabular}
+\bigskip
 
 \begin{itemize}
 \item
