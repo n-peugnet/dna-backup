@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper,twocolumn]{article}
 
 % Set page dimentions
 \usepackage[margin=22mm]{geometry}
@@ -38,6 +38,8 @@
 \graphicspath{ {img} }       % path containing images
 \usepackage{tikz}            % to generate graphics
 \usetikzlibrary{arrows.meta} % setup arrows
+\usetikzlibrary{chains,decorations.pathreplacing} % tiks chains
+\tikzstyle{Arrow}=[-{Stealth[scale=1.5]}]
 
 % Complex tables
 \usepackage{multirow,tabularx}
@@ -63,34 +65,45 @@
 \tableofcontents
 
 \section{Situation}
+
+Le DNA-drive et les techniques de stockages sur ADN dans leur ensemble ne permettent pas de supprimer des données une fois écrites.
+
+Les lectures sont lentes et coûteuse, mais les écritures le sont encore plus.
+
 \section{Problématique}
 \section{Réponse}
 
+\subsection{Présentation générale}
+
+
 Le système part du principe qu'on a une copie des données stockées en
-ADN sur un support de stockage classique : le \emph{repo}.
+ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
 \smallskip
 
-\noindent
+\begin{figure*}[ht]
+\centering
+
 \begin{tikzpicture}
 
 \draw (0,0) node[anchor=south west] {Ordinateur} rectangle (8, 3.5) ;
 
 \draw (.5,1) rectangle (3,3) node[midway] {Source};
-
-\draw[-{Stealth[scale=1.5]}] (3,2) -- (5,2) node[midway,below] {Commit};
-
 \draw (5,1) rectangle (7.5,3) node[midway] {Repo};
-
-\draw[-{Stealth[scale=1.5]}] (7.5,2) -- (10,2) node[midway,below] {Synthèse};
-
 \draw (10,1) rectangle (12.5,3) node[midway] {DNA-Drive};
 
+\draw[Arrow] (3,2) -- (5,2) node[midway,below] {Commit};
+\draw[Arrow] (7.5,2) -- (10,2) node[midway,below] {Synthèse};
+
 \end{tikzpicture}
-\bigskip
+
+\caption{Schéma global}
+\label{fig:big-picture}
+\end{figure*}
 
 La structure du \emph{repo} est la suivante :
 \smallskip
 
+\begin{figure}[ht]
 \dirtree{%
 .1 repo/. 
 .2 00000/. 
@@ -110,7 +123,9 @@ La structure du \emph{repo} est la suivante :
 .3 hashes. 
 .3 recipe. 
 }
-\bigskip
+\caption{Organisation du \emph{repo}}
+\label{fig:repo-organisation}
+\end{figure}
 
 Pour un repo d'une taille totale de 401 Mio :
 \smallskip
@@ -143,15 +158,40 @@ Pour un repo d'une taille totale de 401 Mio :
   version précédente.
 \end{itemize}
 
-On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} :
+On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig:data-layout})
 
-\begin{verbatim}
-     +---+---+---+---+---+---------+---+---+---+
-     | 0 | 1 | 2 | 3 | 4 |-->   <--| 93| 94| 95|
-     +---+---+---+---+---+---------+---+---+---+
-|versions|    chunks     |         | metadata  |
-                                   (recipe+files)
-\end{verbatim}
+\begin{figure}[ht]
+\centering
+
+\begin{tikzpicture}[
+  start chain = going right,
+  node distance = 0,
+  Box/.style={draw, minimum width=2em, minimum height=2em, outer sep=0, on chain},
+  Brace/.style={decorate,decoration={brace, amplitude=1em, raise=.5em, mirror}}
+]
+  \node[Box] (p0) {$0$};
+  \node[Box] (p1) {$1$};
+  \node[Box] (p2) {$2$};
+  \node[Box] (p3) {$3$};
+  \node[Box] (p4) {$4$};
+\node[Box,minimum width=6em] (ellipsis) {$\cdots$};
+\node[Box] (p93) {$93$};
+\node[Box] (p94) {$94$};
+\node[Box] (p95) {$95$};
+
+\draw[Arrow] (p4.east) to +(2em,0);
+\draw[Arrow] (p93.west) to +(-2em,0);
+
+\node (ver) at (0,-3.2em) {version};
+\draw[->] (p0.south) to (ver);
+\draw[Brace] (p1.south west) to node[black,midway,below=1.5em] {chunks} (p4.south east);
+\draw[Brace] (p93.south west) to node[black,midway,below=1.5em,align=center] {metadata\\(recipe+files)} (p95.south east);
+
+\end{tikzpicture}
+
+\caption{Disposition des données}
+\label{fig:data-layout}
+\end{figure}
 
 \subsection{Algorithme du commit}
 
@@ -181,7 +221,7 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} :
   Lecture du \emph{stream} de ce disque virtuel et découpage en
   \emph{chunk} (de 8 Kio actuellement).
 \item
-  Pour chaque \emph{chunk} du \emph{stream}~:
+  Pour chaque \emph{chunk} du \emph{stream} :
 
   \begin{enumerate}
   \item
@@ -337,7 +377,8 @@ aucune déduplication ou compression.
 
 \subsubsection{Tableau récapitulatif}
 
-\noindent
+\begin{table*}[ht]
+
 \begin{tabularx}{\textwidth}{R|R|R|R|R|R}
 
 \textbf{Feature} &
@@ -383,6 +424,10 @@ Lecture de la zone correspondant à la dernière version \\
 
 \end{tabularx}
 
+\caption{Tableau récapitulatif}
+\label{tab:recap-table}
+\end{table*}
+
 \subsection{Nombre d'octets par version}
 
 \subsubsection{Légende}
@@ -407,8 +452,8 @@ Lecture de la zone correspondant à la dernière version \\
 
 \subsubsection{Résultats}
 
-Commits journaliers~:
 
+\begin{table*}[ht]
 \begin{verbatim}
 =============================== SUMMARY ===============================
   4k_export    8k_export        diffs       nopack         targz           real
@@ -432,9 +477,12 @@ Commits journaliers~:
 ================================ TOTAL ================================
  54,633,240   55,627,740   54,187,492   97,338,609   813,464,599  3,443,358,350
 \end{verbatim}
+\caption{Commits journaliers}
+\label{tab:daily-commits}
+\end{table*}
 
-Commits hebdomadaires :
 
+\begin{table*}[ht]
 \begin{verbatim}
 =============================== SUMMARY ===============================
   4k_export    8k_export        diffs       nopack         targz           real
@@ -458,9 +506,12 @@ Commits hebdomadaires :
 ================================ TOTAL ================================
  69,589,500   75,657,480   58,019,048  166,982,938   835,336,919  3,540,142,226
 \end{verbatim}
+\caption{Commits hebdomadaires}
+\label{tab:weekly-commits}
+\end{table*}
 
-Commits mensuels :
 
+\begin{table*}[ht]
 \begin{verbatim}
 =============================== SUMMARY ===============================
   4k_export    8k_export       diffs       nopack         targz           real
@@ -484,15 +535,9 @@ Commits mensuels :
 ================================ TOTAL ================================
 146,802,480  171,854,700  89,858,337  429,919,502   895,735,794  3,803,237,916
 \end{verbatim}
-
-
-% \begin{figure}[h]
-% 	\centering
-% 	\includegraphics[width=0.4\linewidth]{wtf.png} % changer ici l'image
-% 	\caption{WTF ??\protect\footnotemark}
-% 	\label{fig:wtf}
-% \end{figure}
-% \footnotetext{Cette image n'a été ajouté que pour avoir un modèle et pouvoir tester l'inclusion d'images}
+\caption{Commits Mensuels}
+\label{tab:monthly-commits}
+\end{table*}
 
 
 \end{document}
