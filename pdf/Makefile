@@ -11,12 +11,13 @@ endif
 
 all pdf: $(PDF)
 
-%.pdf: %.tex
+%.pdf: %.tex assets/*.tex
 	latexmk $(LATEXMK_FLAGS) -pdf -f $<
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c
 	rm -f $(FILES:%=%.synctex.*)
+	rm -f assets/*.aux
 
 clean: mostlyclean
 	rm -f $(PDF)

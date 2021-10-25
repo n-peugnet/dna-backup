@@ -7,6 +7,7 @@
 \usepackage[french]{babel}  % latex rules for french words
 \usepackage[utf8]{inputenc} % UTF-8 encoding for special chars
 \usepackage[T1]{fontenc}    % T1 font for smooth render of special chars
+\DeclareUnicodeCharacter{202F}{~}
 
 % Define some colors
 \usepackage{color}
@@ -35,7 +36,7 @@
 
 % Graphics
 \usepackage{graphicx}        % images and figures
-\graphicspath{ {img} }       % path containing images
+\graphicspath{ {assets} }    % path containing images
 \usepackage{tikz}            % to generate graphics
 \usetikzlibrary{arrows.meta} % setup arrows
 \usetikzlibrary{chains,decorations.pathreplacing} % tiks chains
@@ -43,9 +44,10 @@
 
 % Complex tables
 \usepackage{multirow,tabularx}
-% Ragged right auto-span columns
+% Custom column types
 \usepackage{array}
-\newcolumntype{R}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X} % Left-aligned auto-span columns
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X} % Right-aligned auto-span columns
 
 % Directory tree
 \usepackage{dirtree}
@@ -78,8 +80,6 @@ Les lectures sont lentes et coûteuse, mais les écritures le sont encore plus.
 
 Le système part du principe qu'on a une copie des données stockées en
 ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
-\smallskip
-
 \begin{figure*}[ht]
 \centering
 
@@ -100,10 +100,9 @@ ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-p
 \label{fig:big-picture}
 \end{figure*}
 
-La structure du \emph{repo} est la suivante :
-\smallskip
+La Figure \ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
 
-\begin{figure}[ht]
+\begin{figure}
 \dirtree{%
 .1 repo/. 
 .2 00000/. 
@@ -124,12 +123,12 @@ La structure du \emph{repo} est la suivante :
 .3 recipe. 
 }
 \caption{Organisation du \emph{repo}}
-\label{fig:repo-organisation}
+\label{fig:repo-dir-tree}
 \end{figure}
 
 Pour un repo d'une taille totale de 401 Mio :
-\smallskip
 
+\begin{table}
 \begin{tabular}{l l r}
 \verb|repo/00000/recipe| &   5076011 &   1.2\% \\
 \verb|repo/00000/files| &      24664 &   0.1\% \\
@@ -137,7 +136,9 @@ Pour un repo d'une taille totale de 401 Mio :
 \verb|repo/00000/chunks| & 412263137 &  97.8\% \\
 \verb|repo/00000| &        421287604 & 100.0\% \\
 \end{tabular}
-\bigskip
+\caption{Répartition des données d'une première version}
+\label{fig:repo-data-distribution}
+\end{table}
 
 \begin{itemize}
 \item
@@ -379,7 +380,7 @@ aucune déduplication ou compression.
 
 \begin{table*}[ht]
 
-\begin{tabularx}{\textwidth}{R|R|R|R|R|R}
+\begin{tabularx}{\textwidth}{L|L|L|L|L|L}
 
 \textbf{Feature} &
 \textbf{DNA-Backup} &
@@ -454,31 +455,21 @@ Lecture de la zone correspondant à la dernière version \\
 
 
 \begin{table*}[ht]
-\begin{verbatim}
-=============================== SUMMARY ===============================
-  4k_export    8k_export        diffs       nopack         targz           real
- 46,080,540   46,021,380   47,011,621   63,237,214    47,582,036    201,476,675
-      8,160       13,260        2,625       88,673    47,580,422    201,472,392
-  6,453,540    8,091,660    3,270,798   26,668,802    48,699,094    206,006,230
-    205,020      108,120          496       24,839    48,699,144    206,006,227
-    214,200      121,380        1,475      318,053    48,699,266    206,006,571
-    255,000      162,180    3,271,631      107,651    47,592,358    201,472,618
-    393,720      358,020       99,337    2,758,951    47,579,804    201,420,809
-     67,320       78,540      127,793      561,940    47,578,309    201,415,269
-    155,040       75,480       19,221       10,035    47,590,552    201,467,847
-    286,620      205,020      250,581    1,203,018    47,719,274    202,032,972
-     39,780       38,760       19,555      550,478    47,721,098    202,042,129
-    159,120       80,580          203       45,564    47,721,112    202,042,114
-    182,580      115,260       12,419      284,765    47,725,696    202,057,720
-     13,260       14,280        5,823       76,010    47,731,040    202,065,875
-     23,460       28,560       13,370      528,743    47,738,360    202,078,613
-     27,540       33,660       10,837      374,955    47,735,904    202,078,276
-     68,340       81,600       69,707      498,918    47,771,130    202,216,013
-================================ TOTAL ================================
- 54,633,240   55,627,740   54,187,492   97,338,609   813,464,599  3,443,358,350
-\end{verbatim}
+\centering
+\begin{tabularx}{\textwidth}{RRRRRRRR}
+\textbf{Repo 4k} &
+\textbf{Repo 8k} &
+\textbf{DNA 4k} &
+\textbf{DNA 8k} &
+\textbf{Git diffs} &
+\textbf{Git repo} &
+\textbf{Tar.gz} &
+\textbf{Real size} \\
+\hline
+\input{assets/summary.daily.5.tex}
+\end{tabularx}
 \caption{Commits journaliers}
-\label{tab:daily-commits}
+\label{tab:commits-daily}
 \end{table*}
 
 
@@ -507,7 +498,7 @@ Lecture de la zone correspondant à la dernière version \\
  69,589,500   75,657,480   58,019,048  166,982,938   835,336,919  3,540,142,226
 \end{verbatim}
 \caption{Commits hebdomadaires}
-\label{tab:weekly-commits}
+\label{tab:commits-weekly}
 \end{table*}
 
 
@@ -536,7 +527,7 @@ Lecture de la zone correspondant à la dernière version \\
 146,802,480  171,854,700  89,858,337  429,919,502   895,735,794  3,803,237,916
 \end{verbatim}
 \caption{Commits Mensuels}
-\label{tab:monthly-commits}
+\label{tab:commits-monthly}
 \end{table*}
 
 

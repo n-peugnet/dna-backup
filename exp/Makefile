@@ -47,17 +47,18 @@ export REPO_PATH   ?= repo
 export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
 
+SPACE     := $() $()
 DNADIRS   := $(DNA_4K) $(DNA_8K)
 DNAEXPORT := $(DNADIRS:%=%_export)
 DATADIRS  := $(DNADIRS) $(DNAEXPORT) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
+SUMMARY   := summary.$(RANGE).$(MAX_VERSION)
 
 .PHONY: all exp
-all exp: summary.csv $(SIZEFILES)
+all exp: $(SUMMARY).csv $(SUMMARY).tex $(SIZEFILES)
 	@echo "=============== SUMMARY ==============="
-	@head -n 1 $< | while IFS="," read -r $(DATADIRS); do \
-		printf "$(DATADIRS:%=\%13s)\n" $(DATADIRS:%=$$%); \
-	done
+	@IFS="," read -r $(DATADIRS) < $<; \
+	printf "$(DATADIRS:%=\%13s)\n" $(DATADIRS:%=$$%)
 	@tail -n +2 $< | while IFS="," read -r $(DATADIRS); do \
 		printf "$(DATADIRS:%=\%'13d)\n" $(DATADIRS:%=$$%); \
 	done
@@ -67,7 +68,19 @@ all exp: summary.csv $(SIZEFILES)
 	done
 	@echo
 
-summary.csv: $(SIZEFILES)
+summary.%.tex: LC_NUMERIC=fr_FR.UTF-8
+summary.%.tex: summary.%.csv
+	rm -f $@
+	tail -n +2 $< | while IFS="," read -r $(DATADIRS); do \
+		printf "$(subst $(SPACE), & ,$(DATADIRS:%=\%'d)) " $(DATADIRS:%=$$%) >> $@;\
+		echo '\\' >> $@; \
+	done
+	echo '\hline' >> $@
+	for i in $(SIZEFILES); do cat $$i | paste -sd+ | bc; done | xargs printf "$(subst $(SPACE), & ,$(DATADIRS:%=\%'d)) " >> $@; \
+	echo '\\' >> $@
+
+
+summary.%.csv: $(SIZEFILES)
 	echo $(DATADIRS) | tr ' ' ',' > $@
 	paste -d "," $^ >> $@
 
@@ -162,13 +175,13 @@ repo git &:
 .PHONY: clean
 clean: mostlyclean
 	rm -rf $(REPO_PATH) $(GIT_PATH)
-	rm -f commits
+	rm -f summary.*.csv commits
 
 mostlyclean: resultsclean
 	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
 	rm -f run $(DATADIRS:%=%.results) $(DNA_PARAMS) commits.*
 
 resultsclean:
-	rm -f summary.csv $(SIZEFILES)
+	rm -f $(SIZEFILES)
 
 .FORCE: ;
