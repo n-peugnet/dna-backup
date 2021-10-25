@@ -1,22 +1,20 @@
 FILES = doc
-TEX = $(FILES:%=%.tex)
 PDF = $(FILES:%=%.pdf)
 
 # Debug flags
-ifdef DEBUG
-LATEXMK_FLAGS += -verbose
-else
+ifndef DEBUG
 LATEXMK_FLAGS += -quiet
 endif
 
 all pdf: $(PDF)
 
-%.pdf: %.tex assets/*.tex
+.SECONDEXPANSION:
+%.pdf: %.tex $$(wildcard $$*.bib)  assets/*.tex
 	latexmk $(LATEXMK_FLAGS) -pdf -f $<
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c
-	rm -f $(FILES:%=%.synctex.*)
+	rm -f $(FILES:%=%.synctex.*) $(FILES:%=%.bbl)
 	rm -f assets/*.aux
 
 clean: mostlyclean

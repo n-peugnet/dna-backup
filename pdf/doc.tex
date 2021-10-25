@@ -7,7 +7,7 @@
 \usepackage[french]{babel}  % latex rules for french words
 \usepackage[utf8]{inputenc} % UTF-8 encoding for special chars
 \usepackage[T1]{fontenc}    % T1 font for smooth render of special chars
-\DeclareUnicodeCharacter{202F}{~}
+\DeclareUnicodeCharacter{202F}{\thinspace}
 
 % Define some colors
 \usepackage{color}
@@ -33,6 +33,9 @@
 % Hyperlinks
 \usepackage[hyphens]{url}
 \usepackage[hidelinks]{hyperref}
+
+% Bibliography
+\usepackage[nottoc]{tocbibind}  % add link to table of contents
 
 % Graphics
 \usepackage{graphicx}        % images and figures
@@ -66,16 +69,39 @@
 
 \tableofcontents
 
-\section{Situation}
+\section{Introduction}
 
-Le DNA-drive et les techniques de stockages sur ADN dans leur ensemble ne permettent pas de supprimer des données une fois écrites.
+\subsection{Situation}
 
-Les lectures sont lentes et coûteuse, mais les écritures le sont encore plus.
+Il existe un certain nombre de techniques permettant de stocker des données arbitraires via des molécules d'ADN.
+Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques spécificités :
 
-\section{Problématique}
-\section{Réponse}
+\begin{enumerate}
+  \item Elles ne permettent pas de supprimer des données une fois écrites.
+  \item Les lectures sont lentes et coûteuses.
+  \item Les écritures le sont encore plus.
+\end{enumerate}
 
-\subsection{Présentation générale}
+\subsection{Problématique}
+
+Une des fonctionnalités que le système devait supporter était la possibilité de mettre à jour des fichiers déjà écrits.
+Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
+Cette problématique se retrouve sur d'autres médiums de stockages, comme par exemple les bandes magnétiques ou les disques optiques.
+Elle est résolue par leur système de fichiers respectif, LTFS \cite{pease2010linear} pour les bandes magnétiques et UDF \cite{optical2003universal} pour les CDs et DVD non-RW.
+Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de LFTS ou de la Virtual Allocation Table dans le cas d'UDF.
+
+% ajouter un § par rapport aux coùt des écritures
+
+La difficulté principale était donc de réussir à implémenter cette fonctionnalité sur un médium de stockage qui n'a pas la capacité de modifier les données existantes, tout en limitant les écritures au strict nécessaire.
+
+
+\subsection{Réponse}
+
+
+
+La solution proposée se base sur une technique de  \cite{shilane2012wan}.
+
+\section{Présentation générale}
 
 
 Le système part du principe qu'on a une copie des données stockées en
@@ -170,11 +196,11 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig
   Box/.style={draw, minimum width=2em, minimum height=2em, outer sep=0, on chain},
   Brace/.style={decorate,decoration={brace, amplitude=1em, raise=.5em, mirror}}
 ]
-  \node[Box] (p0) {$0$};
-  \node[Box] (p1) {$1$};
-  \node[Box] (p2) {$2$};
-  \node[Box] (p3) {$3$};
-  \node[Box] (p4) {$4$};
+\node[Box] (p0) {$0$};
+\node[Box] (p1) {$1$};
+\node[Box] (p2) {$2$};
+\node[Box] (p3) {$3$};
+\node[Box] (p4) {$4$};
 \node[Box,minimum width=6em] (ellipsis) {$\cdots$};
 \node[Box] (p93) {$93$};
 \node[Box] (p94) {$94$};
@@ -322,7 +348,7 @@ comparaison :
 \item
   \textbf{Git objects}
 \item
-  \textbf{Targz}
+  \textbf{Tar.gz}
 \item
   \textbf{Taille réelle}
 \end{itemize}
@@ -355,7 +381,7 @@ modification d'un fichier entrainera donc l'ajout de nouveaux
 fichier. C'est de cette manière que Git est capable de créer un système
 de fichiers modifiable à partir d'objets immuables.
 
-\subsubsection{Targz}
+\subsubsection{Tar.gz}
 
 Une technique d'archivage assez classique à laquelle il peut être
 intéressant de nous comparer est de stocker chaque version en tant
@@ -386,7 +412,7 @@ aucune déduplication ou compression.
 \textbf{DNA-Backup} &
 \textbf{Git diffs} &
 \textbf{Git objects} &
-\textbf{Targz} &
+\textbf{Tar.gz} &
 \textbf{Taille réelle} \\
 \hline
 
@@ -530,5 +556,9 @@ Lecture de la zone correspondant à la dernière version \\
 \label{tab:commits-monthly}
 \end{table*}
 
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{doc.bib}
 
 \end{document}

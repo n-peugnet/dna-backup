@@ -19,8 +19,9 @@ priority 1
         CR-ROM) (we used git storage for an approximation)
     - [x] make multiple repo versions with multiple parameters
         - smaller block size
-    - [ ] use export in bench to compare the performance when all chunks are
+    - [x] use export in bench to compare the performance when all chunks are
         compressed at once.
+    - [ ] also align other candidate to track size.
 - [ ] `init` command to initialize repo
     - [ ] remove `chunkSize` parameter from all commands, keep it only on `init`
     - [ ] `init` would save the important parameters of the repo, such as:

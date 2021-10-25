@@ -1,5 +1,7 @@
 # Latex files
 *.aux
+*.bbl
+*.blg
 *.fdb_latexmk
 *.fls
 *.out

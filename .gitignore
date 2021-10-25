@@ -7,4 +7,5 @@ dna-backup
 
 ## IDE files
 .vscode
+.*.swp
 .*~
