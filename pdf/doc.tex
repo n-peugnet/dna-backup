@@ -61,7 +61,7 @@
 \usepackage{dirtree}
 
 % Acronyms
-\usepackage[printonlyused,footnote,withpage]{acronym}
+\usepackage[printonlyused,footnote]{acronym}
 
 %--------------------------------------- Content ---------------------------------------%
 
@@ -79,20 +79,23 @@
 
 \chapter{Introduction}
 
-Ce stage a été réalisé dans le cadre du projet DNA-Drive.
+Ce stage a été réalisé dans le cadre du projet DNA-Drive, un système développé par l'équipe de Stéphane Lemaire (IBPC) visant à stocker des données numériques arbitraires via des molécules d'\ac{adn}.
 
-\section{Situation}
+\section{Stocker des données sur ADN}
 
-DNA-Drive est un système développé par l'équipe de Stéphane Lemaire (IBPC) visant à stocker des données numériques arbitraires via des molécules d'ADN.
-Pour ce faire, il existe un certain nombre de techniques.
-La spécificité principale de DNA-Drive par rapport à ses concurrents est d'utiliser la molécule d'ADN sous sa forme de double hélice, plutôt que sous la forme d'un simple brin.
-Cette forme a plusieurs avantages.
-Premièrement, la molécule est plus stable sous cette forme ce qui permet de limiter sa dégradation et donc d'augmenter sa durée de vie.
-Deuxièmement, cette forme est celle utilisé par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
-ce qui nous permet donc potentiellement de profiter de l'ensemble des mécanismes du vivant,
-tels que la réparation automatique de l’ADN pour corriger les erreurs
-ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
+L’\ac{adn} ou acide désoxyribonucléique d’un organisme, contient ce qu’on appelle le génome.
+Le génome est l’information génétique d’un organisme. L’\ac{adn} contient donc une information.
+Cette information est codée sous la forme d’une suite de \emph{nucléotides}.
+Un nucléotide est une molécule organique qui est l’élément de base de l’\ac{adn}.
+Il existe 4 types de nucléotides différents qui sont représentés par 4 lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
+Nous pouvons voir directement le parallèle que nous pouvons faire entre l’\ac{adn} qui est une suite de nucléotides en base 4 et une donnée informatique qui est une suite de bits en base 2.
 
+Il est donc naturel de penser à utiliser l’\ac{adn} pour stocker des données
+et un certain nombre de démonstrations de faisabilité du stockage sur l’\ac{adn} ont été réalisées lors des dernières années.
+Les travaux publiés pour l’instant se basent essentiellement sur l’utilisation d’\emph{oligonucléotides} qui sont des courts segments d’\ac{adn}.
+
+
+\subsection{Spécificités des supports de stockage ADN}
 
 Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques spécificités :
 
@@ -102,9 +105,17 @@ Différents encodages et techniques de conservation sont utilisés, mais elles o
   \item Les écritures le sont encore plus.
 \end{enumerate}
 
-On considère que l'encodage utilisé pour stocker les données sur ADN nous permet de ne pas nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
+On considère que l'encodage utilisé pour stocker les données sur \ac{adn} nous permet de ne pas nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
 
 \subsection{Spécificités du DNA-Drive}
+
+La spécificité principale de DNA-Drive par rapport à ses concurrents est d'utiliser la molécule d'\ac{adn} sous sa forme de double hélice, plutôt que sous la forme d'un simple brin.
+Cette forme a plusieurs avantages.
+Premièrement, la molécule est plus stable sous cette forme ce qui permet de limiter sa dégradation et donc d'augmenter sa durée de vie.
+Deuxièmement, cette forme est celle utilisé par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
+ce qui nous permet donc potentiellement de profiter des mécanismes du vivant,
+tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
+ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
 
 \section{Problématique}
 
@@ -122,7 +133,7 @@ La difficulté principale était donc de réussir à implémenter cette fonction
 \section{Réponse}
 
 La proposition qui suit s'inscrit dans le cadre d'une réponse à court terme au problème posé.
-Nous avons choisi de na pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage ADN.
+Nous avons choisi de na pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage \ac{adn}.
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
 Toutes les contraintes citées précédemment nous ont incité % j'aime bof ce mot
@@ -147,7 +158,7 @@ La solution proposée se base sur une technique de  \cite{shilane2012wan}.
 DNA-Backup tien donc plus 
 
 Le système part du principe qu'on a une copie des données stockées en
-ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
+\ac{adn} sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
 \begin{figure*}[ht]
 \centering
 
@@ -218,10 +229,10 @@ Pour un repo d'une taille totale de 401 Mio :
   Le \emph{repo} peut être reconstruit à partir des données présentes
   dans le \emph{DNA-Drive}.
 \item
-  Les \emph{hashes} ne sont pas écrits en ADN, car ils peuvent être
+  Les \emph{hashes} ne sont pas écrits en \ac{adn}, car ils peuvent être
   reconstruits à partir des données des \emph{chunks}.
 \item
-  L'ensemble des données écrites en ADN sont compressées, pour le moment
+  L'ensemble des données écrites en \ac{adn} sont compressées, pour le moment
   via \emph{ZLib}.
 \item
   Les métadonnées sont stockées de manière incrémentale, chaque version
@@ -368,7 +379,7 @@ Il pourrait être possible (pas pour le moment) de ne restaurer qu'un
 seul fichier d'une version en ayant moins de données à lire que pour
 restaurer la version complète.
 
-Pour cela, il faudrait en plus stocker en ADN un mapping \emph{chunk}
+Pour cela, il faudrait en plus stocker en \ac{adn} un mapping \emph{chunk}
 décompressé → \emph{pool} contenant ce \emph{chunk} et ainsi n'avoir à
 lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
 
