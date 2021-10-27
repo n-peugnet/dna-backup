@@ -1,7 +1,7 @@
-\documentclass[a4paper,twocolumn]{article}
+\documentclass[a4paper]{article}
 
 % Set page dimentions
-\usepackage[margin=22mm]{geometry}
+\usepackage[margin=35mm]{geometry}
 
 % Packages for french documents
 \usepackage[french]{babel}  % latex rules for french words
@@ -86,8 +86,8 @@ Différents encodages et techniques de conservation sont utilisés, mais elles o
 
 Une des fonctionnalités que le système devait supporter était la possibilité de mettre à jour des fichiers déjà écrits.
 Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
-Cette problématique se retrouve sur d'autres médiums de stockages, comme par exemple les bandes magnétiques ou les disques optiques.
-Elle est résolue par leur système de fichiers respectif, LTFS \cite{pease2010linear} pour les bandes magnétiques et UDF \cite{optical2003universal} pour les CDs et DVD non-RW.
+Cette problématique se retrouve sur d'autres médiums de stockages, comme les bandes magnétiques ou les disques optiques.
+Elle est résolue par leur système de fichiers respectif, LTFS \cite{pease2010linear} pour les bandes magnétiques et UDF \cite{optical2003universal} pour les CD et DVD non-RW.
 Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de LFTS ou de la Virtual Allocation Table dans le cas d'UDF.
 
 % ajouter un § par rapport aux coùt des écritures
@@ -129,24 +129,25 @@ ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-p
 La Figure \ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
 
 \begin{figure}
+% \centering % centering ne fonctionne pas du tout avec le dirtree
 \dirtree{%
-.1 repo/. 
-.2 00000/. 
-.3 chunks/. 
-.4 000000000000000. 
-.4 000000000000001. 
-.4 000000000000002. 
-.4 000000000000003. 
-.3 files. 
-.3 hashes. 
-.3 recipe. 
-.2 00001/. 
-.3 chunks/. 
-.4 000000000000000. 
-.4 000000000000001. 
-.3 files. 
-.3 hashes. 
-.3 recipe. 
+.1 repo/.
+.2 00000/.
+.3 chunks/.
+.4 000000000000000.
+.4 000000000000001.
+.4 000000000000002.
+.4 000000000000003.
+.3 files.
+.3 hashes.
+.3 recipe.
+.2 00001/.
+.3 chunks/.
+.4 000000000000000.
+.4 000000000000001.
+.3 files.
+.3 hashes.
+.3 recipe.
 }
 \caption{Organisation du \emph{repo}}
 \label{fig:repo-dir-tree}
@@ -154,8 +155,9 @@ La Figure \ref{fig:repo-dir-tree} montre la structure du \emph{repo}.
 
 Pour un repo d'une taille totale de 401 Mio :
 
-\begin{table}
-\begin{tabular}{l l r}
+\begin{table}[ht]
+\centering
+\begin{tabular}{l r r}
 \verb|repo/00000/recipe| &   5076011 &   1.2\% \\
 \verb|repo/00000/files| &      24664 &   0.1\% \\
 \verb|repo/00000/hashes| &   3923672 &   0.9\% \\
@@ -416,25 +418,25 @@ aucune déduplication ou compression.
 \textbf{Taille réelle} \\
 \hline
 
-\multirow{2}{*}{Déduplication} &
+\multirow{2}{=}{Dé\-du\-pli\-ca\-tion} &
 Niveau chunk &
-\multirow{2}{*}{N/A} &
+\multirow{2}{=}{N/A} &
 Niveau fichier &
-\multirow{2}{*}{N/A} &
-\multirow{2}{*}{N/A} \\ \cline{2-2} \cline{4-4}
+\multirow{2}{=}{N/A} &
+\multirow{2}{=}{N/A} \\ \cline{2-2} \cline{4-4}
 & Transversal aux versions & & Transversal aux versions & \\
 \hline
 
-\multirow{2}{*}{Delta-encoding} &
+\multirow{2}{=}{Delta-encoding} &
 Niveau chunk &
 Niveau version &
-\multirow{2}{*}{N/A} &
-\multirow{2}{*}{N/A} &
-\multirow{2}{*}{N/A} \\ \cline{2-3}
+\multirow{2}{=}{N/A} &
+\multirow{2}{=}{N/A} &
+\multirow{2}{=}{N/A} \\ \cline{2-3}
 & Transversal aux versions & Par rapport à la précédente & & \\
 \hline
 
-Compression &
+Com\-pres\-sion &
 Niveau chunk &
 Niveau version &
 Niveau fichier &
@@ -442,7 +444,7 @@ Niveau version &
 N/A \\
 \hline
 
-Restauration de la dernière version &
+Res\-tau\-ra\-tion de la dernière version &
 Lecture des métadonnées puis des chunks de cette version (répartis dans différents pools) &
 Lecture de la totalité du DNA-Drive &
 Lecture récursive des différents objets composant la version (répartis dans différents pools) &
@@ -474,7 +476,7 @@ Lecture de la zone correspondant à la dernière version \\
 \item
   \verb|real| : le poids réel de chaque version et donc l'espace
   nécessaire à stocker l'ensemble des versions de manière
-  non-dé-dupliquées.
+  non-dédupliquées.
 \end{itemize}
 
 \subsubsection{Résultats}
@@ -488,9 +490,9 @@ Lecture de la zone correspondant à la dernière version \\
 \textbf{DNA 4k} &
 \textbf{DNA 8k} &
 \textbf{Git diffs} &
-\textbf{Git repo} &
+\textbf{Git objects} &
 \textbf{Tar.gz} &
-\textbf{Real size} \\
+\textbf{Taille réelle} \\
 \hline
 \input{assets/summary.daily.5.tex}
 \end{tabularx}
@@ -500,58 +502,36 @@ Lecture de la zone correspondant à la dernière version \\
 
 
 \begin{table*}[ht]
-\begin{verbatim}
-=============================== SUMMARY ===============================
-  4k_export    8k_export        diffs       nopack         targz           real
- 46,086,660   46,003,020   47,003,541   63,221,563    47,569,933    201,420,809
-    701,760      820,080      395,080    6,358,050    47,723,749    202,065,875
-  6,293,400    7,983,540    2,994,599   25,581,925    48,700,415    206,003,757
-    206,040      109,140          407       50,815    48,700,637    206,003,795
-    225,420      142,800        8,679      401,381    48,698,820    206,005,265
-  1,299,480    1,707,480      579,422    6,943,222    48,733,791    206,098,060
-    952,680    1,248,480      360,710    4,799,958    48,840,759    206,648,359
-  1,425,960    1,831,920      738,359    4,983,831    48,892,096    206,834,840
-  1,770,720    2,091,000    1,389,502    7,767,439    49,297,747    209,328,856
-    479,400      727,260      146,129    2,899,286    49,331,055    209,479,362
-    168,300      235,620       47,436    1,385,568    49,333,845    209,503,564
-    134,640      236,640       37,183    1,808,603    49,338,373    209,509,777
-     90,780      122,400       23,924    1,555,868    49,336,559    209,515,352
-  3,088,560    3,953,520    1,404,256   11,037,484    49,933,159    211,878,380
-  4,987,800    6,165,900    2,326,692   17,577,030    50,214,110    212,941,025
-    993,480    1,378,020      304,617    6,594,520    50,293,382    213,254,405
-    684,420      900,660      258,512    4,016,395    50,398,489    213,650,745
-================================ TOTAL ================================
- 69,589,500   75,657,480   58,019,048  166,982,938   835,336,919  3,540,142,226
-\end{verbatim}
+\begin{tabularx}{\textwidth}{RRRRRRRR}
+\textbf{Repo 4k} &
+\textbf{Repo 8k} &
+\textbf{DNA 4k} &
+\textbf{DNA 8k} &
+\textbf{Git diffs} &
+\textbf{Git objects} &
+\textbf{Tar.gz} &
+\textbf{Taille réelle} \\
+\hline
+\input{assets/summary.daily.5.tex}
+\end{tabularx}
 \caption{Commits hebdomadaires}
 \label{tab:commits-weekly}
 \end{table*}
 
 
 \begin{table*}[ht]
-\begin{verbatim}
-=============================== SUMMARY ===============================
-  4k_export    8k_export       diffs       nopack         targz           real
- 47,297,400   47,244,360  48,249,466   64,900,653    48,828,605    206,662,692
-  1,822,740    1,938,000   1,495,969    7,407,714    48,900,735    206,964,143
-  1,525,920    1,808,460     797,390    9,856,043    49,326,511    209,515,646
-  8,047,800    9,840,960   4,142,700   28,400,251    50,394,403    213,653,996
- 10,730,400   13,230,420   5,489,832   34,132,686    51,315,648    217,862,957
-  5,786,460    6,936,000   2,262,584   19,233,445    51,941,615    220,756,834
-  7,816,260   10,320,360   2,999,817   28,983,950    52,574,107    223,306,219
-  1,210,740    1,643,220     299,628    8,343,393    52,587,994    223,373,786
- 11,002,740   13,589,460   4,759,088   34,259,652    53,210,823    226,113,059
-  1,819,680    2,399,040     679,794   10,029,012    53,165,063    225,781,616
-    622,200      858,840     138,547    4,375,159    53,183,197    225,870,650
- 12,874,440   16,493,400   5,142,691   45,544,733    53,842,821    228,546,001
-  1,169,940    1,591,200     247,526    8,491,133    53,876,401    228,653,615
-  5,631,420    6,589,200   2,333,317   18,119,613    54,605,555    232,014,492
-  9,988,860   12,876,480   3,989,065   37,945,661    55,206,806    234,571,285
- 10,659,000   13,416,060   3,800,775   37,509,079    56,059,067    238,170,923
-  8,796,480   11,079,240   3,030,148   32,387,325    56,716,443    241,420,002
-================================ TOTAL ================================
-146,802,480  171,854,700  89,858,337  429,919,502   895,735,794  3,803,237,916
-\end{verbatim}
+\begin{tabularx}{\textwidth}{RRRRRRRR}
+\textbf{Repo 4k} &
+\textbf{Repo 8k} &
+\textbf{DNA 4k} &
+\textbf{DNA 8k} &
+\textbf{Git diffs} &
+\textbf{Git objects} &
+\textbf{Tar.gz} &
+\textbf{Taille réelle} \\
+\hline
+\input{assets/summary.daily.5.tex}
+\end{tabularx}
 \caption{Commits Mensuels}
 \label{tab:commits-monthly}
 \end{table*}
