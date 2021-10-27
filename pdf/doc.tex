@@ -61,11 +61,11 @@
 \usepackage{dirtree}
 
 % Acronyms
-\usepackage[printonlyused,footnote]{acronym}
+\usepackage[printonlyused,footnote,withpage]{acronym}
 
 %--------------------------------------- Content ---------------------------------------%
 
-\title{DNA-Backup}
+\title{Système de fichiers pour le stockage d’informations numériques sur ADN}
 
 \date{Octobre 2021}
 
@@ -79,9 +79,21 @@
 
 \chapter{Introduction}
 
+Ce stage a été réalisé dans le cadre du projet DNA-Drive.
+
 \section{Situation}
 
-Il existe un certain nombre de techniques permettant de stocker des données arbitraires via des molécules d'ADN.
+DNA-Drive est un système développé par l'équipe de Stéphane Lemaire (IBPC) visant à stocker des données numériques arbitraires via des molécules d'ADN.
+Pour ce faire, il existe un certain nombre de techniques.
+La spécificité principale de DNA-Drive par rapport à ses concurrents est d'utiliser la molécule d'ADN sous sa forme de double hélice, plutôt que sous la forme d'un simple brin.
+Cette forme a plusieurs avantages.
+Premièrement, la molécule est plus stable sous cette forme ce qui permet de limiter sa dégradation et donc d'augmenter sa durée de vie.
+Deuxièmement, cette forme est celle utilisé par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
+ce qui nous permet donc potentiellement de profiter de l'ensemble des mécanismes du vivant,
+tels que la réparation automatique de l’ADN pour corriger les erreurs
+ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
+
+
 Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques spécificités :
 
 \begin{enumerate}
@@ -89,6 +101,10 @@ Différents encodages et techniques de conservation sont utilisés, mais elles o
   \item Les lectures sont lentes et coûteuses.
   \item Les écritures le sont encore plus.
 \end{enumerate}
+
+On considère que l'encodage utilisé pour stocker les données sur ADN nous permet de ne pas nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
+
+\subsection{Spécificités du DNA-Drive}
 
 \section{Problématique}
 
@@ -105,12 +121,30 @@ La difficulté principale était donc de réussir à implémenter cette fonction
 
 \section{Réponse}
 
+La proposition qui suit s'inscrit dans le cadre d'une réponse à court terme au problème posé.
+Nous avons choisi de na pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage ADN.
+L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
+
+Toutes les contraintes citées précédemment nous ont incité % j'aime bof ce mot
+à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichier.
+En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment, absolument pas d'en faire un système de fichier accessible à chaud.
+Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps : journalières, hebdomadaires ou mensuelles.
+De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps seront factorisées dans un seul bloc de modification : la nouvelle version.
+Ce n'est effectivement pas la peine d'écrire un fichier s'il va être supprimé ou renommé quelques secondes plus tard.
+
+Afin de minimiser la quantité de données écrites par version, celles-ci sont réalisées de manière incrémentale.
+Chaque nouvelle version est donc en quelque sorte une différence par rapport aux précédentes.
+Ce stockage incrémental est obtenu grâce à une utilisation conjointe de la déduplication et de l'encodage delta.
+De plus, comme aucune donnée ne peut être supprimée, nous en profitons pour réaliser un système versionné, qui nous laisse la possibilité d'accéder aux précédentes sauvegardes.
+
+
 
 
 La solution proposée se base sur une technique de  \cite{shilane2012wan}.
 
 \chapter{Présentation générale}
 
+DNA-Backup tien donc plus 
 
 Le système part du principe qu'on a une copie des données stockées en
 ADN sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
@@ -229,6 +263,9 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig
 \caption{Disposition des données}
 \label{fig:data-layout}
 \end{figure}
+
+
+\chapter{Fonctionnement détaillé}
 
 \section{Algorithme du commit}
 
@@ -549,6 +586,7 @@ Lecture de la zone correspondant à la dernière version \\
 \bibliographystyle{plain}
 \bibliography{doc.bib}
 
+% Glossary
 \include{assets/acronyms.tex}
 
 % Annexes
@@ -557,8 +595,14 @@ Lecture de la zone correspondant à la dernière version \\
 
 \chapter{Documentation de la CLI}
 
-La \ac{cli}
+DNA-Backup est un programme s'utilisant en \ac{cli}.
+Trois commandes sont disponibles :
 
+\begin{itemize}
+  \item \verb|commit| : pour ajouter une nouvelle version au \emph{repo}.
+  \item \verb|restore| : afin de restaurer la dernière version depuis le \emph{repo}
+  \item \verb|export| : pour générer un export à partir des données du \emph{repo}
+\end{itemize}
 
 
 \end{document}
