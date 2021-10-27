@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper]{report}
 
 % Set page dimentions
 \usepackage[margin=35mm]{geometry}
@@ -37,6 +37,11 @@
 % Bibliography
 \usepackage[nottoc]{tocbibind}  % add link to table of contents
 
+% Appendices
+\usepackage{appendix}
+\renewcommand{\appendixname}{Annexe}
+\renewcommand{\appendixtocname}{Annexes}
+
 % Graphics
 \usepackage{graphicx}        % images and figures
 \graphicspath{ {assets} }    % path containing images
@@ -55,6 +60,9 @@
 % Directory tree
 \usepackage{dirtree}
 
+% Acronyms
+\usepackage[printonlyused,footnote]{acronym}
+
 %--------------------------------------- Content ---------------------------------------%
 
 \title{DNA-Backup}
@@ -69,9 +77,9 @@
 
 \tableofcontents
 
-\section{Introduction}
+\chapter{Introduction}
 
-\subsection{Situation}
+\section{Situation}
 
 Il existe un certain nombre de techniques permettant de stocker des données arbitraires via des molécules d'ADN.
 Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques spécificités :
@@ -82,26 +90,26 @@ Différents encodages et techniques de conservation sont utilisés, mais elles o
   \item Les écritures le sont encore plus.
 \end{enumerate}
 
-\subsection{Problématique}
+\section{Problématique}
 
 Une des fonctionnalités que le système devait supporter était la possibilité de mettre à jour des fichiers déjà écrits.
 Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
 Cette problématique se retrouve sur d'autres médiums de stockages, comme les bandes magnétiques ou les disques optiques.
-Elle est résolue par leur système de fichiers respectif, LTFS \cite{pease2010linear} pour les bandes magnétiques et UDF \cite{optical2003universal} pour les CD et DVD non-RW.
-Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de LFTS ou de la Virtual Allocation Table dans le cas d'UDF.
+Elle est résolue par leur système de fichiers respectif, \ac{ltfs} \cite{pease2010linear} pour les bandes magnétiques et \ac{udf} \cite{optical2003universal} pour les CD et DVD non-RW.
+Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ac{ltfs} ou de la Virtual Allocation Table dans le cas de \ac{udf}.
 
 % ajouter un § par rapport aux coùt des écritures
 
 La difficulté principale était donc de réussir à implémenter cette fonctionnalité sur un médium de stockage qui n'a pas la capacité de modifier les données existantes, tout en limitant les écritures au strict nécessaire.
 
 
-\subsection{Réponse}
+\section{Réponse}
 
 
 
 La solution proposée se base sur une technique de  \cite{shilane2012wan}.
 
-\section{Présentation générale}
+\chapter{Présentation générale}
 
 
 Le système part du principe qu'on a une copie des données stockées en
@@ -222,7 +230,7 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig
 \label{fig:data-layout}
 \end{figure}
 
-\subsection{Algorithme du commit}
+\section{Algorithme du commit}
 
 \begin{enumerate}
 \item
@@ -274,7 +282,7 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig
   ainsi obtenus.
 \end{enumerate}
 
-\subsection{Algorithme du restore}
+\section{Algorithme du restore}
 
 \begin{enumerate}
 \item
@@ -298,16 +306,16 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig
   correspondants dans le répertoire \emph{destination}.
 \end{enumerate}
 
-\subsection{\texorpdfstring{Restaurer sans le
+\section{\texorpdfstring{Restaurer sans le
 \emph{repo}}{Restaurer sans le repo}}
 
-\subsubsection{\texorpdfstring{Reconstruction complète du
+\subsection{\texorpdfstring{Reconstruction complète du
 \emph{repo}}{Reconstruction complète du repo}}
 
 Il est possible de reconstruire le \emph{repo} en entier en lisant la
 totalité du \emph{DNA-Drive}.
 
-\subsubsection{Restauration de la dernière
+\subsection{Restauration de la dernière
 version}
 
 Il est possible de ne restaurer que la dernière version en lisant dans
@@ -316,7 +324,7 @@ de métadonnées (environ 2\% de la totalité des données écrites), puis en
 lisant tous les \emph{pools} contenant des \emph{chunks} référencés par
 la \emph{recipe} de cette version.
 
-\subsubsection{Restauration d'un seul
+\subsection{Restauration d'un seul
 fichier}
 
 Il pourrait être possible (pas pour le moment) de ne restaurer qu'un
@@ -327,7 +335,7 @@ Pour cela, il faudrait en plus stocker en ADN un mapping \emph{chunk}
 décompressé → \emph{pool} contenant ce \emph{chunk} et ainsi n'avoir à
 lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
 
-\section{Évaluation de performances}
+\chapter{Évaluation de performances}
 
 Le dossier \verb|exp| contient les scripts permettant de reproduire
 les expériences. Les scripts ne sont prévus pour fonctionner que sur
@@ -338,7 +346,7 @@ s'agit en effet d'une bonne simulation de modification de dossiers, car
 l'historique contient toutes les modifications qui ont été apportées
 petit à petit à l'ensemble des fichiers.
 
-\subsection{Bases de comparaison}
+\section{Bases de comparaison}
 
 Pour évaluer les performances du système DNA-Backup, quatre autres
 systèmes de stockage versionnés ont été choisis comme base de
@@ -355,7 +363,7 @@ comparaison :
   \textbf{Taille réelle}
 \end{itemize}
 
-\subsubsection{Git diffs}
+\subsection{Git diffs}
 
 Ce système utilise le delta généré par la commande \verb|git diff|
 pour sauvegarder une nouvelle version. Les données à stocker consistent
@@ -363,7 +371,7 @@ donc en une somme de deltas. Pour restaurer les données, il faut
 appliquer séquentiellement l'ensemble des deltas jusqu'à obtenir l'état
 de la version voulue.
 
-\subsubsection{Git objects}
+\subsection{Git objects}
 
 Ce système nous permet de simuler un système de fichier qui ne serait
 pas autorisé à modifier des données sur le support tout en gardant la
@@ -383,7 +391,7 @@ modification d'un fichier entrainera donc l'ajout de nouveaux
 fichier. C'est de cette manière que Git est capable de créer un système
 de fichiers modifiable à partir d'objets immuables.
 
-\subsubsection{Tar.gz}
+\subsection{Tar.gz}
 
 Une technique d'archivage assez classique à laquelle il peut être
 intéressant de nous comparer est de stocker chaque version en tant
@@ -396,7 +404,7 @@ Elle a cependant l'inconvénient de ne pas faire de dé-duplication ni
 d'encodage delta, et ne tire donc pas du tout parti des données déjà
 écrites sur le support.
 
-\subsubsection{Taille réelle}
+\subsection{Taille réelle}
 
 Cette base de comparaison n'est en réalité pas un système viable. Elle
 correspond à la taille que prend en réalité le dossier \emph{source} au
@@ -404,7 +412,7 @@ moment de la sauvegarde. C'est un indicateur qui permet de se rendre
 compte du poids que prendrait la sauvegarde de multiples versions sans
 aucune déduplication ou compression.
 
-\subsubsection{Tableau récapitulatif}
+\subsection{Tableau récapitulatif}
 
 \begin{table*}[ht]
 
@@ -457,9 +465,9 @@ Lecture de la zone correspondant à la dernière version \\
 \label{tab:recap-table}
 \end{table*}
 
-\subsection{Nombre d'octets par version}
+\section{Nombre d'octets par version}
 
-\subsubsection{Légende}
+\subsection{Légende}
 
 \begin{itemize}
 \item
@@ -479,7 +487,7 @@ Lecture de la zone correspondant à la dernière version \\
   non-dédupliquées.
 \end{itemize}
 
-\subsubsection{Résultats}
+\subsection{Résultats}
 
 
 \begin{table*}[ht]
@@ -540,5 +548,17 @@ Lecture de la zone correspondant à la dernière version \\
 % Bibliography
 \bibliographystyle{plain}
 \bibliography{doc.bib}
+
+\include{assets/acronyms.tex}
+
+% Annexes
+\appendix
+\addappheadtotoc
+
+\chapter{Documentation de la CLI}
+
+La \ac{cli}
+
+
 
 \end{document}
