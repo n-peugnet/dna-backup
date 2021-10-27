@@ -94,18 +94,28 @@ Il est donc naturel de penser à utiliser l’\ac{adn} pour stocker des données
 et un certain nombre de démonstrations de faisabilité du stockage sur l’\ac{adn} ont été réalisées lors des dernières années.
 Les travaux publiés pour l’instant se basent essentiellement sur l’utilisation d’\emph{oligonucléotides} qui sont des courts segments d’\ac{adn}.
 
+\subsection{Encodages}
 
-\subsection{Spécificités des supports de stockage ADN}
+Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church \cite{church2012next} qui réussit à stocker 658~ko sur 54~898 oligonucléotides.
+Dans ses travaux, Church souhaite pouvoir contrôler le taux de GC et limiter les répétitions d’un même nucléotide.
+Le taux de GC est la proportion de nucléotides G et C dans une séquence donnée. 
+Les liaisons GC ont trois liaisons hydrogène tandis que les liaisons AT ont deux liaisons hydrogène.
+Un taux de GC élevé assure une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
+Il est donc préférable d’avoir un taux de GC équilibré.
+En ce qui concerne les longues répétitions d’un même nucléotide, elles produisent des erreurs lors du séquençage.
+Pour toutes ces raisons, Church va utiliser un encodage en base 2 : A=C=0 et T=G=1 pour avoir plus de flexibilité.
 
-Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques spécificités :
+Suite à ces travaux, un certain nombre de nouvelles publications vont apporter des améliorations intéressantes aux techniques existantes,
+avec par exemple l'encodage de Goldman \cite{goldman2013towards} qui propose l'utilisation d'une base 3 (Figure \ref{fig:goldman-encoding}),
+plus performante en densité de stockage.
 
-\begin{enumerate}
-  \item Elles ne permettent pas de supprimer des données une fois écrites.
-  \item Les lectures sont lentes et coûteuses.
-  \item Les écritures le sont encore plus.
-\end{enumerate}
+\begin{figure}
+\centering
+\includegraphics[width=.6\textwidth]{goldman-encoding.png}
+\caption{Encodage de Goldman \cite{goldman2013towards}}
+\label{fig:goldman-encoding}
+\end{figure}
 
-On considère que l'encodage utilisé pour stocker les données sur \ac{adn} nous permet de ne pas nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
 
 \subsection{Spécificités du DNA-Drive}
 
@@ -118,6 +128,14 @@ tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
 ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
 
 \section{Problématique}
+
+Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques inconvénients majeurs :
+
+\begin{enumerate}
+  \item Elles ne permettent pas de supprimer des données une fois écrites.
+  \item Les lectures sont lentes et coûteuses.
+  \item Les écritures le sont encore plus.
+\end{enumerate}
 
 Une des fonctionnalités que le système devait supporter était la possibilité de mettre à jour des fichiers déjà écrits.
 Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
@@ -133,7 +151,10 @@ La difficulté principale était donc de réussir à implémenter cette fonction
 \section{Réponse}
 
 La proposition qui suit s'inscrit dans le cadre d'une réponse à court terme au problème posé.
-Nous avons choisi de na pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage \ac{adn}.
+Nous avons choisi de ne pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage \ac{adn}.
+
+On considère également que l'encodage utilisé pour stocker les données sur \ac{adn} nous évite d'avoir à nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
+
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
 Toutes les contraintes citées précédemment nous ont incité % j'aime bof ce mot
