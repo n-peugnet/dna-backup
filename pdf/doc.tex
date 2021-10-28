@@ -44,6 +44,7 @@
 
 % Graphics
 \usepackage{graphicx}        % images and figures
+\usepackage{subcaption}      % subcaption and subtables
 \graphicspath{ {assets} }    % path containing images
 \usepackage{tikz}            % to generate graphics
 \usetikzlibrary{arrows.meta} % setup arrows
@@ -51,11 +52,15 @@
 \tikzstyle{Arrow}=[-{Stealth[scale=1.5]}]
 
 % Complex tables
-\usepackage{multirow,tabularx}
+\usepackage{multirow}
+\usepackage{tabularx}
 % Custom column types
 \usepackage{array}
 \newcolumntype{L}{>{\raggedright\arraybackslash}X} % Left-aligned auto-span columns
 \newcolumntype{R}{>{\raggedleft\arraybackslash}X} % Right-aligned auto-span columns
+
+% Localised number print (thousands, decimals, etc...)
+\usepackage{numprint}
 
 % Directory tree
 \usepackage{dirtree}
@@ -79,7 +84,7 @@
 
 \chapter{Introduction}
 
-Ce stage a été réalisé dans le cadre du projet DNA-Drive, un système développé par l'équipe de Stéphane Lemaire (IBPC) visant à stocker des données numériques arbitraires via des molécules d'\ac{adn}.
+Ce stage a été réalisé dans le cadre du projet DNA-Drive, un système développé par l'équipe de Stéphane Lemaire (\ac{lcqb}) visant à stocker des données numériques arbitraires via des molécules d'\ac{adn}.
 
 \section{Stocker des données sur ADN}
 
@@ -96,14 +101,53 @@ Les travaux publiés pour l’instant se basent essentiellement sur l’utilisat
 
 \subsection{Encodages}
 
-Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church \cite{church2012next} qui réussit à stocker 658~ko sur 54~898 oligonucléotides.
+Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church \cite{church2012next} qui réussit à stocker 658~ko sur \numprint{54898} oligonucléotides.
 Dans ses travaux, Church souhaite pouvoir contrôler le taux de GC et limiter les répétitions d’un même nucléotide.
 Le taux de GC est la proportion de nucléotides G et C dans une séquence donnée. 
 Les liaisons GC ont trois liaisons hydrogène tandis que les liaisons AT ont deux liaisons hydrogène.
 Un taux de GC élevé assure une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
 Il est donc préférable d’avoir un taux de GC équilibré.
 En ce qui concerne les longues répétitions d’un même nucléotide, elles produisent des erreurs lors du séquençage.
-Pour toutes ces raisons, Church va utiliser un encodage en base 2 : A=C=0 et T=G=1 pour avoir plus de flexibilité.
+Pour toutes ces raisons, Church va utiliser un encodage en base 2 : $A=C=0$ et $T=G=1$ pour avoir plus de flexibilité (Table \ref{tab:church-encoding}).
+
+\begin{table}[ht]
+\centering
+\setlength{\tabcolsep}{.8em}
+\renewcommand\arraystretch{1.5}
+
+\begin{subtable}[t]{.45\textwidth}
+  \centering
+  \begin{tabular}{|c|c|c|c|}
+  \hline
+  \multirow{2}{*}{\textbf{Bit}} & \textbf{0} & A & C \\
+  \cline{2-4}
+  & \textbf{1} & T & G \\
+  \hline
+  \end{tabular}
+  \caption{Encodage Church}
+  \label{tab:church-encoding}
+\end{subtable}
+\hfill
+\begin{subtable}[t]{.54\textwidth}
+  \centering
+  \begin{tabular}{|c|c|c|c|}
+  \cline{3-4}
+  \multicolumn{2}{c|}{} & \multicolumn{2}{c|}{\textbf{Position}} \\
+  \cline{3-4}
+  \multicolumn{2}{c|}{} & \textbf{Paire} & \textbf{Impaire} \\
+  \hline
+  \multirow{2}{*}{\textbf{Bit}} & \textbf{0} & A & C \\
+  \cline{2-4}
+  & \textbf{1} & T & G \\
+  \hline
+  \end{tabular}
+  \caption{Encodage BIODATA}
+  \label{tab:biodata-encoding}
+\end{subtable}
+
+\caption{Différents encodages pour \ac{adn}}
+\label{tab:dna-encodings}
+\end{table}
 
 Suite à ces travaux, un certain nombre de nouvelles publications vont apporter des améliorations intéressantes aux techniques existantes,
 avec par exemple l'encodage de Goldman \cite{goldman2013towards} qui propose l'utilisation d'une base 3 (Figure \ref{fig:goldman-encoding}),
@@ -119,13 +163,42 @@ plus performante en densité de stockage.
 
 \subsection{Spécificités du DNA-Drive}
 
+\subsubsection{Spécificités biologiques}
+
 La spécificité principale de DNA-Drive par rapport à ses concurrents est d'utiliser la molécule d'\ac{adn} sous sa forme de double hélice, plutôt que sous la forme d'un simple brin.
+
 Cette forme a plusieurs avantages.
-Premièrement, la molécule est plus stable sous cette forme ce qui permet de limiter sa dégradation et donc d'augmenter sa durée de vie.
-Deuxièmement, cette forme est celle utilisé par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
+Premièrement, la molécule est plus stable sous cette forme, ce qui limite sa dégradation et permet donc d'augmenter sa durée de vie.
+Deuxièmement, il s'agit de la forme utilisée par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
 ce qui nous permet donc potentiellement de profiter des mécanismes du vivant,
 tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
 ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
+
+Cependant, faire en sorte qu'une molécule d'\ac{adn} soit compatible avec un être vivant lui ajoute des contraintes supplémentaires.
+En particulier, en plus de garantir un taux de GC équilibré,
+notre encodeur doit à tout prix éviter que les séquences de données, une fois encodées en ADN,
+ne soient interprétés par l'hôte comme des séquences codantes de son génome.
+
+Dans l'ADN d'un être vivant, ces parties codantes sont délimités par deux courtes séquences de nucléotides placées au début et à la fin de la zone à interpréter.
+Il s'agit des codons START et STOP.
+Le codon START indique le début d'une séquence à interpréter.
+C'est donc celui qu'il faut à tout prix éviter d'obtenir une fois les données encodées.
+Le codon STOP, au contraire, définit la fin d'une telle séquence.
+Il est donc intéressant d'en insérer un maximum pour limiter la casse dans l'éventualité où un codon START aurait malencontreusement été ajouté.
+
+BIODATA, l'encodage mis au point par Clémence Blachon (\ac{lcqb}) utilisé par le DNA-Drive est justement chargé de garantir la compatibilité avec l'hôte.
+Il est inspiré de celui de Church auquel des contraintes supplémentaires viennent s'appliquer (Table \ref{tab:biodata-encoding}).
+
+\subsubsection{Spécificités techniques}
+
+L'organisation physique des données du DNA-Drive est assez particulière et doit être prise en compte afin d'optimiser les lectures et les écritures.
+
+\paragraph{Track} Une \emph{track} est un segment de données, actuellement de 1024~octets.
+
+\paragraph{Pool}
+
+\paragraph{Array}
+
 
 \section{Problématique}
 
@@ -137,7 +210,7 @@ Différents encodages et techniques de conservation sont utilisés, mais elles o
   \item Les écritures le sont encore plus.
 \end{enumerate}
 
-Une des fonctionnalités que le système devait supporter était la possibilité de mettre à jour des fichiers déjà écrits.
+Une des fonctionnalités que le système devait supporter est la possibilité de mettre à jour des fichiers déjà écrits.
 Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
 Cette problématique se retrouve sur d'autres médiums de stockages, comme les bandes magnétiques ou les disques optiques.
 Elle est résolue par leur système de fichiers respectif, \ac{ltfs} \cite{pease2010linear} pour les bandes magnétiques et \ac{udf} \cite{optical2003universal} pour les CD et DVD non-RW.

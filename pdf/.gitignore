@@ -9,3 +9,6 @@
 *.pdf
 *.synctex.gz
 *.toc
+
+# Assets
+!assets/*.pdf
