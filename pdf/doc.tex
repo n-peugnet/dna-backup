@@ -68,6 +68,9 @@
 % Acronyms
 \usepackage[printonlyused,footnote]{acronym}
 
+% Style
+\setlength{\parskip}{.3em} % space between paragraphs
+
 %--------------------------------------- Content ---------------------------------------%
 
 \title{Système de fichiers pour le stockage d’informations numériques sur ADN}
@@ -155,7 +158,7 @@ plus performante en densité de stockage.
 
 \begin{figure}
 \centering
-\includegraphics[width=.6\textwidth]{goldman-encoding.png}
+\includegraphics[width=.6\textwidth]{goldman-encoding}
 \caption{Encodage de Goldman \cite{goldman2013towards}}
 \label{fig:goldman-encoding}
 \end{figure}
@@ -186,19 +189,61 @@ C'est donc celui qu'il faut à tout prix éviter d'obtenir une fois les données
 Le codon STOP, au contraire, définit la fin d'une telle séquence.
 Il est donc intéressant d'en insérer un maximum pour limiter la casse dans l'éventualité où un codon START aurait malencontreusement été ajouté.
 
-BIODATA, l'encodage mis au point par Clémence Blachon (\ac{lcqb}) utilisé par le DNA-Drive est justement chargé de garantir la compatibilité avec l'hôte.
-Il est inspiré de celui de Church auquel des contraintes supplémentaires viennent s'appliquer (Table \ref{tab:biodata-encoding}).
+En ce qui concerne la lecture des données, on utilise un séquenceur génétique portatif à
+nanopore tels que celui utilisé par l’équipe de H. Yadzi \cite{yazdi2017portable} et présenté sur la Figure \ref{fig:oxford-nanopore-minion}.
+Les séquenceurs en général ont un problème avec la lecture des homopolymères, c’est-à-dire des
+séquences de répétitions d’un même nucléotide. On interdit donc les séquences de plus de 3 fois
+le même nucléotide pour éviter les erreurs de séquençage.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.6\textwidth]{oxford-nanopore-minion}
+\caption{Lecteur Oxford Nanopore Minion}
+\label{fig:oxford-nanopore-minion}
+\end{figure}
+
+BIODATA, l'encodage mis au point par Clémence Blachon (\ac{lcqb}) pour le DNA-Drive est justement chargé de faire respecter ces propriétés par les données encodées.
+Il est inspiré de celui de Church auquel des contraintes supplémentaires viennent s'appliquer :
+Pour chaque bit, on fixe la valeur du nucléotide en fonction de sa valeur et de la parité de sa position (Table \ref{tab:biodata-encoding}).
+De cette manière l'encodage est totalement contraint et le résultat est déterministe.
+Les valeurs choisies garantissent quelle que soit la séquence de bits que :
+
+\begin{itemize}
+  \item Le taux de GC restera équilibré.
+  \item Un nucléotide ne sera jamais répété plusieurs fois à la suite.
+  \item Aucun codon START ne sera inséré.
+  \item Des codons STOP seront insérés régulièrement.
+\end{itemize}
+
+Cet encodage nous permet donc de nous abstraire totalement des problématiques biologiques sous-jacentes lorsqu'on encode des données
+et nous laisse ainsi la possibilité de stocker des valeurs complètement arbitraires.
 
 \subsubsection{Spécificités techniques}
 
 L'organisation physique des données du DNA-Drive est assez particulière et doit être prise en compte afin d'optimiser les lectures et les écritures.
 
 \paragraph{Track} Une \emph{track} est un segment de données, actuellement de 1024~octets.
+C'est la plus petite unité de stockage du système.
+Toutes les écritures devront donc être alignées sur la taille d'une track.
+Elles sont obtenues grâce à un assemblage MoClo \cite{werner2012fast} sur 3 niveaux
+et sont refermées en un cercle pour former des \emph{plasmides}, une forme pérenne de la molécule d'\ac{adn}.
+Cependant, cette forme ne permet pas de les mettre bout-à-bout,
+il n'y a donc pas d'ordre naturel entre les tracks.
+C'est pour cette raison que chaque track contient un \emph{barcode} qui permet de les identifier et donc de les réordonner.
 
-\paragraph{Pool}
+\paragraph{Barcode} Le \emph{barcode} est un entier de 4~octets présent au tout début d'une track et permettant de l'identifier.
 
-\paragraph{Array}
+\paragraph{Pool} Un \emph{pool} est une minicapsule contenant plusieurs tracks.
+Actuellement, un pool peut contenir \numprint{10000} tracks et les lectures sont réalisées par pool entier.
+Il est possible de lire plusieurs pools en même temps
+et même de fusionner des pools si les barcodes des tracks qu'ils contiennent ne se chevauchent pas.
 
+\paragraph{Array} Un \emph{array} est une plaque de 96~pools ($8\times12$) qui est traditionnellement utilisée en biologie.
+La taille maximum disponible pour des données d’un array est donc de \numprint{979.2}~Go ($96\times\numprint{10000}\times1020$~octets).
+On peut multiplier les arrays afin d'obtenir une plus grande capacité de stockage.
+
+Les chiffres donnés ici sur l’organisation du disque de 1024~octets par track et\numprint{10000}~tracks par pool sont limités respectivement par la complexité de l'assemblage MoClo et la précision limitée des techniques de séquençage actuelles
+La capacité disponible est donc amenée à évoluer dans le futur avec l'arrivée de technologies plus performantes.
 
 \section{Problématique}
 
@@ -225,8 +270,6 @@ La difficulté principale était donc de réussir à implémenter cette fonction
 
 La proposition qui suit s'inscrit dans le cadre d'une réponse à court terme au problème posé.
 Nous avons choisi de ne pas nous projeter trop loin dans le temps et avons donc basé l'ensemble de la réflexion sur les capacités actuelles des technologies de synthèse et de séquençage \ac{adn}.
-
-On considère également que l'encodage utilisé pour stocker les données sur \ac{adn} nous évite d'avoir à nous soucier des contraintes biologiques sous-jacentes, et nous permet donc d'écrire des données totalement arbitraires, comme c'est le cas de l'encodage BIODATA utilisé dans le cadre de ce projet.
 
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
