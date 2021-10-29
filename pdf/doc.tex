@@ -156,7 +156,7 @@ Suite à ces travaux, un certain nombre de nouvelles publications vont apporter 
 avec par exemple l'encodage de Goldman \cite{goldman2013towards} qui propose l'utilisation d'une base 3 (Figure \ref{fig:goldman-encoding}),
 plus performante en densité de stockage.
 
-\begin{figure}
+\begin{figure}[ht]
 \centering
 \includegraphics[width=.6\textwidth]{goldman-encoding}
 \caption{Encodage de Goldman \cite{goldman2013towards}}
@@ -175,7 +175,7 @@ Premièrement, la molécule est plus stable sous cette forme, ce qui limite sa d
 Deuxièmement, il s'agit de la forme utilisée par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
 ce qui nous permet donc potentiellement de profiter des mécanismes du vivant,
 tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
-ou la division cellulaire qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
+ou la division cellulaire qui va permettre une copie peu coûteuse et très rapide de grandes quantités de données.
 
 Cependant, faire en sorte qu'une molécule d'\ac{adn} soit compatible avec un être vivant lui ajoute des contraintes supplémentaires.
 En particulier, en plus de garantir un taux de GC équilibré,
@@ -192,7 +192,7 @@ Il est donc intéressant d'en insérer un maximum pour limiter la casse dans l'�
 En ce qui concerne la lecture des données, on utilise un séquenceur génétique portatif à
 nanopore tels que celui utilisé par l’équipe de H. Yadzi \cite{yazdi2017portable} et présenté sur la Figure \ref{fig:oxford-nanopore-minion}.
 Les séquenceurs en général ont un problème avec la lecture des homopolymères, c’est-à-dire des
-séquences de répétitions d’un même nucléotide. On interdit donc les séquences de plus de 3 fois
+séquences de répétitions d’un même nucléotide. On interdit donc les séquences de plus de trois fois
 le même nucléotide pour éviter les erreurs de séquençage.
 
 \begin{figure}[ht]
