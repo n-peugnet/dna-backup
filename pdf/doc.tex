@@ -88,6 +88,17 @@
 \chapter{Introduction}
 
 Ce stage a été réalisé dans le cadre du projet DNA-Drive, un système développé par l'équipe de Stéphane Lemaire (\ac{lcqb}) visant à stocker des données numériques arbitraires via des molécules d'\ac{adn}.
+Notre rôle sera de proposer un \emph{système de fichiers} adapté aux spécificités de ce nouveau médium de stockage.
+
+\section{Systèmes de fichiers}
+
+Clairement il va nous falloir au moins une petite section qui parle des systèmes de fichiers.
+
+\subsection{Rôle}
+
+\subsection{Quelques propriétés et fonctionnalités supplémentaires ?}
+
+\subsection{Quelques implémentations ?}
 
 \section{Stocker des données sur ADN}
 
@@ -263,9 +274,9 @@ et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séq
 Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur prix.
 
 Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives de stockage de données sur \ac{adn} est l'impossibilité de supprimer ou de modifier des données une fois écrites.
+Ce point est particulièrement bloquant pour un système de fichier \emph{ReadWrite} classique,
+qui se base sur ces deux propriétés pour mettre à jour les fichiers et leurs métadonnées ainsi que pour récupérer de l'espace lorsque des fichiers sont supprimés.
 
-Une des fonctionnalités que le système devait supporter est la possibilité de mettre à jour des fichiers déjà écrits.
-Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
 Cette problématique se retrouve sur d'autres systèmes de stockages, comme les bandes magnétiques ou les disques optiques.
 Elle est résolue par leur système de fichiers respectif, \ac{ltfs} \cite{pease2010linear} pour les bandes magnétiques et \ac{udf} \cite{optical2003universal} pour les CD et DVD non-RW.
 Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ac{ltfs} ou de la Virtual Allocation Table dans le cas de \ac{udf}.
