@@ -91,8 +91,8 @@ Ce stage a été réalisé dans le cadre du projet DNA-Drive, un système dével
 
 \section{Stocker des données sur ADN}
 
-L’\ac{adn} ou acide désoxyribonucléique d’un organisme, contient ce qu’on appelle le génome.
-Le génome est l’information génétique d’un organisme. L’\ac{adn} contient donc une information.
+L’\ac{adn} ou Acide DésoxyriboNucléique d’un organisme, constitue ce qu’on appelle le génome.
+Le génome contient l’information génétique d’un organisme. L’\ac{adn} contient donc une information.
 Cette information est codée sous la forme d’une suite de \emph{nucléotides}.
 Un nucléotide est une molécule organique qui est l’élément de base de l’\ac{adn}.
 Il existe 4 types de nucléotides différents qui sont représentés par 4 lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
@@ -107,8 +107,8 @@ Les travaux publiés pour l’instant se basent essentiellement sur l’utilisat
 Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church \cite{church2012next} qui réussit à stocker 658~ko sur \numprint{54898} oligonucléotides.
 Dans ses travaux, Church souhaite pouvoir contrôler le taux de GC et limiter les répétitions d’un même nucléotide.
 Le taux de GC est la proportion de nucléotides G et C dans une séquence donnée. 
-Les liaisons GC ont trois liaisons hydrogène tandis que les liaisons AT ont deux liaisons hydrogène.
-Un taux de GC élevé assure une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
+Les appariements GC ont trois liaisons hydrogène tandis que les appariements AT n'en ont que deux.
+Un taux de GC élevé assure ainsi une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
 Il est donc préférable d’avoir un taux de GC équilibré.
 En ce qui concerne les longues répétitions d’un même nucléotide, elles produisent des erreurs lors du séquençage.
 Pour toutes ces raisons, Church va utiliser un encodage en base 2 : $A=C=0$ et $T=G=1$ pour avoir plus de flexibilité (Table \ref{tab:church-encoding}).
@@ -175,7 +175,7 @@ Premièrement, la molécule est plus stable sous cette forme, ce qui limite sa d
 Deuxièmement, il s'agit de la forme utilisée par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
 ce qui nous permet donc potentiellement de profiter des mécanismes du vivant,
 tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
-ou la mitose qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
+ou la division cellulaire qui va permettre une copie peu coûteuse et très rapide de grande quantité de données.
 
 Cependant, faire en sorte qu'une molécule d'\ac{adn} soit compatible avec un être vivant lui ajoute des contraintes supplémentaires.
 En particulier, en plus de garantir un taux de GC équilibré,
