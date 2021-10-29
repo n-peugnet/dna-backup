@@ -226,7 +226,11 @@ L'organisation physique des données du DNA-Drive est assez particulière et doi
 C'est la plus petite unité de stockage du système.
 Toutes les écritures devront donc être alignées sur la taille d'une track.
 Elles sont obtenues grâce à un assemblage MoClo \cite{werner2012fast} sur 3 niveaux
-et sont refermées en un cercle pour former des \emph{plasmides}, une forme pérenne de la molécule d'\ac{adn}.
+et sont refermées en un cercle pour former des \emph{plasmides}.
+Cette forme particulière de la molécule d'\ac{adn} comporte plusieurs avantages.
+Elle est tout d'abord plus pérenne grâce à sa structure circulaire,
+car c'est principalement par ses extrémités que la molécule se dégrade.
+Mais les plasmides profitent en plus de leur propre mécanisme d'auto-réplication autonome.
 Cependant, cette forme ne permet pas de les mettre bout-à-bout,
 il n'y a donc pas d'ordre naturel entre les tracks.
 C'est pour cette raison que chaque track contient un \emph{barcode} qui permet de les identifier et donc de les réordonner.
@@ -247,17 +251,22 @@ La capacité disponible est donc amenée à évoluer dans le futur avec l'arriv�
 
 \section{Problématique}
 
-Différents encodages et techniques de conservation sont utilisés, mais elles ont en commun quelques inconvénients majeurs :
+Il existe donc plusieurs techniques et encodages permettant de stocker des informations arbitraires sur la molécule d'\ac{adn},
+mais toutes ont en commun quelques inconvénients majeurs.
+Ces inconvénients proviennent pour la plupart des limites actuelles des technologies de synthèse et de séquençage.
+Une expérience d'un système automatisé de transmission de données par \ac{adn} datant de 2019 \cite{takahashi2019demonstration}
+nous donne un ordre de grandeur des durées de lecture et d'écriture,
+bien qu'il ne serait pas étonnant que des techniques plus performantes fassent leur apparition dans un futur proche :
+La latence d'une opération d'écriture suivie d'une lecture d'une séquence de 12~octets est de 21~h,
+dont \numprint{20.4}~h pour l'écriture (\numprint{8.4}~h de synthèse à 305~s par base et 12~h de stabilisation)
+et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séquençage et décodage).
+Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur prix.
 
-\begin{enumerate}
-  \item Elles ne permettent pas de supprimer des données une fois écrites.
-  \item Les lectures sont lentes et coûteuses.
-  \item Les écritures le sont encore plus.
-\end{enumerate}
+Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives de stockage de données sur \ac{adn} est l'impossibilité de supprimer ou de modifier des données une fois écrites.
 
 Une des fonctionnalités que le système devait supporter est la possibilité de mettre à jour des fichiers déjà écrits.
 Or le médium de stockage utilisé ne permet ni de supprimer des données écrites, ni même de les modifier.
-Cette problématique se retrouve sur d'autres médiums de stockages, comme les bandes magnétiques ou les disques optiques.
+Cette problématique se retrouve sur d'autres systèmes de stockages, comme les bandes magnétiques ou les disques optiques.
 Elle est résolue par leur système de fichiers respectif, \ac{ltfs} \cite{pease2010linear} pour les bandes magnétiques et \ac{udf} \cite{optical2003universal} pour les CD et DVD non-RW.
 Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ac{ltfs} ou de la Virtual Allocation Table dans le cas de \ac{udf}.
 
