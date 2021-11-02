@@ -92,12 +92,8 @@ Notre rôle sera de proposer un \emph{système de fichiers} adapté aux spécifi
 
 \section{Systèmes de fichiers}
 
-Clairement il va nous falloir au moins une petite section qui parle des systèmes de fichiers.
-
-\subsection{Rôle}
-
 Le but principal d'un \emph{système de fichiers} est de permettre d'organiser des données sur un support de stockage.
-En son absence, les différentes données d'un support seraient toutes écrites d'un seul bloc
+En son absence, les différentes données d'un support seraient toutes écrites d'un seul tenant
 et il ne serait pas possible de savoir où commence et où s'arrête un morceau cohérent de données.
 Le système de fichiers offre donc la possibilité de répartir les données dans des segments nommés : les \emph{fichiers}.
 Les fichiers peuvent être disposés au sein d'une arborescence de \emph{dossiers},
@@ -105,7 +101,7 @@ ce qui permet de les organiser de manière logique.
 Les informations de cette arborescence sont des métadonnées que l'on doit donc stocker en plus des données.
 Les systèmes de fichiers récents stockent en général bien plus d'informations que simplement les noms des fichiers et des dossiers.
 Parmi celles-ci, on peut citer par exemple les dates de création et de modification,
-ou bien encore les permissions dans le cas d'un système POSIX.
+ou bien encore les permissions s'il s'agit d'un système POSIX.
 
 Pour stocker ou lire des données, un système de fichiers doit communiquer avec le matériel.
 Lorsqu'il s'agit d'un support de stockage classique respectant le \ac{lba},
@@ -114,18 +110,14 @@ le système de fichiers n'a pas besoin de connaitre le fonctionnement détaillé
 Il lui suffit de demander de lire ou écrire les données du bloc $n$
 et c'est le contrôleur du périphérique lui-même qui se charge de retrouver l'emplacement physique de ce bloc logique.
 
-Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour ces supports.
-C'est par exemple le cas pour les bandes magnétiques avec \ac{hptfs} et \ac{ltfs} ou les 
+Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour eux.
+C'est par exemple le cas pour les bandes magnétiques avec \ac{hptfs} et \ac{ltfs} ou les disques optiques avec \ac{udf}.
 
 
 Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
 comme c'est le cas d'une bonne partie des systèmes compressés (SqashFS, EROFS, etc~\textellipsis),
 soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres systèmes.
 
-
-\subsection{Quelques propriétés et fonctionnalités supplémentaires ?}
-
-\subsection{Quelques implémentations ?}
 
 \section{Stocker des données sur ADN}
 
