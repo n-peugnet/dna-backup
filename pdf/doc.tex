@@ -96,6 +96,33 @@ Clairement il va nous falloir au moins une petite section qui parle des système
 
 \subsection{Rôle}
 
+Le but principal d'un \emph{système de fichiers} est de permettre d'organiser des données sur un support de stockage.
+En son absence, les différentes données d'un support seraient toutes écrites d'un seul bloc
+et il ne serait pas possible de savoir où commence et où s'arrête un morceau cohérent de données.
+Le système de fichiers offre donc la possibilité de répartir les données dans des segments nommés : les \emph{fichiers}.
+Les fichiers peuvent être disposés au sein d'une arborescence de \emph{dossiers},
+ce qui permet de les organiser de manière logique.
+Les informations de cette arborescence sont des métadonnées que l'on doit donc stocker en plus des données.
+Les systèmes de fichiers récents stockent en général bien plus d'informations que simplement les noms des fichiers et des dossiers.
+Parmi celles-ci, on peut citer par exemple les dates de création et de modification,
+ou bien encore les permissions dans le cas d'un système POSIX.
+
+Pour stocker ou lire des données, un système de fichiers doit communiquer avec le matériel.
+Lorsqu'il s'agit d'un support de stockage classique respectant le \ac{lba},
+comme c'est le cas des disque-durs et des \ac{ssd},
+le système de fichiers n'a pas besoin de connaitre le fonctionnement détaillé du périphérique.
+Il lui suffit de demander de lire ou écrire les données du bloc $n$
+et c'est le contrôleur du périphérique lui-même qui se charge de retrouver l'emplacement physique de ce bloc logique.
+
+Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour ces supports.
+C'est par exemple le cas pour les bandes magnétiques avec \ac{hptfs} et \ac{ltfs} ou les 
+
+
+Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
+comme c'est le cas d'une bonne partie des systèmes compressés (SqashFS, EROFS, etc~\textellipsis),
+soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres systèmes.
+
+
 \subsection{Quelques propriétés et fonctionnalités supplémentaires ?}
 
 \subsection{Quelques implémentations ?}
@@ -106,7 +133,7 @@ L’\ac{adn} ou Acide DésoxyriboNucléique d’un organisme, constitue ce qu’
 Le génome contient l’information génétique d’un organisme. L’\ac{adn} contient donc une information.
 Cette information est codée sous la forme d’une suite de \emph{nucléotides}.
 Un nucléotide est une molécule organique qui est l’élément de base de l’\ac{adn}.
-Il existe 4 types de nucléotides différents qui sont représentés par 4 lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
+Il existe quatre nucléotides différents qui sont représentés par quatre lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
 Nous pouvons voir directement le parallèle que nous pouvons faire entre l’\ac{adn} qui est une suite de nucléotides en base 4 et une donnée informatique qui est une suite de bits en base 2.
 
 Il est donc naturel de penser à utiliser l’\ac{adn} pour stocker des données
@@ -209,7 +236,7 @@ le même nucléotide pour éviter les erreurs de séquençage.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.6\textwidth]{oxford-nanopore-minion}
-\caption{Lecteur Oxford Nanopore Minion}
+\caption{Lecteur Oxford Nanopore MinION}
 \label{fig:oxford-nanopore-minion}
 \end{figure}
 
@@ -274,7 +301,7 @@ et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séq
 Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur prix.
 
 Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives de stockage de données sur \ac{adn} est l'impossibilité de supprimer ou de modifier des données une fois écrites.
-Ce point est particulièrement bloquant pour un système de fichier \emph{ReadWrite} classique,
+Ce point est particulièrement bloquant pour un système de fichiers \emph{ReadWrite} classique,
 qui se base sur ces deux propriétés pour mettre à jour les fichiers et leurs métadonnées ainsi que pour récupérer de l'espace lorsque des fichiers sont supprimés.
 
 Cette problématique se retrouve sur d'autres systèmes de stockages, comme les bandes magnétiques ou les disques optiques.
@@ -294,8 +321,8 @@ Nous avons choisi de ne pas nous projeter trop loin dans le temps et avons donc 
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
 Toutes les contraintes citées précédemment nous ont incité % j'aime bof ce mot
-à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichier.
-En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment, absolument pas d'en faire un système de fichier accessible à chaud.
+à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichiers.
+En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment, absolument pas d'en faire un système de fichiers accessible à chaud.
 Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps : journalières, hebdomadaires ou mensuelles.
 De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps seront factorisées dans un seul bloc de modification : la nouvelle version.
 Ce n'est effectivement pas la peine d'écrire un fichier s'il va être supprimé ou renommé quelques secondes plus tard.
@@ -578,7 +605,7 @@ de la version voulue.
 
 \subsection{Git objects}
 
-Ce système nous permet de simuler un système de fichier qui ne serait
+Ce système nous permet de simuler un système de fichiers qui ne serait
 pas autorisé à modifier des données sur le support tout en gardant la
 possibilité de modifier les données. Il s'agit de la manière dont Git
 sauvegarde les données des fichiers d'un dépôt. Le contenu de chaque
