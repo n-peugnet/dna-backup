@@ -99,9 +99,13 @@ Le système de fichiers offre donc la possibilité de répartir les données dan
 Les fichiers peuvent être disposés au sein d'une arborescence de \emph{dossiers},
 ce qui permet de les organiser de manière logique.
 Les informations de cette arborescence sont des métadonnées que l'on doit donc stocker en plus des données.
-Les systèmes de fichiers récents stockent en général bien plus d'informations que simplement les noms des fichiers et des dossiers.
+Les systèmes de fichiers récents stockent en général bien plus de métadonnées que simplement les noms des fichiers et des dossiers.
 Parmi celles-ci, on peut citer par exemple les dates de création et de modification,
-ou bien encore les permissions s'il s'agit d'un système POSIX.
+ou bien encore les permissions lorsqu'il s'agit d'un système POSIX.
+
+Grâce à cette structure d'arborescence de fichiers commune à tous les systèmes,
+on obtient une compatibilité de l'un à l'autre,
+ce qui offre à la couche supérieure une abstraction des supports de stockages.
 
 Pour stocker ou lire des données, un système de fichiers doit communiquer avec le matériel.
 Lorsqu'il s'agit d'un support de stockage classique respectant le \ac{lba},
@@ -112,11 +116,19 @@ et c'est le contrôleur du périphérique lui-même qui se charge de retrouver l
 
 Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour eux.
 C'est par exemple le cas pour les bandes magnétiques avec \ac{hptfs} et \ac{ltfs} ou les disques optiques avec \ac{udf}.
+Ces systèmes seront parfaitement adaptés à leur support et pourront donc pousser plus loin certaines optimisations.
 
+\subsection{Fonctionnalités et caractéristiques}
 
-Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
+En plus de son rôle d'abstraction des supports de stockage,
+un système de fichier peut proposer un grand nombre de fonctionnalités et de caractéristiques intéressantes.
+Nous n'introduirons ici que celles qui nous seront utiles pour la suite.
+
+\paragraph{Type d'accès} Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
 comme c'est le cas d'une bonne partie des systèmes compressés (SqashFS, EROFS, etc~\textellipsis),
 soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres systèmes.
+
+\paragraph{Compression}
 
 
 \section{Stocker des données sur ADN}
