@@ -124,11 +124,18 @@ En plus de son rôle d'abstraction des supports de stockage,
 un système de fichier peut proposer un grand nombre de fonctionnalités et de caractéristiques intéressantes.
 Nous n'introduirons ici que celles qui nous seront utiles pour la suite.
 
-\paragraph{Type d'accès} Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
-comme c'est le cas d'une bonne partie des systèmes compressés (SqashFS, EROFS, etc~\textellipsis),
+\paragraph{Type d'accès}
+Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
+comme c'est le cas d'une bonne partie des systèmes compressés (SquashFS, \ac{erofs}, etc~\textellipsis),
 soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres systèmes.
 
 \paragraph{Compression}
+La compression peut avoir plusieurs intérêts pour un système de fichiers.
+Elle peut bien-sûr permettre de réduire l'espace pris sur le support
+et c'est ce cas d'usage que SquashFS tente d'optimiser.
+Mais elle peut aussi servir à accélérer les opérations de lecture et d'écriture lorsqu'on est limité par la bande passante.
+Les systèmes plus généralistes, comme \ac{btrfs}, utilisent la compression surtout dans ce but
+et d'autres systèmes de fichiers, comme \ac{erofs}, sont même entièrement basés sur ce principe.
 
 
 \section{Stocker des données sur ADN}
