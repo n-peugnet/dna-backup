@@ -1,16 +1,15 @@
 FILES = doc
 PDF = $(FILES:%=%.pdf)
 
-# Debug flags
-ifndef DEBUG
-LATEXMK_FLAGS += -quiet
-endif
+export max_print_line = 100000
+PDFLATEX_FLAGS = -shell-escape -file-line-error -interaction=nonstopmode -halt-on-error
 
 all pdf: $(PDF)
 
 .SECONDEXPANSION:
 %.pdf: %.tex $$(wildcard $$*.bib)  assets/*.tex
-	latexmk $(LATEXMK_FLAGS) -pdf -f $<
+	latexmk $(LATEXMK_FLAGS) $(PDFLATEX_FLAGS) -pdf -f $< \
+	| grep --color=always -o '.*:[0-9]*:.*\|warning.*' || true
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c

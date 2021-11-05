@@ -148,6 +148,7 @@ Mais elle peut aussi servir à accélérer les opérations de lecture et d'écri
 Les systèmes plus généralistes, comme \btrfs, utilisent la compression surtout dans ce but
 et d'autres systèmes de fichiers, comme \erofs, sont même entièrement basés sur ce principe.
 
+% TODO: quelles autres propriétés ?
 
 \section{Stocker des données sur ADN}
 
@@ -330,7 +331,7 @@ Cette problématique se retrouve sur d'autres systèmes de stockages, comme les 
 Elle est résolue par leur système de fichiers respectif, \ltfs\ pour les bandes magnétiques et \udf\ pour les CD et DVD non-RW.
 Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ltfs\ ou de la Virtual Allocation Table dans le cas de \udf.
 
-% ajouter un § par rapport aux coùt des écritures
+% TODO: ajouter un § par rapport aux coût des écritures
 
 La difficulté principale était donc de réussir à implémenter cette fonctionnalité sur un médium de stockage qui n'a pas la capacité de modifier les données existantes, tout en limitant les écritures au strict nécessaire.
 
@@ -342,7 +343,7 @@ Nous avons choisi de ne pas nous projeter trop loin dans le temps et avons donc 
 
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
-Toutes les contraintes citées précédemment nous ont incité % j'aime bof ce mot
+Toutes les contraintes citées précédemment nous ont incité % TODO: j'aime bof ce mot
 à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichiers.
 En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment, absolument pas d'en faire un système de fichiers accessible à chaud.
 Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps : journalières, hebdomadaires ou mensuelles.
@@ -357,10 +358,12 @@ De plus, comme aucune donnée ne peut être supprimée, nous en profitons pour r
 
 
 
+% TODO: write this §
 La solution proposée se base sur une technique de  \cite{shilane2012wan}.
 
 \chapter{Présentation générale}
 
+% TODO: write this §
 DNA-Backup tien donc plus 
 
 Le système part du principe qu'on a une copie des données stockées en
@@ -744,6 +747,7 @@ Lecture de la zone correspondant à la dernière version \\
 \subsection{Résultats}
 
 
+% TODO: use real data
 \begin{table*}[ht]
 \centering
 \begin{tabularx}{\textwidth}{RRRRRRRR}
@@ -763,6 +767,7 @@ Lecture de la zone correspondant à la dernière version \\
 \end{table*}
 
 
+% TODO: use real data
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{RRRRRRRR}
 \textbf{Repo 4k} &
@@ -781,6 +786,7 @@ Lecture de la zone correspondant à la dernière version \\
 \end{table*}
 
 
+% TODO: use real data
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{RRRRRRRR}
 \textbf{Repo 4k} &
