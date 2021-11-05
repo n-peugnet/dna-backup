@@ -3,6 +3,11 @@
 % Set page dimentions
 \usepackage[margin=35mm]{geometry}
 
+% Bibliography
+\usepackage[numbers]{natbib}    % more bibliography options
+\usepackage[nottoc]{tocbibind}  % add link to table of contents
+\bibliographystyle{plainnat}    % more detailled plain bibliography
+
 % Packages for french documents
 \usepackage[french]{babel}  % latex rules for french words
 \usepackage[utf8]{inputenc} % UTF-8 encoding for special chars
@@ -33,9 +38,7 @@
 % Hyperlinks
 \usepackage{xurl}                % allow word break for url wrapping
 \usepackage[hidelinks]{hyperref} % create invisible clickable links
-
-% Bibliography
-\usepackage[nottoc]{tocbibind}  % add link to table of contents
+\usepackage{doi}                 % add links to doi urls
 
 % Appendices
 \usepackage{appendix}
@@ -797,7 +800,6 @@ Lecture de la zone correspondant à la dernière version \\
 
 
 % Bibliography
-\bibliographystyle{plain}
 \bibliography{doc.bib}
 
 % Glossary
