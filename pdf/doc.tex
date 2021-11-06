@@ -85,6 +85,8 @@
 
 % Custom commands
 \usepackage{xspace}
+\newcommand{\etal}{\emph{et al.}\@\xspace}
+
 \newcommand{\btrfs}{BTRFS~\cite{rodeh2013btrfs}\@\xspace}
 \newcommand{\erofs}{EROFS~\cite{gao2019erofs}\@\xspace}
 \newcommand{\hptfs}{HPTFS~\cite{zhang2006hptfs}\@\xspace}
@@ -338,14 +340,12 @@ et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séq
 Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur prix.
 
 Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives de stockage de données sur \ac{adn} est l'impossibilité de supprimer ou de modifier des données une fois écrites.
-Ce point est particulièrement bloquant pour un système de fichiers \emph{ReadWrite} classique,
+Ce point est particulièrement bloquant pour un système de fichiers \ac{rw} classique,
 qui se base sur ces deux propriétés pour mettre à jour les fichiers et leurs métadonnées ainsi que pour récupérer de l'espace lorsque des fichiers sont supprimés.
 
 Cette problématique se retrouve sur d'autres systèmes de stockages, comme les bandes magnétiques ou les disques optiques.
 Elle est résolue par leur système de fichiers respectif, \ltfs pour les bandes magnétiques et \udf pour les CD et DVD non-RW.
 Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ltfs ou de la Virtual Allocation Table dans le cas de \udf.
-
-% TODO: ajouter un § par rapport aux coût des écritures
 
 La difficulté principale était donc de réussir à implémenter cette fonctionnalité sur un médium de stockage qui n'a pas la capacité de modifier les données existantes, tout en limitant les écritures au strict nécessaire.
 
@@ -370,15 +370,25 @@ Ce stockage incrémental est obtenu grâce à une utilisation conjointe de la d�
 De plus, comme aucune donnée ne peut être supprimée, nous en profitons pour réaliser un système versionné, qui nous laisse la possibilité d'accéder aux précédentes sauvegardes.
 
 
-
-
-% TODO: write this §
-La solution proposée se base sur une technique de  \cite{shilane2012wan}.
-
 \chapter{Présentation générale}
 
-% TODO: write this §
-DNA-Backup tien donc plus 
+DNA-Backup ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
+Chaque nouvelle version vient s'ajouter à la précédente, car il est impossible de supprimer ou de modifier des données
+et on applique un \emph{pipeline} de compression sur les données de chaque version afin d'en minimiser la taille.
+
+\section{Pipeline de compression}
+
+Le pipeline est inspiré de celui de Philip Shilane \etal
+dans leur travail sur la réplication de sauvegardes à travers un lien de faible bande passante~\cite{shilane2012wan}.
+Il est composé d'un étage de déduplication, suivi d'une étape d'encodage delta et enfin d'un dernier étage de compression.
+Ces trois techniques sont basées sur la découverte de similitudes entre différentes zones du flux de données.
+La déduplication permet de ne pas réécrire plusieurs fois le même bloc de données si ce bloc existe déjà.
+L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc similaire à un bloc existant, en n'en écrivant que la différence.
+La compression est également basée sur ces deux principes, mais elle est appliquée à une plus petite échelle.
+Dans DNA-backup, la compression et l'encodage delta sont tous les deux appliqués sur des blocs d'une même taille fixe appelés \emph{chunks}.
+
+Avant l'application du pipeline, les données d'une version sont au préalable concaténées en un segment virtuel de données continu.
+De cette manière 
 
 Le système part du principe qu'on a une copie des données stockées en
 \ac{adn} sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
