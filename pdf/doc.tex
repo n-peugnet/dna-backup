@@ -175,7 +175,7 @@ Le génome contient l’information génétique d’un organisme. L’\ac{adn} c
 Cette information est codée sous la forme d’une suite de \emph{nucléotides}.
 Un nucléotide est une molécule organique qui est l’élément de base de l’\ac{adn}.
 Il existe quatre nucléotides différents qui sont représentés par quatre lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
-Nous pouvons voir directement le parallèle que nous pouvons faire entre l’\ac{adn} qui est une suite de nucléotides en base 4 et une donnée informatique qui est une suite de bits en base 2.
+Nous pouvons voir directement le parallèle que nous pouvons faire entre l’\ac{adn} qui est une suite de nucléotides en base~4 et une donnée informatique qui est une suite de bits en base~2.
 
 Il est donc naturel de penser à utiliser l’\ac{adn} pour stocker des données
 et un certain nombre de démonstrations de faisabilité du stockage sur l’\ac{adn} ont été réalisées lors des dernières années.
@@ -183,14 +183,14 @@ Les travaux publiés pour l’instant se basent essentiellement sur l’utilisat
 
 \subsection{Encodages}
 
-Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church \cite{church2012next} qui réussit à stocker 658~ko sur \numprint{54898} oligonucléotides.
+Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church~\cite{church2012next} qui réussit à stocker 658~ko sur \numprint{54898} oligonucléotides.
 Dans ses travaux, Church souhaite pouvoir contrôler le taux de GC et limiter les répétitions d’un même nucléotide.
 Le taux de GC est la proportion de nucléotides G et C dans une séquence donnée. 
 Les appariements GC ont trois liaisons hydrogène tandis que les appariements AT n'en ont que deux.
 Un taux de GC élevé assure ainsi une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
 Il est donc préférable d’avoir un taux de GC équilibré.
 En ce qui concerne les longues répétitions d’un même nucléotide, elles produisent des erreurs lors du séquençage.
-Pour toutes ces raisons, Church va utiliser un encodage en base 2 : $A=C=0$ et $T=G=1$ pour avoir plus de flexibilité (Table \ref{tab:church-encoding}).
+Pour toutes ces raisons, Church va utiliser un encodage en base~2 : $A=C=0$ et $T=G=1$ pour avoir plus de flexibilité (Table~\ref{tab:church-encoding}).
 
 \begin{table}[ht]
 \centering
@@ -206,7 +206,7 @@ Pour toutes ces raisons, Church va utiliser un encodage en base 2 : $A=C=0$ et $
   & \textbf{1} & T & G \\
   \hline
   \end{tabular}
-  \caption{Encodage Church}
+  \caption{Encodage Church~\cite{church2012next}}
   \label{tab:church-encoding}
 \end{subtable}
 \hfill
@@ -232,13 +232,13 @@ Pour toutes ces raisons, Church va utiliser un encodage en base 2 : $A=C=0$ et $
 \end{table}
 
 Suite à ces travaux, un certain nombre de nouvelles publications vont apporter des améliorations intéressantes aux techniques existantes,
-avec par exemple l'encodage de Goldman \cite{goldman2013towards} qui propose l'utilisation d'une base 3 (Figure \ref{fig:goldman-encoding}),
+avec par exemple l'encodage de Goldman~\cite{goldman2013towards} qui propose l'utilisation d'une base~3 (Figure~\ref{fig:goldman-encoding}),
 plus performante en densité de stockage.
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=.6\textwidth]{goldman-encoding}
-\caption{Encodage de Goldman \cite{goldman2013towards}}
+\caption{Encodage de Goldman~\cite{goldman2013towards}}
 \label{fig:goldman-encoding}
 \end{figure}
 
@@ -269,7 +269,7 @@ Le codon STOP, au contraire, définit la fin d'une telle séquence.
 Il est donc intéressant d'en insérer un maximum pour limiter la casse dans l'éventualité où un codon START aurait malencontreusement été ajouté.
 
 En ce qui concerne la lecture des données, on utilise un séquenceur génétique portatif à
-nanopore tels que celui utilisé par l’équipe de H. Yadzi \cite{yazdi2017portable} et présenté sur la Figure \ref{fig:oxford-nanopore-minion}.
+nanopore tels que celui utilisé par l’équipe de H. Yadzi~\cite{yazdi2017portable} et présenté sur la Figure~\ref{fig:oxford-nanopore-minion}.
 Les séquenceurs en général ont un problème avec la lecture des homopolymères, c’est-à-dire des
 séquences de répétitions d’un même nucléotide. On interdit donc les séquences de plus de trois fois
 le même nucléotide pour éviter les erreurs de séquençage.
@@ -283,7 +283,7 @@ le même nucléotide pour éviter les erreurs de séquençage.
 
 BIODATA, l'encodage mis au point par Clémence Blachon (\ac{lcqb}) pour le DNA-Drive est justement chargé de faire respecter ces propriétés par les données encodées.
 Il est inspiré de celui de Church auquel des contraintes supplémentaires viennent s'appliquer :
-Pour chaque bit, on fixe la valeur du nucléotide en fonction de sa valeur et de la parité de sa position (Table \ref{tab:biodata-encoding}).
+Pour chaque bit, on fixe la valeur du nucléotide en fonction de sa valeur et de la parité de sa position (Table~\ref{tab:biodata-encoding}).
 De cette manière l'encodage est totalement contraint et le résultat est déterministe.
 Les valeurs choisies garantissent quelle que soit la séquence de bits que :
 
@@ -304,7 +304,7 @@ L'organisation physique des données du DNA-Drive est assez particulière et doi
 \paragraph{Track} Une \emph{track} est un segment de données, actuellement de 1024~octets.
 C'est la plus petite unité de stockage du système.
 Toutes les écritures devront donc être alignées sur la taille d'une track.
-Elles sont obtenues grâce à un assemblage MoClo \cite{werner2012fast} sur 3 niveaux
+Elles sont obtenues grâce à un assemblage MoClo~\cite{werner2012fast} sur 3 niveaux
 et sont refermées en un cercle pour former des \emph{plasmides}.
 Cette forme particulière de la molécule d'\ac{adn} comporte plusieurs avantages.
 Elle est tout d'abord plus pérenne grâce à sa structure circulaire,
@@ -322,10 +322,10 @@ Il est possible de lire plusieurs pools en même temps
 et même de fusionner des pools si les barcodes des tracks qu'ils contiennent ne se chevauchent pas.
 
 \paragraph{Array} Un \emph{array} est une plaque de 96~pools ($8\times12$) qui est traditionnellement utilisée en biologie.
-La taille maximum disponible pour des données d’un array est donc de \numprint{979.2}~Go ($96\times\numprint{10000}\times1020$~octets).
+La taille maximum disponible pour des données d’un array est donc de \numprint{979.2}~Mo ($96\times\numprint{10000}\times\numprint{1020}$~octets).
 On peut multiplier les arrays afin d'obtenir une plus grande capacité de stockage.
 
-Les chiffres donnés ici sur l’organisation du disque de 1024~octets par track et\numprint{10000}~tracks par pool sont limités respectivement par la complexité de l'assemblage MoClo et la précision limitée des techniques de séquençage actuelles
+Les chiffres donnés ici sur l’organisation du disque de \numprint{1024} octets par track et \numprint{10000} tracks par pool sont limités respectivement par la complexité de l'assemblage MoClo et la précision limitée des techniques de séquençage actuelles.
 La capacité disponible est donc amenée à évoluer dans le futur avec l'arrivée de technologies plus performantes.
 
 \section{Problématique}
@@ -333,7 +333,7 @@ La capacité disponible est donc amenée à évoluer dans le futur avec l'arriv�
 Il existe donc plusieurs techniques et encodages permettant de stocker des informations arbitraires sur la molécule d'\ac{adn},
 mais toutes ont en commun quelques inconvénients majeurs.
 Ces inconvénients proviennent pour la plupart des limites actuelles des technologies de synthèse et de séquençage.
-Une expérience d'un système automatisé de transmission de données par \ac{adn} datant de 2019 \cite{takahashi2019demonstration}
+Une expérience d'un système automatisé de transmission de données par \ac{adn} datant de 2019~\cite{takahashi2019demonstration}
 nous donne un ordre de grandeur des durées de lecture et d'écriture,
 bien qu'il ne serait pas étonnant que des techniques plus performantes fassent leur apparition dans un futur proche :
 La latence d'une opération d'écriture suivie d'une lecture d'une séquence de 12~octets est de 21~h,
@@ -406,7 +406,7 @@ Le système part du principe qu'on a une copie des données stockées en
 \label{fig:big-picture}
 \end{figure*}
 
-La Figure \ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
+La Figure~\ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
 
 \begin{figure}
 % \centering % centering ne fonctionne pas du tout avec le dirtree
@@ -467,7 +467,7 @@ Pour un repo d'une taille totale de 401 Mio :
   version précédente.
 \end{itemize}
 
-On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure \ref{fig:data-layout})
+On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig:data-layout})
 
 \begin{figure}[ht]
 \centering
