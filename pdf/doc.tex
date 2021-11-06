@@ -89,12 +89,13 @@
 \setlength{\parskip}{.3em} % space between paragraphs
 
 % Custom commands
-\newcommand{\btrfs}{BTRFS~\cite{rodeh2013btrfs}}
-\newcommand{\erofs}{EROFS~\cite{gao2019erofs}}
-\newcommand{\hptfs}{HPTFS~\cite{zhang2006hptfs}}
-\newcommand{\ltfs}{LTFS~\cite{pease2010linear}}
-\newcommand{\squashfs}{SquashFS~\cite{lougher2009squashfs}}
-\newcommand{\udf}{UDF~\cite{optical2003universal}}
+\usepackage{xspace}
+\newcommand{\btrfs}{BTRFS~\cite{rodeh2013btrfs}\@\xspace}
+\newcommand{\erofs}{EROFS~\cite{gao2019erofs}\@\xspace}
+\newcommand{\hptfs}{HPTFS~\cite{zhang2006hptfs}\@\xspace}
+\newcommand{\ltfs}{LTFS~\cite{pease2010linear}\@\xspace}
+\newcommand{\squashfs}{SquashFS~\cite{lougher2009squashfs}\@\xspace}
+\newcommand{\udf}{UDF~\cite{optical2003universal}\@\xspace}
 
 %--------------------------------------- Content ---------------------------------------%
 
@@ -144,7 +145,7 @@ Il lui suffit de demander de lire ou écrire les données du bloc $n$
 et c'est le contrôleur du périphérique lui-même qui se charge de retrouver l'emplacement physique de ce bloc logique.
 
 Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour eux.
-C'est par exemple le cas pour les bandes magnétiques avec \hptfs\ et \ltfs\ ou les disques optiques avec \udf.
+C'est par exemple le cas pour les bandes magnétiques avec \hptfs et \ltfs ou les disques optiques avec \udf.
 Ces systèmes seront parfaitement adaptés à leur support et pourront donc pousser plus loin certaines optimisations.
 
 \subsection{Fonctionnalités et caractéristiques}
@@ -161,7 +162,7 @@ soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres syst�
 \paragraph{Compression}
 La compression peut avoir plusieurs intérêts pour un système de fichiers.
 Elle peut bien-sûr permettre de réduire l'espace pris sur le support
-et c'est ce cas d'usage que \squashfs\ tente d'optimiser.
+et c'est ce cas d'usage que \squashfs tente d'optimiser.
 Mais elle peut aussi servir à accélérer les opérations de lecture et d'écriture lorsqu'on est limité par la bande passante.
 Les systèmes plus généralistes, comme \btrfs, utilisent la compression surtout dans ce but
 et d'autres systèmes de fichiers, comme \erofs, sont même entièrement basés sur ce principe.
@@ -346,8 +347,8 @@ Ce point est particulièrement bloquant pour un système de fichiers \emph{ReadW
 qui se base sur ces deux propriétés pour mettre à jour les fichiers et leurs métadonnées ainsi que pour récupérer de l'espace lorsque des fichiers sont supprimés.
 
 Cette problématique se retrouve sur d'autres systèmes de stockages, comme les bandes magnétiques ou les disques optiques.
-Elle est résolue par leur système de fichiers respectif, \ltfs\ pour les bandes magnétiques et \udf\ pour les CD et DVD non-RW.
-Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ltfs\ ou de la Virtual Allocation Table dans le cas de \udf.
+Elle est résolue par leur système de fichiers respectif, \ltfs pour les bandes magnétiques et \udf pour les CD et DVD non-RW.
+Dans les deux cas le système est basé sur la réécriture complète des blocs modifiés des fichiers ainsi que de l'index dans le cas de \ltfs ou de la Virtual Allocation Table dans le cas de \udf.
 
 % TODO: ajouter un § par rapport aux coût des écritures
 
