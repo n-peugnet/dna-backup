@@ -35,11 +35,6 @@
 	emphstyle=\color{identifier}, % sets color for comments
 }
 
-% Appendices
-\usepackage{appendix}
-\renewcommand{\appendixname}{Annexe}
-\renewcommand{\appendixtocname}{Annexes}
-
 % Graphics
 \usepackage{graphicx}        % images and figures
 \usepackage{subcaption}      % subcaption and subtables
@@ -107,12 +102,12 @@
 
 \begin{document}
 
-\hypersetup{pageanchor=false}
+\pagenumbering{Alph}
 \begin{titlepage}
 \maketitle
 \end{titlepage}
 
-\hypersetup{pageanchor=true}
+\pagenumbering{arabic}
 \tableofcontents
 
 \chapter{Introduction}
@@ -827,12 +822,11 @@ Lecture de la zone correspondant à la dernière version \\
 % Bibliography
 \bibliography{doc.bib}
 
-% Glossary
-\include{assets/acronyms.tex}
-
 % Annexes
 \appendix
-\addappheadtotoc
+
+% Acronyms
+\include{assets/acronyms.tex}
 
 \chapter{Documentation de la CLI}
 
