@@ -9,6 +9,7 @@
 *.pdf
 *.synctex.gz
 *.toc
+*.brf
 
 # Assets
 !assets/*.pdf

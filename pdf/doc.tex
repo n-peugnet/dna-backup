@@ -35,11 +35,6 @@
 	emphstyle=\color{identifier}, % sets color for comments
 }
 
-% Hyperlinks
-\usepackage{xurl}                % allow word break for url wrapping
-\usepackage[hidelinks]{hyperref} % create invisible clickable links
-\usepackage{doi}                 % add links to doi urls
-
 % Appendices
 \usepackage{appendix}
 \renewcommand{\appendixname}{Annexe}
@@ -70,6 +65,25 @@
 
 % Acronyms
 \usepackage[printonlyused,footnote]{acronym}
+
+% Hyperlinks
+\usepackage{xurl}                % allow word break for url wrapping
+\usepackage[
+  hidelinks,                     % invisible links
+  pagebackref=true               % linkback to citations from bibliography
+]{hyperref}                      % create clickable links
+\usepackage{doi}                 % add links to doi urls
+
+% Backrefs in the bibliography for french
+\renewcommand{\backrefalt}[4]{
+\ifcase #1 {}
+  \or \emph{Cité page #2}
+  \else \emph{Cité pages #2}
+\fi
+}
+% Backref separators for french
+\renewcommand{\backreftwosep}{ et~}
+\renewcommand{\backreflastsep}{, et~}
 
 % Style
 \setlength{\parskip}{.3em} % space between paragraphs
