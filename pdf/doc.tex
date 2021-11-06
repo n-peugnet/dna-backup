@@ -387,11 +387,38 @@ L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc simil
 La compression est également basée sur ces deux principes, mais elle est appliquée à une plus petite échelle.
 Dans DNA-backup, la compression et l'encodage delta sont tous les deux appliqués sur des blocs d'une même taille fixe appelés \emph{chunks}.
 
-Avant l'application du pipeline, les données d'une version sont au préalable concaténées en un segment virtuel de données continu.
-De cette manière 
+Afin d'appliquer de manière efficace les étapes de déduplication et d'encodage delta de notre pipeline,
+il nous faut être capable de rapidement retrouver des chunk identiques ou similaires.
+Nous utilisons pour cela deux fonctions de hachage qui fournissent des signatures aux propriétés particulières.
+L'une de ces signatures, appelée ici \emph{fingerprint} permet d'identifier des chunks identiques à dédupliquer,
+l'autre, appelée ici \emph{sketch} permet de trouver des chunks fortement similaires,
+lesquels feraient de bons candidats à l'encodage delta.
+De cette manière, pour appliquer le pipeline sur une nouvelle version,
+il nous suffit d'avoir ces deux informations en mémoire pour chaque chunk déjà écrit.
+Seule l'étape d'encodage delta nous forcera à aller chercher le contenu réel d'un chunk similaire,
+lorsqu'il aura été trouvé à l'aide de son sketch.
+
+\subsection{Fingerprint}
+
+La \emph{fingerprint} permet d'identifier un bloc de manière unique en fonction de son contenu.
+C'est ainsi que l'on peut savoir si deux chunks sont identiques et devraient donc être dédupliqués.
+Pour cette application, n'importe quelle fonction de hachage uniformément répartie pourrait convenir.
+Il faut simplement calibrer la taille de la signature en fonction du nombre de chunks que le support peut contenir afin d'éviter les collisions.
+
+Dans notre cas précis, nous avons tout de même besoin d'une fonction capable d'être d'appliquée sur une fenêtre glissante, appelée \emph{rolling hash}.
+En effet, lorsqu'une nouvelle version est traitée par le pipeline,
+il faut appliquer la fonction de hachage sur tous les chunks possibles, octet par octet, des données de cette version.
+Une fonction optimisée pour ce type de traitement apportera donc un gain de performances non négligeable.
+
+
+\subsection{Sketch}
+
+
+\subsection{Index des signatures}
+% TODO: parler des sketches, fingerprints et de l'index entier
 
 Le système part du principe qu'on a une copie des données stockées en
-\ac{adn} sur un support de stockage classique : le \emph{repo} (Figure \ref{fig:big-picture}).
+\ac{adn} sur un support de stockage classique : le \emph{repo} (Figure~\ref{fig:big-picture}).
 \begin{figure*}[ht]
 \centering
 
@@ -411,6 +438,16 @@ Le système part du principe qu'on a une copie des données stockées en
 \caption{Schéma global}
 \label{fig:big-picture}
 \end{figure*}
+
+
+\section{Répartition des données}
+
+Avant l'application du pipeline, les données des fichiers d'une version sont au préalable concaténées en un segment virtuel continu.
+De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
+les données du fichier suivant y seront ajoutées, au lieu d'avoir à le combler avec des bits de bourrage.
+Les métadonnées ne sont pas ajoutées dans ce segment.
+Elles sont stockées dans une autre zone, ce qui permet
+Leur petite taille en rapport aux données 
 
 La Figure~\ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
 
