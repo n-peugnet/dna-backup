@@ -104,7 +104,7 @@
 
 \begin{document}
 
-\pagenumbering{Alph}
+\pagenumbering{Roman}
 \begin{titlepage}
 \maketitle
 \end{titlepage}
@@ -427,19 +427,48 @@ En utilisant différentes fonctions de hash on peut ainsi obtenir plusieurs feat
 
 La méthode exacte utilisée est celle décrite par Philip Shilane \etal~\cite{shilane2012wan}.
 Elle s'appuie sur l'empreinte de Rabin~\cite{rabin1981fingerprinting} que l'on décline en différentes fonctions de hachage pour obtenir plusieurs features.
+Les features ainsi obtenues sont ensuite regroupées pour former un plus petit nombre de ``super-features''.
+La valeur d'une super-feature correspond au hash des features sous-jacentes,
+donc si deux chunks ont une super-feature en commun, alors toutes les features correspondantes sont également identiques.
+Regrouper les features de cette manière aide à réduire les faux-positifs et augmente le taux de similarité lorsqu'une correspondance est trouvée.
 
+Augmenter le nombre de features par super-feature augmente la qualité des correspondances, mais diminue aussi leur nombre.
+Augmenter les nombre de super-feature par sketch augmente le nombre de correspondances, mais nécessite plus d'espace mémoire.
+Nous utilisons pour le moment les valeurs choisies par Philip Shilane \etal au cours de leurs expérimentations~\cite{shilane2012wan},
+soit 3 super-features par sketch et 4 features par super-features.
+Ces valeurs pourraient être ajustées une fois que de plus amples expériences sur des jeux de données plus variés auront été réalisés.
 
 \subsection{Index des signatures}
-% TODO: parler des sketches, fingerprints et de l'index entier
+Pour connaitre de manière efficace l'existence d'une fingerprint ou d'un sketch dans les données existantes du DNA-Drive, nous avons besoin de stocker leur valeur.
+En effet, autrement il faudrait les recalculer depuis les données, ce qui serait coûteux.
+Ces valeurs sont donc stockées dans deux index.
+L'un faisant l'association entre des fingerprints et leur chunk, l'autre entre des super-features et leurs chunks.
+Philip Shilane \etal travaillaient sur de très gros jeux de données et ne pouvaient pas se permettre de garder l'ensemble de ces index en mémoire, ils ont donc opté pour n'en garder qu'une partie à l'aide d'un cache~\cite{shilane2012wan}.
+Dans notre cas, la quantité de données est suffisamment faible pour qu'on puisse se permettre de garder la totalité de l'index en mémoire.
+De cette manière nous sommes certains de ne rater aucune correspondance, ce qui maximise la qualité de déduplication et l'encodage Delta.
 
-Le système part du principe qu'on a une copie des données stockées en
-\ac{adn} sur un support de stockage classique : le \emph{repo} (Figure~\ref{fig:big-picture}).
+Dans l'hypothèse où l'espace de stockage du DNA-Drive deviendrait beaucoup plus grand, il restera toujours la possibilité de ne garder qu'un cache en mémoire et d'utiliser un filtre de Bloom~\cite{bloom1970space} devant le reste de l'index qui serait stocké sur disque.
+En effet, même si le temps de recherche dans l'index en sera augmenté, il restera très faible par rapport au temps de synthèse.
+
+Cependant, les index de signatures seuls ne sont pas suffisants pour appliquer le pipeline.
+Nous avons également besoin du contenu des chunks lors de l'encodage delta.
+Or, les temps de lecture rédhibitoires du DNA-Drive nous empêchent de lire à la demande le contenu d'un chunk lorsque l'on en a besoin.
+C'est pour cela que nous avons finalement décidé de conserver sur un support de stockage classique une copie des informations stockées sur le DNA-Drive ;
+la capacité du DNA-Drive étant pour le moment bien inférieure à ce qui existe sur d'autres supports.
+
+
+\section{Répartition des données}
+
+Le système part donc du principe qu'on dispose sur un support de stockage classique d'une copie des données stockées en \ac{adn} appelé le \emph{repo} (Figure~\ref{fig:big-picture}).
+Contrairement au DNA-Drive qui est optimisé principalement pour les écritures et moins pour les lectures,
+le repo doit permettre de rapidement accéder aux données d'un chunk.
+
 \begin{figure*}[ht]
 \centering
 
 \begin{tikzpicture}
 
-\draw (0,0) node[anchor=south west] {Ordinateur} rectangle (8, 3.5) ;
+\draw (0,0) node[anchor=south west] {Ordinateur} rectangle (8, 3.5);
 
 \draw (.5,1) rectangle (3,3) node[midway] {Source};
 \draw (5,1) rectangle (7.5,3) node[midway] {Repo};
@@ -450,12 +479,10 @@ Le système part du principe qu'on a une copie des données stockées en
 
 \end{tikzpicture}
 
-\caption{Schéma global}
+\caption{Schéma global. Le repo est une zone intermédiaire entre le dossier source à sauvegarder et le DNA-Drive}
 \label{fig:big-picture}
 \end{figure*}
 
-
-\section{Répartition des données}
 
 Avant l'application du pipeline, les données des fichiers d'une version sont au préalable concaténées en un segment virtuel continu.
 De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
