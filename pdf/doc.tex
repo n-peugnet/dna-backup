@@ -457,10 +457,13 @@ C'est pour cela que nous avons finalement décidé de conserver sur un support d
 la capacité du DNA-Drive étant pour le moment bien inférieure à ce qui existe sur d'autres supports.
 
 
-\section{Répartition des données}
+\section{Système de sauvegardes}
 
-Le système part donc du principe qu'on dispose sur un support de stockage classique d'une copie des données stockées en \ac{adn} appelé le \emph{repo} (Figure~\ref{fig:big-picture}).
-Contrairement au DNA-Drive qui est optimisé principalement pour les écritures et moins pour les lectures,
+Le système part donc du principe qu'on dispose, sur un support de stockage classique, d'une copie des données stockées en \ac{adn} appelée le \emph{repo} (Figure~\ref{fig:big-picture}).
+Cependant, les informations ne sont pas stockées exactement de la même manière.
+En effet, le repo profite du fait qu'il se trouve déjà sur un système de fichiers.
+Il utilise donc différents fichiers pour stocker ses données,
+et contrairement au DNA-Drive qui est plus optimisé pour les écritures que pour les lectures,
 le repo doit permettre de rapidement accéder aux données d'un chunk.
 
 \begin{figure*}[ht]
@@ -479,10 +482,11 @@ le repo doit permettre de rapidement accéder aux données d'un chunk.
 
 \end{tikzpicture}
 
-\caption{Schéma global. Le repo est une zone intermédiaire entre le dossier source à sauvegarder et le DNA-Drive}
+\caption{Le repo est une zone intermédiaire entre le dossier source à sauvegarder et le DNA-Drive.}
 \label{fig:big-picture}
 \end{figure*}
 
+\subsection{Fonctionnement repo}
 
 Avant l'application du pipeline, les données des fichiers d'une version sont au préalable concaténées en un segment virtuel continu.
 De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
@@ -551,6 +555,8 @@ Pour un repo d'une taille totale de 401 Mio :
   stocke donc ses métadonnées sous la forme de delta par rapport à la
   version précédente.
 \end{itemize}
+
+\subsection{L'export vers le DNA-Drive}
 
 On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig:data-layout})
 
