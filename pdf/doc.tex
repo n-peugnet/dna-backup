@@ -168,23 +168,25 @@ et d'autres systèmes de fichiers, comme \erofs, sont même entièrement basés 
 
 \section{Stocker des données sur ADN}
 
-L’\ac{adn} ou Acide DésoxyriboNucléique d’un organisme, constitue ce qu’on appelle le génome.
-Le génome contient l’information génétique d’un organisme. L’\ac{adn} contient donc une information.
-Cette information est codée sous la forme d’une suite de \emph{nucléotides}.
-Un nucléotide est une molécule organique qui est l’élément de base de l’\ac{adn}.
-Il existe quatre nucléotides différents qui sont représentés par quatre lettres : \textbf{A} pour Adénine, \textbf{C} pour Cytosine, \textbf{G} pour Guanine et \textbf{T} pour Thymine.
-Nous pouvons voir directement le parallèle que nous pouvons faire entre l’\ac{adn} qui est une suite de nucléotides en base~4 et une donnée informatique qui est une suite de bits en base~2.
+L'information génétique des organismes vivants a pour support l'\ac{adn} (Acide DésoxyriboNucléique), et l'ensemble du matériel génétique d'un organisme constitue son génome.
+L'\ac{adn} est codé sous la forme d'une suite de molécules organiques que sont les \emph{nucléotides}.
+Il existe quatre nucléotides différents, représentés par quatre lettres : \textbf{A} pour Adénine, \textbf{T} pour Thymine, \textbf{G} pour Guanine, et \textbf{C} pour Cytosine.
+Les nucléotides s'associent deux à deux pour former un double brin d'\ac{adn}.
+Ainsi, l'Adénine est appariée à la Thymine, et la Guanine à la Cytosine.
+Chaque brin d'\ac{adn} est alors complémentaire de l'autre.
 
-Il est donc naturel de penser à utiliser l’\ac{adn} pour stocker des données
-et un certain nombre de démonstrations de faisabilité du stockage sur l’\ac{adn} ont été réalisées lors des dernières années.
-Les travaux publiés pour l’instant se basent essentiellement sur l’utilisation d’\emph{oligonucléotides} qui sont des courts segments d’\ac{adn}.
+Il est donc possible d'établir un parallèle entre l'information génétique, codée par les 4 nucléotides formant l'\ac{adn}, en base~4, et la donnée informatique, codée par une suite de bits en base~2.
+Cette analogie permet d'envisager l'utilisation de l'\ac{adn} pour stocker des données.
+
+Plusieurs démonstrations de faisabilité du stockage sur l’\ac{adn} ont déjà été réalisées ces dernières années.
+Les travaux publiés pour l’instant se basent essentiellement sur l’utilisation d’\emph{oligonucléotides}, qui sont des courts segments d’\ac{adn} contenant quelques dizaines de nucléotides.
 
 \subsection{Encodages}
 
 Les premières démonstrations significatives sur l’utilisation de ces oligonucléotides pour stocker des données remontent à seulement 2012 avec George Church~\cite{church2012next} qui réussit à stocker 658~ko sur \numprint{54898} oligonucléotides.
 Dans ses travaux, Church souhaite pouvoir contrôler le taux de GC et limiter les répétitions d’un même nucléotide.
 Le taux de GC est la proportion de nucléotides G et C dans une séquence donnée. 
-Les appariements GC ont trois liaisons hydrogène tandis que les appariements AT n'en ont que deux.
+Les appariements GC sont formées par trois liaisons hydrogène tandis que les appariements AT n'en ont que deux, les rendant moins stables.
 Un taux de GC élevé assure ainsi une meilleure stabilité, mais un taux trop élevé peut provoquer une autolyse (autodestruction) plus facilement.
 Il est donc préférable d’avoir un taux de GC équilibré.
 En ce qui concerne les longues répétitions d’un même nucléotide, elles produisent des erreurs lors du séquençage.
