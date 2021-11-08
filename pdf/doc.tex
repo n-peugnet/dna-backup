@@ -410,8 +410,23 @@ En effet, lorsqu'une nouvelle version est traitée par le pipeline,
 il faut appliquer la fonction de hachage sur tous les chunks possibles, octet par octet, des données de cette version.
 Une fonction optimisée pour ce type de traitement apportera donc un gain de performances non négligeable.
 
+Nous avons choisi pour cet usage l'empreinte de Rabin~\cite{rabin1981fingerprinting}, car c'est une fonction de hachage sur fenêtre glissante efficiente et populaire et parce qu'elle sera également utilisée pour calculer le \emph{sketch} des chunks.
 
 \subsection{Sketch}
+
+Le \emph{sketch} est ce qu'on appelle un \emph{hash de ressemblance}.
+Il correspond en fait à une fonction de hachage dont la répartition n'est pas du tout uniforme,
+mais au contraire, fait correspondre la même signature à des données différentes si elles sont similaires.
+
+De manière intuitive, les sketches de similitude fonctionnent en identifiant des portions d'un chunk
+qui ne changeraient probablement pas si de faibles variations sont introduites ;
+on appelle ces portions des ``features''.
+Une des manières de procéder est d'utiliser une fonction de hachage sur une fenêtre glissante de petite taille
+(e.g. 32~octets) et de choisir la valeur maximale obtenue en tant que feature.
+En utilisant différentes fonctions de hash on peut ainsi obtenir plusieurs features.
+
+La méthode exacte utilisée est celle décrite par Philip Shilane \etal~\cite{shilane2012wan}.
+Elle s'appuie sur l'empreinte de Rabin~\cite{rabin1981fingerprinting} que l'on décline en différentes fonctions de hachage pour obtenir plusieurs features.
 
 
 \subsection{Index des signatures}
