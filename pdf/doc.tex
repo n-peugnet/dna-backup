@@ -372,7 +372,7 @@ De plus, comme aucune donnée ne peut être supprimée, nous en profitons pour r
 
 \chapter{Présentation de DNA-Backup}
 
-Notre proposition : DNA-Backup, ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
+DNA-Backup, notre proposition, ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
 Chaque nouvelle version vient s'ajouter à la précédente, car il est impossible de supprimer ou de modifier des données
 et on applique un \emph{pipeline} de compression sur les données de chaque version afin d'en minimiser la taille.
 
@@ -460,11 +460,8 @@ la capacité du DNA-Drive étant pour le moment bien inférieure à ce qui exist
 \section{Fonctionnement général}
 
 Le système part donc du principe qu'on dispose, sur un support de stockage classique, d'une copie des données stockées en \ac{adn} appelée le \emph{repo} (Figure~\ref{fig:big-picture}).
-Cependant, les informations ne sont pas stockées exactement de la même manière.
-En effet, le repo profite du fait qu'il se trouve déjà sur un système de fichiers.
-Il utilise donc différents fichiers pour stocker ses données,
-et contrairement au DNA-Drive qui est plus optimisé pour les écritures que pour les lectures,
-le repo doit permettre de rapidement accéder aux données d'un chunk.
+Sa raison d'être est d'accélérer la création et la restauration d'une version
+en fournissant un accès rapide aux données que contient le DNA-Drive.
 
 \begin{figure*}[ht]
 \centering
@@ -477,8 +474,10 @@ le repo doit permettre de rapidement accéder aux données d'un chunk.
 \draw (5,1) rectangle (7.5,3) node[midway] {Repo};
 \draw (10,1) rectangle (12.5,3) node[midway] {DNA-Drive};
 
-\draw[Arrow] (3,2) -- (5,2) node[midway,below] {Commit};
-\draw[Arrow] (7.5,2) -- (10,2) node[midway,below] {Synthèse};
+\draw[Arrow] (3,2.3) -- (5,2.3) node[midway,above] {Commit};
+\draw[Arrow] (7.5,2.3) -- (10,2.3) node[midway,above] {Export};
+\draw[Arrow] (5,1.7) -- (3,1.7) node[midway,below] {Restore};
+\draw[Arrow] (10,1.7) -- (7.5,1.7) node[midway,below] {Import};
 
 \end{tikzpicture}
 
@@ -486,29 +485,45 @@ le repo doit permettre de rapidement accéder aux données d'un chunk.
 \label{fig:big-picture}
 \end{figure*}
 
-Pour ajouter une nouvelle version, on fait un \emph{commit} dans le repo.
-Le repo doit être présent lorsque l'on veut faire un commit,
-car le pipeline de compression tire parti des données existantes.
-La copie stockée en \ac{adn} dans le DNA-Drive n'est donc utilisé que pour restaurer le repo
-dans le cas d'une défaillance ou d'une duplication.
+Pour créer une nouvelle version ou en restaurer une existante, DNA-Backup n'utilise donc que le repo.
+Il est ensuite possible d'exporter les données du repo vers le DNA-Drive,
+ou bien de reconstruire le repo en important les données du DNA-Drive,
+par exemple dans le cas d'une défaillance ou bien d'une duplication.
 
-\subsection{Fonctionnement du repo}
+DNA-Backup stocke les données d'une version d'une manière assez particulière.
+Chaque version est en fait un \emph{disque virtuel} contenant les données des fichiers mis bout-à-bout.
+Ce disque virtuel ne contient aucune métadonnée, seulement le contenu des fichiers
+et c'est sur lui qu'on applique le pipeline de compression.
+Il n'est donc pas stocké sous la forme d'un segment continu, mais en tant qu'un ensemble de chunks.
+La liste des chunks qui le compose fait partie des métadonnées que DNA-Backup doit enregistrer.
+C'est à partir de cette liste et du contenu des chunks que l'on peut recréer le disque virtuel.
+Mais le disque virtuel à lui seul ne suffit pas à restaurer une version.
+En effet, il ne contient aucune métadonnée,
+il est donc impossible de savoir à quel fichier correspond une donnée.
+DNA-Backup doit donc également sauvegarder pour chaque version une liste de noms de fichiers,
+permettant de retrouver dans son disque virtuel où commence et où s'arrête chaque fichier.
 
-Au tout début du commit, avant l'application du pipeline de compression,
-DNA-Backup fait un listage des fichiers du dossier source.
-Les données de ces fichiers sont ensuite concaténées en un segment virtuel continu.
-De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
-les données du fichier suivant y seront ajoutées, au lieu d'avoir à le combler avec des bits de bourrage.
-Les métadonnées (chemin, taille, etc~\textellipsis) ne sont pas ajoutées dans ce segment.
-Elles sont stockées à part, car leur petite taille par rapport aux données nous offre lors d'une restauration
-la possibilité de rapidement les récupérer.
-En effet, les métadonnées nous permettent à elles seule d'obtenir une arborescence de dossiers et de fichiers que l'on peut parcourir.
+Pour restaurer une version, il faut donc dans un premier temps
+reconstruire en mémoire le disque virtuel à partir de sa liste de chunks,
+puis le découper en fichiers à partir de la liste des noms de fichiers.
 
-Dans le repo, les données sont organisées par version, on a donc à la racine du repo un dossier par version (Figure~\ref{fig:repo-dir-tree}).
+
+\subsection{Organisation du repo}
+
+Dans le repo, les données sont organisées par version, chacune dans un dossier.
 Chaque dossier de version contient ses propres informations.
+La Figure~\ref{fig:repo-dir-tree} montre un exemple d'arborescence de repo comportant deux versions.
+
+
+\paragraph{Chunks}
 Les chunks d'une version sont stockés dans un dossier \verb|chunks|
 chacun dans un fichier séparé et compressé indépendamment des autres.
 De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
+
+\paragraph{Files}
+
+\paragraph{Recipe}
+
 
 \begin{figure*}[ht]
 \centering
@@ -546,7 +561,11 @@ De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
   \verb|repo/00000/hashes| &   3923672 &   0.9\% \\
   \verb|repo/00000/chunks| & 412263137 &  97.8\% \\
   \end{tabular}
-  \caption{Exemple de répartition des données d'un repo comportant une seule version pour une taille totale de 401 Mio.}
+  \caption{
+    Répartition des données d'un repo comportant une seule version pour une taille totale de 401 Mio.
+    Ce repo a été obtenu à partir d'un dossier de code source,
+    il s'agit donc d'un grand nombre de fichiers texte de petite taille, fortement déduplicables et compressibles.
+  }
   \label{tab:repo-data-distribution}
 \end{subtable}
 
@@ -554,6 +573,7 @@ De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
 \label{fig:repo-organisation}
 \end{figure*}
 
+\paragraph{Hashes}
 Pour ne pas avoir à recalculer les signatures (fingerprints et sketches) de tous les chunks du repo lors d'un commit,
 on stocke ses valeurs dans un fichier \verb|hashes| séparé.
 Celui-ci ne sera pas synthétisé en \ac{adn},
@@ -570,6 +590,22 @@ car les données qu'il contient peuvent être recalculées à partir du contenu 
 %   stocke donc ses métadonnées sous la forme de delta par rapport à la
 %   version précédente.
 % \end{itemize}
+
+\subsection{Ajouter une version au repo}
+
+Pour ajouter une nouvelle version, on fait un \emph{commit} dans le repo.
+Le repo doit être présent lorsque l'on veut faire un commit,
+car le pipeline de compression tire parti des données existantes.
+
+Au tout début du commit, avant l'application du pipeline de compression,
+DNA-Backup fait un listage des fichiers du dossier source.
+Les données de ces fichiers sont ensuite concaténées en un segment virtuel continu.
+De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
+les données du fichier suivant y seront ajoutées, au lieu d'avoir à le combler avec des bits de bourrage.
+Les métadonnées (chemin, taille, etc~\textellipsis) ne sont pas ajoutées dans ce segment.
+Elles sont stockées à part, car leur petite taille par rapport aux données nous offre lors d'une restauration
+la possibilité de rapidement les récupérer.
+En effet, les métadonnées nous permettent à elles seule d'obtenir une arborescence de dossiers et de fichiers que l'on peut parcourir.
 
 \subsection{L'export vers le DNA-Drive}
 
@@ -636,7 +672,7 @@ lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
 
 
 
-\chapter{Fonctionnement détaillé}
+\chapter{Détails d'implémentation}
 
 % \section{Détails à propos du repo}
 
