@@ -119,14 +119,14 @@ Notre rôle sera de proposer un \emph{système de fichiers} adapté aux spécifi
 
 \section{Systèmes de fichiers}
 
-Le but principal d'un \emph{système de fichiers} est de permettre d'organiser des données sur un support de stockage.
+Le but d'un \emph{système de fichiers} est d'organiser des données sur un support de stockage.
 En son absence, les différentes données d'un support seraient toutes écrites d'un seul tenant
-et il ne serait pas possible de savoir où commence et où s'arrête un morceau cohérent de données.
+et il ne serait pas possible de savoir où commence et où s'arrête un morceau de données cohérent.
 Le système de fichiers offre donc la possibilité de répartir les données dans des segments nommés : les \emph{fichiers}.
-Les fichiers peuvent être disposés au sein d'une arborescence de \emph{dossiers},
+Ces fichiers peuvent être disposés au sein d'une arborescence de \emph{dossiers},
 ce qui permet de les organiser de manière logique.
-Les informations de cette arborescence sont des métadonnées que l'on doit donc stocker en plus des données.
-Les systèmes de fichiers récents stockent en général bien plus de métadonnées que simplement les noms des fichiers et des dossiers.
+Les informations de cette arborescence sont des métadonnées qui doivent donc être stockées en plus des données.
+En règle générale, les systèmes de fichiers récents stockent bien plus de métadonnées que simplement les noms des fichiers et des dossiers.
 Parmi celles-ci, on peut citer par exemple les dates de création et de modification,
 ou bien encore les permissions lorsqu'il s'agit d'un système POSIX.
 
@@ -136,12 +136,12 @@ ce qui offre à la couche supérieure une abstraction des supports de stockages.
 
 Pour stocker ou lire des données, un système de fichiers doit communiquer avec le matériel.
 Lorsqu'il s'agit d'un support de stockage classique respectant le \ac{lba},
-comme c'est le cas des disque-durs et des \ac{ssd},
+comme c'est le cas des disques durs et des \ac{ssd},
 le système de fichiers n'a pas besoin de connaitre le fonctionnement détaillé du périphérique.
 Il lui suffit de demander de lire ou écrire les données du bloc $n$
 et c'est le contrôleur du périphérique lui-même qui se charge de retrouver l'emplacement physique de ce bloc logique.
 
-Pour des supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour eux.
+Dans le cas de supports plus spécifiques, il est assez fréquent que les systèmes de fichiers soient conçus exclusivement pour ceux-ci.
 C'est par exemple le cas pour les bandes magnétiques avec \hptfs et \ltfs ou les disques optiques avec \udf.
 Ces systèmes seront parfaitement adaptés à leur support et pourront donc pousser plus loin certaines optimisations.
 
@@ -149,7 +149,7 @@ Ces systèmes seront parfaitement adaptés à leur support et pourront donc pous
 
 En plus de son rôle d'abstraction des supports de stockage,
 un système de fichier peut proposer un grand nombre de fonctionnalités et de caractéristiques intéressantes.
-Nous n'introduirons ici que celles qui nous seront utiles pour la suite.
+Nous n'introduirons ici que celles qui nous seront utiles à la compréhension de la suite de ce document.
 
 \paragraph{Type d'accès}
 Un système de fichiers peut être accessible soit en lecture uniquement (\ac{ro}),
@@ -158,10 +158,10 @@ soit en lecture et écriture (\ac{rw}) pour la grande majorité des autres syst�
 
 \paragraph{Compression}
 La compression peut avoir plusieurs intérêts pour un système de fichiers.
-Elle peut bien-sûr permettre de réduire l'espace pris sur le support
-et c'est ce cas d'usage que \squashfs tente d'optimiser.
-Mais elle peut aussi servir à accélérer les opérations de lecture et d'écriture lorsqu'on est limité par la bande passante.
-Les systèmes plus généralistes, comme \btrfs, utilisent la compression surtout dans ce but
+Elle peut bien-sûr permettre de réduire l'espace occupé par les données sur le support
+et c'est ce cas d'utilisation que \squashfs tente d'optimiser.
+Mais elle peut aussi servir à accélérer les opérations de lecture et d'écriture lorsque la bande passante est un facteur limitant.
+Des systèmes plus généralistes, comme \btrfs, utilisent la compression à cette fin
 et d'autres systèmes de fichiers, comme \erofs, sont même entièrement basés sur ce principe.
 
 % TODO: quelles autres propriétés ?
@@ -247,14 +247,14 @@ plus performante en densité de stockage.
 
 La spécificité principale de DNA-Drive par rapport à ses concurrents est d'utiliser la molécule d'\ac{adn} sous sa forme de double hélice, plutôt que sous la forme d'un simple brin.
 
-Cette forme a plusieurs avantages.
-Premièrement, la molécule est plus stable sous cette forme, ce qui limite sa dégradation et permet donc d'augmenter sa durée de vie.
+Cette forme a plusieurs avantages : 
+premièrement, la molécule est plus stable sous cette forme, ce qui limite sa dégradation et permet donc d'augmenter sa durée de vie.
 Deuxièmement, il s'agit de la forme utilisée par l'ensemble des organismes vivants de notre planète\footnote{En considérant que les virus ne sont pas vivants},
-ce qui nous permet donc potentiellement de profiter des mécanismes du vivant,
-tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs
+ce qui nous permet donc de potentiellement profiter des mécanismes du vivant,
+tels que la réparation automatique de l’\ac{adn} pour corriger les erreurs,
 ou la division cellulaire qui va permettre une copie peu coûteuse et très rapide de grandes quantités de données.
 
-Cependant, faire en sorte qu'une molécule d'\ac{adn} soit compatible avec un être vivant lui ajoute des contraintes supplémentaires.
+Cependant, faire en sorte qu'une molécule d'\ac{adn} soit compatible avec un être vivant ajoute des contraintes supplémentaires.
 En particulier, en plus de garantir un taux de GC équilibré,
 notre encodeur doit à tout prix éviter que les séquences de données, une fois encodées en ADN,
 ne soient interprétés par l'hôte comme des séquences codantes de son génome.
@@ -264,7 +264,7 @@ Il s'agit des codons START et STOP.
 Le codon START indique le début d'une séquence à interpréter.
 C'est donc celui qu'il faut à tout prix éviter d'obtenir une fois les données encodées.
 Le codon STOP, au contraire, définit la fin d'une telle séquence.
-Il est donc intéressant d'en insérer un maximum pour limiter la casse dans l'éventualité où un codon START aurait malencontreusement été ajouté.
+Il est donc intéressant d'en insérer autant que possible pour limiter les effets néfastes dans l'éventualité où un codon START aurait malencontreusement été ajouté.
 
 En ce qui concerne la lecture des données, on utilise un séquenceur génétique portatif à
 nanopore tels que celui utilisé par l’équipe de H. Yadzi~\cite{yazdi2017portable} et présenté sur la Figure~\ref{fig:oxford-nanopore-minion}.
@@ -280,7 +280,7 @@ le même nucléotide pour éviter les erreurs de séquençage.
 \end{figure}
 
 BIODATA, l'encodage mis au point par Clémence Blachon (\ac{lcqb}) pour le DNA-Drive est justement chargé de faire respecter ces propriétés par les données encodées.
-Il est inspiré de celui de Church auquel des contraintes supplémentaires viennent s'appliquer :
+Il est inspiré de celui de Church, auquel des contraintes supplémentaires viennent s'appliquer :
 Pour chaque bit, on fixe la valeur du nucléotide en fonction de sa valeur et de la parité de sa position (Table~\ref{tab:biodata-encoding}).
 De cette manière l'encodage est totalement contraint et le résultat est déterministe.
 Les valeurs choisies garantissent quelle que soit la séquence de bits que :
@@ -292,8 +292,8 @@ Les valeurs choisies garantissent quelle que soit la séquence de bits que :
   \item Des codons STOP seront insérés régulièrement.
 \end{itemize}
 
-Cet encodage nous permet donc de nous abstraire totalement des problématiques biologiques sous-jacentes lorsqu'on encode des données
-et nous laisse ainsi la possibilité de stocker des valeurs complètement arbitraires.
+Cet encodage permet donc, lorsqu'on encode des données, de s'abstraire totalement des problématiques biologiques sous-jacentes
+et laisse ainsi la possibilité de stocker des valeurs arbitraires.
 
 \subsubsection{Spécificités techniques}
 
@@ -337,7 +337,7 @@ bien qu'il ne serait pas étonnant que des techniques plus performantes fassent 
 La latence d'une opération d'écriture suivie d'une lecture d'une séquence de 12~octets est de 21~h,
 dont \numprint{20.4}~h pour l'écriture (\numprint{8.4}~h de synthèse à 305~s par base et 12~h de stabilisation)
 et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séquençage et décodage).
-Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur prix.
+Les lectures ne sont donc déjà pas très rapides, mais le point le plus limitant provient très largement des écritures qui sont exceptionnellement lentes, sans même parler de leur coût.
 
 Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives de stockage de données sur \ac{adn} est l'impossibilité de supprimer ou de modifier des données une fois écrites.
 Ce point est particulièrement bloquant pour un système de fichiers \ac{rw} classique,
@@ -358,9 +358,9 @@ Nous avons choisi de ne pas nous projeter trop loin dans le temps et avons donc 
 L'objectif principal du système d'archivage de fichiers proposé est de réduire la quantité de données écrites, tout minimisant la quantité de données à lire pour récupérer les données.
 
 Toutes les contraintes citées précédemment nous ont incité % TODO: j'aime bof ce mot
-à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichiers.
+à nous orienter vers un système de sauvegardes plutôt que vers un véritable système de fichiers.
 En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment,
-absolument pas d'en faire un système de fichiers accessible à chaud.
+absolument pas d'en faire un système de fichiers accessible ``à chaud''.
 Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps :
 journalières, hebdomadaires ou mensuelles.
 De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps
@@ -383,7 +383,7 @@ et on applique un \emph{pipeline} de compression sur les données de chaque vers
 
 Le pipeline est inspiré de celui de Philip Shilane \etal
 dans leur travail sur la réplication de sauvegardes à travers un lien de faible bande passante~\cite{shilane2012wan}.
-Il est composé d'un étage de déduplication,suivi d'une étape d'encodage delta
+Il est composé d'un étage de déduplication, suivi d'une étape d'encodage delta
 et enfin d'un dernier étage de compression.
 Ces trois techniques sont basées sur la découverte de similitudes entre différentes zones du flux de données.
 La déduplication permet de ne pas réécrire plusieurs fois le même bloc de données si ce bloc existe déjà.
@@ -536,7 +536,7 @@ puis le découper en fichiers à partir de la liste des noms de fichiers.
 Le repo est donc une zone intermédiaire qui devra contenir l'ensemble des données écrites sur le DNA-Drive.
 Mais contrairement à ce dernier, il est stocké sur un support classique.
 Il n'est donc pas nécessaire de l'optimiser autant en terme d'espace de stockage.
-D'autant plus qu'il faut également que les données soient facilement accessibles
+D'autant plus qu'il faut que les données soient facilement accessibles
 pour augmenter l'efficacité des algorithmes du commit et du restore.
 Toutefois, afin de simplifier les imports et les exports avec le DNA-Drive,
 la plupart des données sont stockées de manière quasiment identique.
