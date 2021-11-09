@@ -506,6 +506,8 @@ en fournissant un accès rapide aux données que contient le DNA-Drive.
 \label{fig:big-picture}
 \end{figure*}
 
+\subsection{Principe de base}
+
 Pour créer une nouvelle version ou en restaurer une existante, DNA-Backup n'utilise donc que le repo.
 Il est ensuite possible d'exporter les données du repo vers le DNA-Drive,
 ou bien de reconstruire le repo en important les données du DNA-Drive,
@@ -529,22 +531,24 @@ reconstruire en mémoire le disque virtuel à partir de sa liste de chunks,
 puis le découper en fichiers à partir de la liste des noms de fichiers.
 
 
-\subsection{Organisation du repo}
+\subsection{Contenu du repo}
 
-Dans le repo, les données sont organisées par version, chacune dans un dossier.
-Chaque dossier de version contient ses propres informations.
+Le repo est donc une zone intermédiaire qui devra contenir l'ensemble des données écrites sur le DNA-Drive.
+Mais contrairement à ce dernier, il est stocké sur un support classique.
+Il n'est donc pas nécessaire de l'optimiser autant en terme d'espace de stockage.
+D'autant plus qu'il faut également que les données soient facilement accessibles
+pour augmenter l'efficacité des algorithmes du commit et du restore.
+Toutefois, afin de simplifier les imports et les exports avec le DNA-Drive,
+la plupart des données sont stockées de manière quasiment identique.
+Il ne faut pas non-plus que l'espace qu'il occupe soit trop important,
+la totalité de ses fichiers sont donc compressés.
+
+Le repo tire parti du système de fichier sur lequel il est stocké.
+Il organise ses données dans différents fichiers,
+chacun rangé dans le dossier de la version à laquelle il appartient.
 La Figure~\ref{fig:repo-dir-tree} montre un exemple d'arborescence de repo comportant deux versions.
-
-
-\paragraph{Chunks}
-Les chunks d'une version sont stockés dans un dossier \verb|chunks|
-chacun dans un fichier séparé et compressé indépendamment des autres.
-De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
-
-\paragraph{Files}
-
-\paragraph{Recipe}
-
+Un dossier de version est nommé par son numéro et contient trois fichiers de métadonnées :
+\verb|files|, \verb|hashes|, et \verb|recipe|, ainsi qu'un dossier \verb|chunks|.
 
 \begin{figure*}[ht]
 \centering
@@ -594,23 +598,36 @@ De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
 \label{fig:repo-organisation}
 \end{figure*}
 
+\paragraph{Chunks}
+Le dossier \verb|chunks| contient l'ensemble des chunks ajoutés dans cette version.
+Chaque chunk est stocké dans un fichier séparé et compressé indépendamment des autres.
+De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
+
+\paragraph{Files}
+Le fichier \verb|files| contient la liste des fichiers ainsi que leur taille.
+C'est grâce à ce fichier qu'on est capable de retrouver
+à quel fichier appartient une donnée du disque virtuel d'une version.
+Il ne contient en réalité que la différence apportée à cette liste dans cette version
+par rapport à la précédente.
+Pour reconstruire la véritable liste de fichiers,
+il faut donc relire l'ensemble des fichiers \verb|files|
+et appliquer les différences les unes à la suite des autres.
+De plus, le contenu de ce fichier est finalement compressé avant d'être écrit sur le disque,
+afin d'encore économiser de l'espace.
+
+\paragraph{Recipe}
+C'est dans le fichier \verb|recipe| que le repo stocke la liste des chunks
+permettant de reconstruire le disque virtuel d'une version.
+Exactement comme pour le fichier \verb|files|, il est enregistré de manière incrémentale,
+en différence par rapport à la version précédente.
+Le même processus de reconstruction d'y applique donc.
+
 \paragraph{Hashes}
 Pour ne pas avoir à recalculer les signatures (fingerprints et sketches) de tous les chunks du repo lors d'un commit,
 on stocke ses valeurs dans un fichier \verb|hashes| séparé.
 Celui-ci ne sera pas synthétisé en \ac{adn},
 car les données qu'il contient peuvent être recalculées à partir du contenu des chunks.
 
-
-
-% \begin{itemize}
-% \item
-%   L'ensemble des données écrites en \ac{adn} sont compressées, pour le moment
-%   via \emph{ZLib}.
-% \item
-%   Les métadonnées sont stockées de manière incrémentale, chaque version
-%   stocke donc ses métadonnées sous la forme de delta par rapport à la
-%   version précédente.
-% \end{itemize}
 
 \subsection{Ajouter une version au repo}
 
