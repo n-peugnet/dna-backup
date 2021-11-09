@@ -359,9 +359,12 @@ L'objectif principal du système d'archivage de fichiers proposé est de réduir
 
 Toutes les contraintes citées précédemment nous ont incité % TODO: j'aime bof ce mot
 à nous orienter plus vers un système de sauvegardes que vers un véritable système de fichiers.
-En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment, absolument pas d'en faire un système de fichiers accessible à chaud.
-Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps : journalières, hebdomadaires ou mensuelles.
-De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps seront factorisées dans un seul bloc de modification : la nouvelle version.
+En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment,
+absolument pas d'en faire un système de fichiers accessible à chaud.
+Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps :
+journalières, hebdomadaires ou mensuelles.
+De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps
+seront factorisées dans un seul bloc de modification : la nouvelle version.
 Ce n'est effectivement pas la peine d'écrire un fichier s'il va être supprimé ou renommé quelques secondes plus tard.
 
 Afin de minimiser la quantité de données écrites par version, celles-ci sont réalisées de manière incrémentale.
@@ -380,10 +383,12 @@ et on applique un \emph{pipeline} de compression sur les données de chaque vers
 
 Le pipeline est inspiré de celui de Philip Shilane \etal
 dans leur travail sur la réplication de sauvegardes à travers un lien de faible bande passante~\cite{shilane2012wan}.
-Il est composé d'un étage de déduplication, suivi d'une étape d'encodage delta et enfin d'un dernier étage de compression.
+Il est composé d'un étage de déduplication,suivi d'une étape d'encodage delta
+et enfin d'un dernier étage de compression.
 Ces trois techniques sont basées sur la découverte de similitudes entre différentes zones du flux de données.
 La déduplication permet de ne pas réécrire plusieurs fois le même bloc de données si ce bloc existe déjà.
-L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc similaire à un bloc existant, en n'en écrivant que la différence.
+L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc similaire à un bloc existant,
+en n'en écrivant que la différence.
 La compression est également basée sur ces deux principes, mais elle est appliquée à une plus petite échelle.
 Dans DNA-backup, la compression et l'encodage delta sont tous les deux appliqués sur des blocs d'une même taille fixe appelés \emph{chunks}.
 
@@ -426,29 +431,45 @@ Une des manières de procéder est d'utiliser une fonction de hachage sur une fe
 En utilisant différentes fonctions de hash on peut ainsi obtenir plusieurs features.
 
 La méthode exacte utilisée est celle décrite par Philip Shilane \etal~\cite{shilane2012wan}.
-Elle s'appuie sur l'empreinte de Rabin~\cite{rabin1981fingerprinting} que l'on décline en différentes fonctions de hachage pour obtenir plusieurs features.
+Elle s'appuie sur l'empreinte de Rabin~\cite{rabin1981fingerprinting}
+que l'on décline en différentes fonctions de hachage pour obtenir plusieurs features.
 Les features ainsi obtenues sont ensuite regroupées pour former un plus petit nombre de ``super-features''.
 La valeur d'une super-feature correspond au hash des features sous-jacentes,
-donc si deux chunks ont une super-feature en commun, alors toutes les features correspondantes sont également identiques.
-Regrouper les features de cette manière aide à réduire les faux-positifs et augmente le taux de similarité lorsqu'une correspondance est trouvée.
+donc si deux chunks ont une super-feature en commun,
+alors toutes les features correspondantes sont également identiques.
+Regrouper les features de cette manière aide à réduire les faux-positifs
+et augmente le taux de similarité lorsqu'une correspondance est trouvée.
 
-Augmenter le nombre de features par super-feature augmente la qualité des correspondances, mais diminue aussi leur nombre.
-Augmenter les nombre de super-feature par sketch augmente le nombre de correspondances, mais nécessite plus d'espace mémoire.
-Nous utilisons pour le moment les valeurs choisies par Philip Shilane \etal au cours de leurs expérimentations~\cite{shilane2012wan},
+Augmenter le nombre de features par super-feature augmente la qualité des correspondances,
+mais diminue aussi leur nombre.
+Augmenter les nombre de super-feature par sketch augmente le nombre de correspondances,
+mais nécessite plus d'espace mémoire.
+Nous utilisons pour le moment les valeurs choisies par Philip Shilane \etal
+au cours de leurs expérimentations~\cite{shilane2012wan},
 soit 3 super-features par sketch et 4 features par super-features.
-Ces valeurs pourraient être ajustées une fois que de plus amples expériences sur des jeux de données plus variés auront été réalisés.
+Ces valeurs pourraient être ajustées une fois que de plus amples expériences
+sur des jeux de données plus variés auront été réalisés.
 
 \subsection{Index des signatures}
-Pour connaitre de manière efficace l'existence d'une fingerprint ou d'un sketch dans les données existantes du DNA-Drive, nous avons besoin de stocker leur valeur.
+Pour connaitre de manière efficace l'existence d'une fingerprint
+ou d'un sketch dans les données existantes du DNA-Drive, nous avons besoin de stocker leur valeur.
 En effet, autrement il faudrait les recalculer depuis les données, ce qui serait coûteux.
 Ces valeurs sont donc stockées dans deux index.
-L'un faisant l'association entre des fingerprints et leur chunk, l'autre entre des super-features et leurs chunks.
-Philip Shilane \etal travaillaient sur de très gros jeux de données et ne pouvaient pas se permettre de garder l'ensemble de ces index en mémoire, ils ont donc opté pour n'en garder qu'une partie à l'aide d'un cache~\cite{shilane2012wan}.
-Dans notre cas, la quantité de données est suffisamment faible pour qu'on puisse se permettre de garder la totalité de l'index en mémoire.
-De cette manière nous sommes certains de ne rater aucune correspondance, ce qui maximise la qualité de déduplication et l'encodage Delta.
+L'un faisant l'association entre des fingerprints et leur chunk,
+l'autre entre des super-features et leurs chunks.
+Philip Shilane \etal travaillaient sur de très gros jeux de données
+et ne pouvaient pas se permettre de garder l'ensemble de ces index en mémoire,
+ils ont donc opté pour n'en garder qu'une partie à l'aide d'un cache~\cite{shilane2012wan}.
+Dans notre cas, la quantité de données est suffisamment faible pour qu'on puisse se permettre
+de garder la totalité des index en mémoire.
+De cette manière nous sommes certains de ne manquer aucune correspondance,
+ce qui maximise la qualité de déduplication et l'encodage Delta.
 
-Dans l'hypothèse où l'espace de stockage du DNA-Drive deviendrait beaucoup plus grand, il restera toujours la possibilité de ne garder qu'un cache en mémoire et d'utiliser un filtre de Bloom~\cite{bloom1970space} devant le reste de l'index qui serait stocké sur disque.
-En effet, même si le temps de recherche dans l'index en sera augmenté, il restera très faible par rapport au temps de synthèse.
+Dans l'hypothèse où l'espace de stockage du DNA-Drive deviendrait beaucoup plus grand,
+il restera toujours la possibilité de ne garder qu'un cache en mémoire
+et d'utiliser un filtre de Bloom~\cite{bloom1970space} devant le reste de l'index qui serait stocké sur disque.
+En effet, même si le temps de recherche dans l'index s'en trouvera augmenté,
+il restera très faible par rapport au temps de synthèse.
 
 Cependant, les index de signatures seuls ne sont pas suffisants pour appliquer le pipeline.
 Nous avons également besoin du contenu des chunks lors de l'encodage delta.
