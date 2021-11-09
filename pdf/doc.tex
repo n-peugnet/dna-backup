@@ -370,9 +370,9 @@ Ce stockage incrémental est obtenu grâce à une utilisation conjointe de la d�
 De plus, comme aucune donnée ne peut être supprimée, nous en profitons pour réaliser un système versionné, qui nous laisse la possibilité d'accéder aux précédentes sauvegardes.
 
 
-\chapter{Présentation générale}
+\chapter{Présentation de DNA-Backup}
 
-DNA-Backup ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
+Notre proposition : DNA-Backup, ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
 Chaque nouvelle version vient s'ajouter à la précédente, car il est impossible de supprimer ou de modifier des données
 et on applique un \emph{pipeline} de compression sur les données de chaque version afin d'en minimiser la taille.
 
@@ -457,7 +457,7 @@ C'est pour cela que nous avons finalement décidé de conserver sur un support d
 la capacité du DNA-Drive étant pour le moment bien inférieure à ce qui existe sur d'autres supports.
 
 
-\section{Système de sauvegardes}
+\section{Fonctionnement général}
 
 Le système part donc du principe qu'on dispose, sur un support de stockage classique, d'une copie des données stockées en \ac{adn} appelée le \emph{repo} (Figure~\ref{fig:big-picture}).
 Cependant, les informations ne sont pas stockées exactement de la même manière.
@@ -486,75 +486,90 @@ le repo doit permettre de rapidement accéder aux données d'un chunk.
 \label{fig:big-picture}
 \end{figure*}
 
-\subsection{Fonctionnement repo}
+Pour ajouter une nouvelle version, on fait un \emph{commit} dans le repo.
+Le repo doit être présent lorsque l'on veut faire un commit,
+car le pipeline de compression tire parti des données existantes.
+La copie stockée en \ac{adn} dans le DNA-Drive n'est donc utilisé que pour restaurer le repo
+dans le cas d'une défaillance ou d'une duplication.
 
-Avant l'application du pipeline, les données des fichiers d'une version sont au préalable concaténées en un segment virtuel continu.
+\subsection{Fonctionnement du repo}
+
+Au tout début du commit, avant l'application du pipeline de compression,
+DNA-Backup fait un listage des fichiers du dossier source.
+Les données de ces fichiers sont ensuite concaténées en un segment virtuel continu.
 De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
 les données du fichier suivant y seront ajoutées, au lieu d'avoir à le combler avec des bits de bourrage.
-Les métadonnées ne sont pas ajoutées dans ce segment.
-Elles sont stockées dans une autre zone, ce qui permet
-Leur petite taille en rapport aux données 
+Les métadonnées (chemin, taille, etc~\textellipsis) ne sont pas ajoutées dans ce segment.
+Elles sont stockées à part, car leur petite taille par rapport aux données nous offre lors d'une restauration
+la possibilité de rapidement les récupérer.
+En effet, les métadonnées nous permettent à elles seule d'obtenir une arborescence de dossiers et de fichiers que l'on peut parcourir.
 
-La Figure~\ref{fig:repo-dir-tree} montre la structure du \emph{repo}. 
+Dans le repo, les données sont organisées par version, on a donc à la racine du repo un dossier par version (Figure~\ref{fig:repo-dir-tree}).
+Chaque dossier de version contient ses propres informations.
+Les chunks d'une version sont stockés dans un dossier \verb|chunks|
+chacun dans un fichier séparé et compressé indépendamment des autres.
+De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
 
-\begin{figure}
-% \centering % centering ne fonctionne pas du tout avec le dirtree
-\dirtree{%
-.1 repo/.
-.2 00000/.
-.3 chunks/.
-.4 000000000000000.
-.4 000000000000001.
-.4 000000000000002.
-.4 000000000000003.
-.3 files.
-.3 hashes.
-.3 recipe.
-.2 00001/.
-.3 chunks/.
-.4 000000000000000.
-.4 000000000000001.
-.3 files.
-.3 hashes.
-.3 recipe.
-}
-\caption{Organisation du \emph{repo}}
-\label{fig:repo-dir-tree}
-\end{figure}
-
-Pour un repo d'une taille totale de 401 Mio :
-
-\begin{table}[ht]
+\begin{figure*}[ht]
 \centering
-\begin{tabular}{l r r}
-\verb|repo/00000/recipe| &   5076011 &   1.2\% \\
-\verb|repo/00000/files| &      24664 &   0.1\% \\
-\verb|repo/00000/hashes| &   3923672 &   0.9\% \\
-\verb|repo/00000/chunks| & 412263137 &  97.8\% \\
-\verb|repo/00000| &        421287604 & 100.0\% \\
-\end{tabular}
-\caption{Répartition des données d'une première version}
-\label{fig:repo-data-distribution}
-\end{table}
 
-\begin{itemize}
-\item
-  On considère que le \emph{repo} est toujours présent lors d'une
-  écriture (\emph{commit}).
-\item
-  Le \emph{repo} peut être reconstruit à partir des données présentes
-  dans le \emph{DNA-Drive}.
-\item
-  Les \emph{hashes} ne sont pas écrits en \ac{adn}, car ils peuvent être
-  reconstruits à partir des données des \emph{chunks}.
-\item
-  L'ensemble des données écrites en \ac{adn} sont compressées, pour le moment
-  via \emph{ZLib}.
-\item
-  Les métadonnées sont stockées de manière incrémentale, chaque version
-  stocke donc ses métadonnées sous la forme de delta par rapport à la
-  version précédente.
-\end{itemize}
+\begin{subfigure}[c]{.34\textwidth}
+  % \centering % centering ne fonctionne pas du tout avec le dirtree
+  \dirtree{%
+  .1 repo/.
+  .2 00000/.
+  .3 chunks/.
+  .4 000000000000000.
+  .4 000000000000001.
+  .4 000000000000002.
+  .4 000000000000003.
+  .3 files.
+  .3 hashes.
+  .3 recipe.
+  .2 00001/.
+  .3 chunks/.
+  .4 000000000000000.
+  .4 000000000000001.
+  .3 files.
+  .3 hashes.
+  .3 recipe.
+  }
+  \caption{Exemple d'arborescence d'un repo comportant deux versions.}
+  \label{fig:repo-dir-tree}
+\end{subfigure}
+\hfill
+\begin{subtable}[c]{.55\textwidth}
+  \centering
+  \begin{tabular}{l r r}
+  \verb|repo/00000/recipe| &   5076011 &   1.2\% \\
+  \verb|repo/00000/files| &      24664 &   0.1\% \\
+  \verb|repo/00000/hashes| &   3923672 &   0.9\% \\
+  \verb|repo/00000/chunks| & 412263137 &  97.8\% \\
+  \end{tabular}
+  \caption{Exemple de répartition des données d'un repo comportant une seule version pour une taille totale de 401 Mio.}
+  \label{tab:repo-data-distribution}
+\end{subtable}
+
+\caption{Organisation du \emph{repo}.}
+\label{fig:repo-organisation}
+\end{figure*}
+
+Pour ne pas avoir à recalculer les signatures (fingerprints et sketches) de tous les chunks du repo lors d'un commit,
+on stocke ses valeurs dans un fichier \verb|hashes| séparé.
+Celui-ci ne sera pas synthétisé en \ac{adn},
+car les données qu'il contient peuvent être recalculées à partir du contenu des chunks.
+
+
+
+% \begin{itemize}
+% \item
+%   L'ensemble des données écrites en \ac{adn} sont compressées, pour le moment
+%   via \emph{ZLib}.
+% \item
+%   Les métadonnées sont stockées de manière incrémentale, chaque version
+%   stocke donc ses métadonnées sous la forme de delta par rapport à la
+%   version précédente.
+% \end{itemize}
 
 \subsection{L'export vers le DNA-Drive}
 
@@ -594,7 +609,87 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig
 \end{figure}
 
 
+\subsection{Restaurer depuis le DNA-Drive}
+
+\subsubsection{Reconstruction complète du repo}
+
+Il est possible de reconstruire le \emph{repo} en entier en lisant la
+totalité du \emph{DNA-Drive}.
+
+\subsubsection{Restauration de la dernière version}
+
+Il est possible de ne restaurer que la dernière version en lisant dans
+un premier temps le \emph{pool} de versions et les quelques \emph{pools}
+de métadonnées (environ 2\% de la totalité des données écrites), puis en
+lisant tous les \emph{pools} contenant des \emph{chunks} référencés par
+la \emph{recipe} de cette version.
+
+\subsubsection{Restauration d'un seul fichier}
+
+Il pourrait être possible (pas pour le moment) de ne restaurer qu'un
+seul fichier d'une version en ayant moins de données à lire que pour
+restaurer la version complète.
+
+Pour cela, il faudrait en plus stocker en \ac{adn} un mapping \emph{chunk}
+décompressé → \emph{pool} contenant ce \emph{chunk} et ainsi n'avoir à
+lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
+
+
+
 \chapter{Fonctionnement détaillé}
+
+% \section{Détails à propos du repo}
+
+% Le fichier *files* correspond au métadonnées de l'arborescence du système de fichier.
+% C'est là que sont stockés les métadonnées des fichiers (comme par exemple leur nom et leur taille)
+% et c'est grâce à ce segment de données qu'on peut retrouver la position d'un fichier dans le fameux *disque virtuel*
+
+% Conctrètement c'est simplement une liste de structures File :
+
+% \begin{lstlisting}[language=Go]
+% type File struct {
+%     Path string
+%     Size int64
+%     Link string
+% }
+% \end{lstlisting}
+
+
+% Le fichier *recipe* est celui qui permet de reconstruire le *disque virtuel*. Concrètement on peut le voir comme une liste de *chunks*.
+% Sachant que j'ai cette structure d'identifiant pour un chunk:
+
+
+% \begin{lstlisting}[language=Go]
+% type ChunkId struct {
+%     Version int
+%     Index   uint64
+% }
+% \end{lstlisting}
+
+% Et 3 types de chunks différents :
+
+
+% \begin{lstlisting}[language=Go]
+% type StoredChunk struct {
+%     Id      ChunkId
+% }
+
+% type DeltaChunk struct {
+%     Source  ChunkId
+%     Patch   []byte
+%     Size    int
+% }
+
+% type PartialChunk struct {
+%     Value []byte
+% }
+% \end{lstlisting}
+
+% /Le PartialChunk s'appelle pour le moment TempChunk dans mon code mais il faut que je change ça./
+
+% Donc la *recipe* contient bien les les patchs ( delta d'un chunk par rapport à un autre) des DeltaChunks comme dit plus haut, mais aussi potentiellement des chunks d'une taille inférieure à 8Kio (typiquement le tout dernier chunk du disque virtuel, mais il peut y en avoir d'autres).
+
+% Il ne faut pas oublier que ces 2 informations sont stockées sous la forme de différences par rapport à la version précédents (ajouts et suppression de fichers et ajouts ou suppression de chunks). 
 
 \section{Algorithme du commit}
 
@@ -672,34 +767,7 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig
   correspondants dans le répertoire \emph{destination}.
 \end{enumerate}
 
-\section{\texorpdfstring{Restaurer sans le
-\emph{repo}}{Restaurer sans le repo}}
 
-\subsection{\texorpdfstring{Reconstruction complète du
-\emph{repo}}{Reconstruction complète du repo}}
-
-Il est possible de reconstruire le \emph{repo} en entier en lisant la
-totalité du \emph{DNA-Drive}.
-
-\subsection{Restauration de la dernière
-version}
-
-Il est possible de ne restaurer que la dernière version en lisant dans
-un premier temps le \emph{pool} de versions et les quelques \emph{pools}
-de métadonnées (environ 2\% de la totalité des données écrites), puis en
-lisant tous les \emph{pools} contenant des \emph{chunks} référencés par
-la \emph{recipe} de cette version.
-
-\subsection{Restauration d'un seul
-fichier}
-
-Il pourrait être possible (pas pour le moment) de ne restaurer qu'un
-seul fichier d'une version en ayant moins de données à lire que pour
-restaurer la version complète.
-
-Pour cela, il faudrait en plus stocker en \ac{adn} un mapping \emph{chunk}
-décompressé → \emph{pool} contenant ce \emph{chunk} et ainsi n'avoir à
-lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
 
 \chapter{Évaluation de performances}
 
