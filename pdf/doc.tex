@@ -392,7 +392,7 @@ L'objectif principal du système d'archivage de fichiers proposé
 est de réduire la quantité de données écrites,
 tout en minimisant la quantité de données à lire pour récupérer les données.
 
-Toutes les contraintes citées précédemment nous ont incité % TODO: j'aime bof ce mot
+Toutes les contraintes citées précédemment nous ont incité
 à nous orienter vers un système de sauvegardes plutôt que vers un véritable système de fichiers.
 En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment,
 absolument pas d'en faire un système de fichiers accessible ``à chaud''.
@@ -632,8 +632,8 @@ Un dossier de version est nommé par son numéro et contient trois fichiers de m
   \end{tabular}
   \caption{
     Répartition des données d'un repo comportant une seule version pour une taille totale de 401 Mio.
-    Ce repo a été obtenu à partir d'un dossier de code source,
-    il s'agit donc d'un grand nombre de fichiers texte de petite taille, fortement déduplicables et compressibles.
+    Ce repo a été obtenu à partir d'un dossier contenant un certain nombre de projets web,
+    il s'agit donc d'un contenu assez hétéroclite, comportant notamment des images et autres fichiers déjà compressés.
   }
   \label{tab:repo-data-distribution}
 \end{subtable}
@@ -798,11 +798,27 @@ il n'est pas nécessaire de reconstruire le repo en entier.
 
 \subsubsection{Restauration de la dernière version}
 
-Il est possible de ne restaurer que la dernière version en lisant dans
-un premier temps le \emph{pool} de versions et les quelques \emph{pools}
-de métadonnées (environ 2\% de la totalité des données écrites), puis en
-lisant tous les \emph{pools} contenant des \emph{chunks} référencés par
-la \emph{recipe} de cette version.
+Il est possible de ne restaurer qu'une version,
+sans avoir à lire la totalité des données présentes sur le DNA-Drive.
+L'opération commence de la même manière que pour la reconstruction complète du repo,
+il nous faut donc tout d'abord lire le pool de version ainsi que ceux des métadonnées.
+Comme le montre la Figure~\ref{tab:repo-data-distribution},
+la taille des métadonnées est très faible par rapport à celle des chunks.
+Nous n'avons pas eu l'opportunité de réaliser suffisamment de tests
+afin d'évaluer le pourcentage maximum utilisé par les métadonnées,
+mais aux cours de nos tests sur des données fortement déduplicables et compressibles,
+les métadonnées ont atteint jusqu'à 15\% du volume total de données.
+Nous estimons qu'elles ne devraient pas dépasser 20\% de la totalité des données écrites.
+
+Une fois les pools de métadonnées séquencés,
+il est possible de reconstruire les véritables valeurs
+de la recipe et de la liste des fichiers,
+en appliquant les différences de chaque version les unes à la suite des autres.
+Avec ces informations, la liste des chunks permettant
+de reconstruire le disque virtuel de cette version est maintenant connue.
+L'étape suivante consiste donc à déterminer quels sont les pools de chunks qu'il va falloir lire.
+
+% TODO: toujours pas fini
 
 \subsubsection{Restauration d'un seul fichier}
 
@@ -823,6 +839,23 @@ et bien moindre que si on avait eu à restaurer la totalité de la version.
 
 
 \chapter{Détails d'implémentation}
+
+L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go.
+Un certain nombre de choix techniques ont été dictées par le temps limité et la disponibilité de librairies efficaces.
+Notamment, l'encodeur par défaut du langage Go : \verb|gob|,
+a été utilisé à maintes reprises, du fait de sa simplicité de mise en œuvre
+et de sa relativement bonne efficacité en terme d'espace.
+Malheureusement, il n'est pas particulièrement interopérable car,
+malgré que la totalité de ses spécifications soient disponibles,
+il n'existe que très peu d'implémentations dans d'autres langages.
+
+De la même manière, les algorithmes de compression et d'encodage delta utilisés dans DNA-Backup
+n'ont pour le moment pas été choisis en fonction de leur efficacité,
+mais plutôt pour des raisons de facilité.
+En ce qui concerne la compression, l'utilisation de \emph{Zlib} reste intéressante,
+car il s'agit de l'algorithme utilisé par les autres systèmes
+auxquels nous allons nous comparer par la suite.
+Ainsi les résultats ne seront pas biaisés par l'utilisation d'un algorithme plus efficace.
 
 % \section{Détails à propos du repo}
 
