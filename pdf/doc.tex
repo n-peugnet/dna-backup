@@ -12,6 +12,7 @@
 \usepackage[french]{babel}  % latex rules for french words
 \usepackage[utf8]{inputenc} % UTF-8 encoding for special chars
 \usepackage[T1]{fontenc}    % T1 font for smooth render of special chars
+\usepackage{lmodern}        % Latin modern font recommended by Vincent
 \DeclareUnicodeCharacter{202F}{\thinspace}
 
 % Define some colors
@@ -84,7 +85,7 @@
 \setlength{\parskip}{.3em} % space between paragraphs
 
 % Custom commands
-\usepackage{xspace}
+\usepackage{xspace} % automatically add a space after the command if needed
 \newcommand{\etal}{\emph{et al.}\@\xspace}
 
 \newcommand{\btrfs}{BTRFS~\cite{rodeh2013btrfs}\@\xspace}
@@ -172,7 +173,7 @@ L'information génétique des organismes vivants a pour support l'\ac{adn} (Acid
 L'\ac{adn} est codé sous la forme d'une suite de molécules organiques que sont les \emph{nucléotides}.
 Il existe quatre nucléotides différents, représentés par quatre lettres : \textbf{A} pour Adénine, \textbf{T} pour Thymine, \textbf{G} pour Guanine, et \textbf{C} pour Cytosine.
 Les nucléotides s'associent deux à deux pour former un double brin d'\ac{adn}.
-Ainsi, l'Adénine est appariée à la Thymine, et la Guanine à la Cytosine.
+Ainsi, l'Adénine est appariée à la Thymine et la Guanine à la Cytosine.
 Chaque brin d'\ac{adn} est alors complémentaire de l'autre.
 
 Il est donc possible d'établir un parallèle entre l'information génétique, codée par les 4 nucléotides formant l'\ac{adn}, en base~4, et la donnée informatique, codée par une suite de bits en base~2.
@@ -954,8 +955,9 @@ aucune déduplication ou compression.
 \subsection{Tableau récapitulatif}
 
 \begin{table*}[ht]
+\renewcommand\arraystretch{1.5}
 
-\begin{tabularx}{\textwidth}{L|L|L|L|L|L}
+\begin{tabularx}{\textwidth}{@{}L|L|L|L|L|L@{}}
 
 \textbf{Feature} &
 \textbf{DNA-Backup} &
@@ -984,7 +986,7 @@ Niveau version &
 \hline
 
 Com\-pres\-sion &
-Niveau chunk &
+Niveau version &
 Niveau version &
 Niveau fichier &
 Niveau version &
@@ -1029,7 +1031,6 @@ Lecture de la zone correspondant à la dernière version \\
 \subsection{Résultats}
 
 
-% TODO: use real data
 \begin{table*}[ht]
 \centering
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
@@ -1047,7 +1048,6 @@ Lecture de la zone correspondant à la dernière version \\
 \end{table*}
 
 
-% TODO: use real data
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textbf{DNA 4k} &
@@ -1064,7 +1064,6 @@ Lecture de la zone correspondant à la dernière version \\
 \end{table*}
 
 
-% TODO: use real data
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textbf{DNA 4k} &
@@ -1074,7 +1073,7 @@ Lecture de la zone correspondant à la dernière version \\
 \textbf{Tar.gz} &
 \textbf{Taille réelle} \\
 \hline
-\input{assets/summary.daily.17.tex}
+\input{assets/summary.monthly.17.tex}
 \end{tabularx}
 \caption{Commits Mensuels}
 \label{tab:commits-monthly}

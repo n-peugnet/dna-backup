@@ -9,7 +9,7 @@ all pdf: $(PDF)
 .SECONDEXPANSION:
 %.pdf: %.tex $$(wildcard $$*.bib)  assets/*.tex
 	latexmk $(LATEXMK_FLAGS) $(PDFLATEX_FLAGS) -pdf -f $< \
-	| grep --color=always -o '.*:[0-9]*:.*\|warning.*' || true
+	| grep --color=always -oE '(.+:[0-9]+:|warning|(Und|Ov)erfull).*' || true
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c
