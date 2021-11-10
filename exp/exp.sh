@@ -56,6 +56,15 @@ then
 	# Init borg dir
 	borg init -e none $BORG
 fi
+if [ -n "$DNA_PARAMS" ]
+then
+	# Clean dna backups for this version
+	while read name flags
+	do
+		rm -rf $name
+	done < $DNA_PARAMS
+fi
+
 
 # "empty tree" commit
 prev="4b825dc642cb6eb9a060e54bf8d69288fbee4904"

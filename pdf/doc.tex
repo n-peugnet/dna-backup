@@ -629,25 +629,24 @@ Celui-ci ne sera pas synthétisé en \ac{adn},
 car les données qu'il contient peuvent être recalculées à partir du contenu des chunks.
 
 
-\subsection{Ajouter une version au repo}
-
-Pour ajouter une nouvelle version, on fait un \emph{commit} dans le repo.
-Le repo doit être présent lorsque l'on veut faire un commit,
-car le pipeline de compression tire parti des données existantes.
-
-Au tout début du commit, avant l'application du pipeline de compression,
-DNA-Backup fait un listage des fichiers du dossier source.
-Les données de ces fichiers sont ensuite concaténées en un segment virtuel continu.
-De cette manière, si la taille d'un fichier n'est pas aligné sur la taille d'un chunk,
-les données du fichier suivant y seront ajoutées, au lieu d'avoir à le combler avec des bits de bourrage.
-Les métadonnées (chemin, taille, etc~\textellipsis) ne sont pas ajoutées dans ce segment.
-Elles sont stockées à part, car leur petite taille par rapport aux données nous offre lors d'une restauration
-la possibilité de rapidement les récupérer.
-En effet, les métadonnées nous permettent à elles seule d'obtenir une arborescence de dossiers et de fichiers que l'on peut parcourir.
-
 \subsection{L'export vers le DNA-Drive}
 
-On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig:data-layout})
+Au lieu de voir le DNA-Drive comme une grille,
+on l'imagine comme une liste de \emph{pools} à une seule dimension (Figure~\ref{fig:data-layout}).
+De cette manière on peut répartir l'espace de stockage
+entre les deux principaux segments de données de DNA-Backup,
+les chunks et les métadonnées (recipe + files).
+Comme on peut le remarquer sur la Figure~\ref{tab:repo-data-distribution},
+les métadonnées ont une taille bien inférieure à celle de l'ensemble des chunks,
+en particulier lorsque les fichiers sont grands.
+Cependant, il n'est pas possible de savoir à l'avance exactement
+quelle proportion sera utilisée par les métadonnées,
+car leur taille peut varier en fonction d'un certain nombre de paramètres
+(type de fichiers sauvegardés, fréquence de sauvegarde, quantité et taille des fichiers, etc~\textellipsis).
+Pour garantir une utilisation maximale de l'espace disponible,
+on fait démarrer ces deux segments chacun à une extrémité du DNA-Drive
+et on les laisse grandir l'un vers l'autre,
+à la manière de la \emph{pile} et du \emph{tas} d'un processus.
 
 \begin{figure}[ht]
 \centering
@@ -678,9 +677,40 @@ On imagine le \emph{DNA-Drive} comme un segment de \emph{pools} (Figure~\ref{fig
 
 \end{tikzpicture}
 
-\caption{Disposition des données}
+\caption{Disposition des données.}
 \label{fig:data-layout}
 \end{figure}
+
+Le tout premier pool du DNA-Dire (numéro 0) est réservé aux \emph{header} des versions
+et aux métadonnées globales du repo.
+
+Pour chaque version, il faut conserver la taille que chacun des trois segments
+(\verb|chunks|, \verb|recipe| et \verb|files|).
+De la même manière qu'il serait impossible de savoir
+à quel fichier appartient une donnée sans la liste de fichiers,
+il serait impossible sans ces informations, de savoir
+à quelle version et à quel segment de données appartient une track.
+
+En ce qui concerne les métadonnées du repo,
+un \emph{superblock} serait ajouté dans la toute première track du premier pool.
+Celui-ci contiendrait les valeurs des paramètres de DNA-Backup,
+à savoir principalement la taille des chunks, mais aussi les paramètres de la fonction de sketch,
+l'algorithme utilisé pour la compression utilisé, celui pour les deltas, etc~\textellipsis
+
+Le header d'une version ne comptant que trois valeurs numériques, il ne remplira jamais une track.
+Pour éviter de gâcher l'espace restant des tracks de version,
+DNA-Backup le remplit avec le contenu des segments de métadonnées (\verb|recipe| + \verb|files|)
+jusqu'à ce qu'il soit plein ou que toutes les métadonnées aient été écrites.
+S'il reste encore des métadonnées, elles sont écrites à l'endroit prévu initialement.
+
+L'export est actuellement réalisé dans un dossier, dans lequel 96~fichiers
+représentant chacun un pool sont créés et remplis avec les données du repo.
+Les écritures sont alignées sur la taille du track, laquelle est configurable.
+Le repo n'a pas réellement de connaissances de ces valeurs en dehors de l'export.
+DNA-Backup est donc en grande partie indépendant du DNA-Drive
+et pourrait être utilisé avec d'autres supports de stockages,
+ou même en utilisant uniquement le repo,
+à la manière d'un logiciel de sauvegardes incrémentales classique.
 
 
 \subsection{Restaurer depuis le DNA-Drive}
@@ -1001,9 +1031,7 @@ Lecture de la zone correspondant à la dernière version \\
 % TODO: use real data
 \begin{table*}[ht]
 \centering
-\begin{tabularx}{\textwidth}{RRRRRRRR}
-\textbf{Repo 4k} &
-\textbf{Repo 8k} &
+\begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textbf{DNA 4k} &
 \textbf{DNA 8k} &
 \textbf{Git diffs} &
@@ -1011,7 +1039,7 @@ Lecture de la zone correspondant à la dernière version \\
 \textbf{Tar.gz} &
 \textbf{Taille réelle} \\
 \hline
-\input{assets/summary.daily.5.tex}
+\input{assets/summary.daily.17.tex}
 \end{tabularx}
 \caption{Commits journaliers}
 \label{tab:commits-daily}
@@ -1020,9 +1048,7 @@ Lecture de la zone correspondant à la dernière version \\
 
 % TODO: use real data
 \begin{table*}[ht]
-\begin{tabularx}{\textwidth}{RRRRRRRR}
-\textbf{Repo 4k} &
-\textbf{Repo 8k} &
+\begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textbf{DNA 4k} &
 \textbf{DNA 8k} &
 \textbf{Git diffs} &
@@ -1030,7 +1056,7 @@ Lecture de la zone correspondant à la dernière version \\
 \textbf{Tar.gz} &
 \textbf{Taille réelle} \\
 \hline
-\input{assets/summary.daily.5.tex}
+\input{assets/summary.weekly.17.tex}
 \end{tabularx}
 \caption{Commits hebdomadaires}
 \label{tab:commits-weekly}
@@ -1039,9 +1065,7 @@ Lecture de la zone correspondant à la dernière version \\
 
 % TODO: use real data
 \begin{table*}[ht]
-\begin{tabularx}{\textwidth}{RRRRRRRR}
-\textbf{Repo 4k} &
-\textbf{Repo 8k} &
+\begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textbf{DNA 4k} &
 \textbf{DNA 8k} &
 \textbf{Git diffs} &
@@ -1049,7 +1073,7 @@ Lecture de la zone correspondant à la dernière version \\
 \textbf{Tar.gz} &
 \textbf{Taille réelle} \\
 \hline
-\input{assets/summary.daily.5.tex}
+\input{assets/summary.daily.17.tex}
 \end{tabularx}
 \caption{Commits Mensuels}
 \label{tab:commits-monthly}

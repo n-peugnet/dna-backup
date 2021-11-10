@@ -50,7 +50,7 @@ GITC      := git -C $(REPO_PATH)
 SPACE     := $() $()
 DNADIRS   := $(DNA_4K) $(DNA_8K)
 DNAEXPORT := $(DNADIRS:%=%_export)
-DATADIRS  := $(DNADIRS) $(DNAEXPORT) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
+DATADIRS  := $(DNAEXPORT) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
 SUMMARY   := summary.$(RANGE).$(MAX_VERSION)
 
