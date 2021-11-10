@@ -674,6 +674,7 @@ car les données qu'il contient peuvent être recalculées à partir du contenu 
 
 
 \subsection{L'export vers le DNA-Drive}
+\label{sec:dna-export}
 
 Au lieu de voir le DNA-Drive comme une grille,
 on l'imagine comme une liste de \emph{pools} à une seule dimension (Figure~\ref{fig:data-layout}).
@@ -767,12 +768,33 @@ ou même en utilisant uniquement le repo,
 à la manière d'un logiciel de sauvegardes incrémentales classique.
 
 
-\subsection{Restaurer depuis le DNA-Drive}
+\subsection{Importer depuis le DNA-Drive}
+
+Les fonctions d'import n'ont pour le moment pas été implémentées.
+Ce qui suit décrit donc l'ensemble des fonctionnalités qui pourraient être implémentées
+à partir du format d'export décrit dans la section~\ref{sec:dna-export}.
 
 \subsubsection{Reconstruction complète du repo}
 
-Il est possible de reconstruire le \emph{repo} en entier en lisant la
-totalité du \emph{DNA-Drive}.
+En lisant la totalité du DNA-Drive, il est possible de reconstruire entièrement le repo.
+Une fois ce dernier reconstruit, n'importe quelle version peut être restaurée très rapidement.
+Afin de reconstruire le repo, il faut dans un premier temps lire le pool de version.
+Celui-ci contient en effet le superblock ainsi que les headers des versions,
+nécessaires à l'initialisation du repo et au découpage du reste des données en segments cohérents.
+Une fois ce pool séquencé et décodé, il est possible de savoir
+le nombre de pools qu'il faut maintenant lire pour récupérer les chunks
+et les métadonnées de chaque version.
+
+Pour réduire le temps total de lecture, il serait également possible,
+en même temps que de lire le pool de version,
+de séquencer en parallèle les premiers pools de chunks et de métadonnées.
+Ainsi, même si on ne peut pas immédiatement donner du sens aux données de ces pools,
+il sera possible de les décoder dès que les headers des versions seront restaurés.
+
+Cette opération est longue, mais n'est à réaliser que lorsque l'on veut restaurer la totalité du repo,
+par exemple après une défaillance.
+Si le but n'est que de récupérer la dernière version,
+il n'est pas nécessaire de reconstruire le repo en entier.
 
 \subsubsection{Restauration de la dernière version}
 
@@ -784,14 +806,20 @@ la \emph{recipe} de cette version.
 
 \subsubsection{Restauration d'un seul fichier}
 
-Il pourrait être possible (pas pour le moment) de ne restaurer qu'un
-seul fichier d'une version en ayant moins de données à lire que pour
-restaurer la version complète.
+Bien que la seule lecture des métadonnées nous permette d'obtenir les arborescences de chaque version,
+ainsi que de déterminer les chunks qu'il est nécessaire de lire
+afin de restaurer le contenu d'un fichier unique,
+la technique de compression utilisée lors de l'export diminue l'intérêt de ce cas d'utilisation.
+En effet, comme les chunks sont tous compressés en même temps,
+il n'est pas possible de sélectionner seulement les tracks composant un chunk lors d'une lecture.
+Il faut nécessairement lire la totalité du segment de chunks de cette version
+pour pouvoir le décompresser, et en extraire le chunk voulu.
+On obtient donc une grosse amplification des lectures,
+car il faudra lire une quantité de données beaucoup plus grande que celle du fichier seul.
 
-Pour cela, il faudrait en plus stocker en \ac{adn} un mapping \emph{chunk}
-décompressé → \emph{pool} contenant ce \emph{chunk} et ainsi n'avoir à
-lire que les \emph{pools} contenant des \emph{chunks} de ce fichier.
-
+Toutefois, il est possible que les chunks du fichier en question fassent tous partie d'une petite et même version.
+Dans ce cas l'amplification de lecture restera contenue
+et bien moindre que si on avait eu à restaurer la totalité de la version.
 
 
 \chapter{Détails d'implémentation}
