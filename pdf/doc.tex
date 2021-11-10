@@ -88,6 +88,9 @@
 \usepackage{xspace} % automatically add a space after the command if needed
 \newcommand{\etal}{\emph{et al.}\@\xspace}
 
+\newcommand{\fonts}[2][m]{{\fontseries{#1}\selectfont #2}} % select a font series for the given text
+\newcommand{\textb}{\fonts[b]}
+
 \newcommand{\btrfs}{BTRFS~\cite{rodeh2013btrfs}\@\xspace}
 \newcommand{\erofs}{EROFS~\cite{gao2019erofs}\@\xspace}
 \newcommand{\hptfs}{HPTFS~\cite{zhang2006hptfs}\@\xspace}
@@ -956,18 +959,19 @@ aucune déduplication ou compression.
 
 \begin{table*}[ht]
 \renewcommand\arraystretch{1.5}
+\small
 
 \begin{tabularx}{\textwidth}{@{}L|L|L|L|L|L@{}}
 
-\textbf{Feature} &
-\textbf{DNA-Backup} &
-\textbf{Git diffs} &
-\textbf{Git objects} &
-\textbf{Tar.gz} &
-\textbf{Taille réelle} \\
+&
+\textb{DNA-Backup} &
+\textb{Git diffs} &
+\textb{Git objects} &
+\textb{Tar.gz} &
+\textb{Taille réelle} \\
 \hline
 
-\multirow{2}{=}{Dé\-du\-pli\-ca\-tion} &
+\multirow{2}{=}{\textb{Dé\-du\-pli\-ca\-tion}} &
 Niveau chunk &
 \multirow{2}{=}{N/A} &
 Niveau fichier &
@@ -976,7 +980,7 @@ Niveau fichier &
 & Transversal aux versions & & Transversal aux versions & \\
 \hline
 
-\multirow{2}{=}{Delta-encoding} &
+\multirow{2}{=}{\textb{Delta-encoding}} &
 Niveau chunk &
 Niveau version &
 \multirow{2}{=}{N/A} &
@@ -985,7 +989,7 @@ Niveau version &
 & Transversal aux versions & Par rapport à la précédente & & \\
 \hline
 
-Com\-pres\-sion &
+\textb{Com\-pres\-sion} &
 Niveau version &
 Niveau version &
 Niveau fichier &
@@ -993,7 +997,7 @@ Niveau version &
 N/A \\
 \hline
 
-Res\-tau\-ra\-tion de la dernière version &
+\textb{Res\-tau\-ra\-tion de la dernière version} &
 Lecture des métadonnées puis des chunks de cette version (répartis dans différents pools) &
 Lecture de la totalité du DNA-Drive &
 Lecture récursive des différents objets composant la version (répartis dans différents pools) &
@@ -1034,12 +1038,12 @@ Lecture de la zone correspondant à la dernière version \\
 \begin{table*}[ht]
 \centering
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
-\textbf{DNA 4k} &
-\textbf{DNA 8k} &
-\textbf{Git diffs} &
-\textbf{Git objects} &
-\textbf{Tar.gz} &
-\textbf{Taille réelle} \\
+\textb{DNA 4k} &
+\textb{DNA 8k} &
+\textb{Git diffs} &
+\textb{Git objects} &
+\textb{Tar.gz} &
+\textb{Taille réelle} \\
 \hline
 \input{assets/summary.daily.17.tex}
 \end{tabularx}
@@ -1050,12 +1054,12 @@ Lecture de la zone correspondant à la dernière version \\
 
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
-\textbf{DNA 4k} &
-\textbf{DNA 8k} &
-\textbf{Git diffs} &
-\textbf{Git objects} &
-\textbf{Tar.gz} &
-\textbf{Taille réelle} \\
+\textb{DNA 4k} &
+\textb{DNA 8k} &
+\textb{Git diffs} &
+\textb{Git objects} &
+\textb{Tar.gz} &
+\textb{Taille réelle} \\
 \hline
 \input{assets/summary.weekly.17.tex}
 \end{tabularx}
@@ -1066,12 +1070,12 @@ Lecture de la zone correspondant à la dernière version \\
 
 \begin{table*}[ht]
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
-\textbf{DNA 4k} &
-\textbf{DNA 8k} &
-\textbf{Git diffs} &
-\textbf{Git objects} &
-\textbf{Tar.gz} &
-\textbf{Taille réelle} \\
+\textb{DNA 4k} &
+\textb{DNA 8k} &
+\textb{Git diffs} &
+\textb{Git objects} &
+\textb{Tar.gz} &
+\textb{Taille réelle} \\
 \hline
 \input{assets/summary.monthly.17.tex}
 \end{tabularx}
