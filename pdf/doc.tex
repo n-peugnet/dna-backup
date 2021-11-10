@@ -692,6 +692,17 @@ on fait démarrer ces deux segments chacun à une extrémité du DNA-Drive
 et on les laisse grandir l'un vers l'autre,
 à la manière de la \emph{pile} et du \emph{tas} d'un processus.
 
+Contrairement à la manière dont ils sont stockés dans le repo,
+lors de l'export, les chunks ne sont pas compressés indépendamment,
+mais tous ensembles, par version.
+De cette manière on réduit encore l'espace occupé par les chunks,
+car l'algorithme de compression n'a pas à réécrire plusieurs fois son header
+et peut réutiliser les motifs de répétition trouvés dans un chunk
+à travers l'ensemble des chunks d'une version.
+Cette technique a pour inconvénient d'avoir besoin de décompresser (et donc lire)
+la totalité des chunks d'une version même si on ne veut en lire qu'un seul.
+
+
 \begin{figure}[ht]
 \centering
 
@@ -734,18 +745,17 @@ De la même manière qu'il serait impossible de savoir
 à quel fichier appartient une donnée sans la liste de fichiers,
 il serait impossible sans ces informations, de savoir
 à quelle version et à quel segment de données appartient une track.
+Le header d'une version ne comptant que trois valeurs numériques, il ne remplira jamais une track.
+Pour éviter de gâcher l'espace restant des tracks de version,
+DNA-Backup le remplit avec le contenu des segments de métadonnées (\verb|recipe| + \verb|files|)
+jusqu'à ce qu'il soit plein ou que toutes les métadonnées aient été écrites.
+S'il reste encore des métadonnées, elles sont écrites à l'endroit prévu initialement.
 
 En ce qui concerne les métadonnées du repo,
 un \emph{superblock} serait ajouté dans la toute première track du premier pool.
 Celui-ci contiendrait les valeurs des paramètres de DNA-Backup,
 à savoir principalement la taille des chunks, mais aussi les paramètres de la fonction de sketch,
 l'algorithme utilisé pour la compression utilisé, celui pour les deltas,~etc.
-
-Le header d'une version ne comptant que trois valeurs numériques, il ne remplira jamais une track.
-Pour éviter de gâcher l'espace restant des tracks de version,
-DNA-Backup le remplit avec le contenu des segments de métadonnées (\verb|recipe| + \verb|files|)
-jusqu'à ce qu'il soit plein ou que toutes les métadonnées aient été écrites.
-S'il reste encore des métadonnées, elles sont écrites à l'endroit prévu initialement.
 
 L'export est actuellement réalisé dans un dossier, dans lequel 96~fichiers
 représentant chacun un pool sont créés et remplis avec les données du repo.
