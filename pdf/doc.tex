@@ -838,9 +838,14 @@ Dans ce cas l'amplification de lecture restera contenue
 et bien moindre que si on avait eu à restaurer la totalité de la version.
 
 
-\chapter{Détails d'implémentation}
+\chapter{Détails techniques}
+
+\section{Spécificités d'implémentation}
 
 L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go.
+
+\subsection{Choix techniques}
+
 Un certain nombre de choix techniques ont été dictées par le temps limité et la disponibilité de librairies efficaces.
 Notamment, l'encodeur par défaut du langage Go : \verb|gob|,
 a été utilisé à maintes reprises, du fait de sa simplicité de mise en œuvre
@@ -852,12 +857,25 @@ il n'existe que très peu d'implémentations dans d'autres langages.
 De la même manière, les algorithmes de compression et d'encodage delta utilisés dans DNA-Backup
 n'ont pour le moment pas été choisis en fonction de leur efficacité,
 mais plutôt pour des raisons de facilité.
-En ce qui concerne la compression, l'utilisation de \emph{Zlib} reste intéressante,
+En ce qui concerne la compression, l'utilisation de \emph{Zlib}~\cite{rfc1950} basé sur DEFLATE~\cite{rfc1951} reste intéressante,
 car il s'agit de l'algorithme utilisé par les autres systèmes
 auxquels nous allons nous comparer par la suite.
-Ainsi les résultats ne seront pas biaisés par l'utilisation d'un algorithme plus efficace.
+Ainsi les résultats ne seront pas biaisés par l'utilisation d'un algorithme plus performant que les autres.
 
-% \section{Détails à propos du repo}
+Deux algorithmes ont été testés pour l'encodage delta.
+Tout d'abord \verb|bsdiff|~\cite{percival2003naive} qui est la référence actuelle
+quand il s'agit de produire des différences binaires d'une taille minimale.
+C'était par exemple l'algorithme utilisé par le projet Chromium pour distribuer ses mises-à-jour,
+avant qu'ils ne décident d'en créer un parfaitement adapté à leur besoin~\cite{chromium2012courgette}.
+Cependant, \verb|bsdiff| est trop spécifique aux données binaires exécutables,
+ce qui en fait un algorithme trop peu généraliste.
+De plus, son fonctionnement inclut une passe de compression sur la différence qu'il crée,
+laquelle est redondante avec celle que nous appliquons nous-même sur les données que nous stockons.
+Nous choisissons finalement d'utiliser \verb|fdelta| le format de différence utilisé par le gestionnaire de version Fossil~\cite{hipp2006fdelta}.
+Celui-ci étant plus généraliste et produisant des différences d'une taille suffisamment réduite,
+tout en étant explicitement prévu pour être ensuite compressé avec l'algorithme de notre choix.
+
+\subsection{Structures de données du repo}
 
 % Le fichier *files* correspond au métadonnées de l'arborescence du système de fichier.
 % C'est là que sont stockés les métadonnées des fichiers (comme par exemple leur nom et leur taille)
