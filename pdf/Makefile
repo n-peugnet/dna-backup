@@ -13,8 +13,7 @@ all pdf: $(PDF)
 
 mostlyclean:
 	latexmk $(LATEXMK_FLAGS) -c
-	rm -f $(FILES:%=%.synctex.*) $(FILES:%=%.bbl)
-	rm -f assets/*.aux
+	rm -f $(FILES:%=%.synctex.*) $(FILES:%=%.brf) $(FILES:%=%.bbl) assets/*.aux
 
 clean: mostlyclean
 	rm -f $(PDF)
