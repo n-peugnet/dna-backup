@@ -818,24 +818,33 @@ Avec ces informations, la liste des chunks permettant
 de reconstruire le disque virtuel de cette version est maintenant connue.
 L'étape suivante consiste donc à déterminer quels sont les pools de chunks qu'il va falloir lire.
 
-% TODO: toujours pas fini
-
-\subsubsection{Restauration d'un seul fichier}
-
-Bien que la seule lecture des métadonnées nous permette d'obtenir les arborescences de chaque version,
-ainsi que de déterminer les chunks qu'il est nécessaire de lire
-afin de restaurer le contenu d'un fichier unique,
-la technique de compression utilisée lors de l'export diminue l'intérêt de ce cas d'utilisation.
+C'est malheureusement ici qu'on paie le prix de la compression réalisée lors de l'export.
 En effet, comme les chunks sont tous compressés en même temps,
 il n'est pas possible de sélectionner seulement les tracks composant un chunk lors d'une lecture.
 Il faut nécessairement lire la totalité du segment de chunks de cette version
 pour pouvoir le décompresser, et en extraire le chunk voulu.
 On obtient donc une grosse amplification des lectures,
-car il faudra lire une quantité de données beaucoup plus grande que celle du fichier seul.
+car il faudra lire une quantité de données beaucoup plus grande de données que juste celles qui composent la version.
+
+Nous n'avons pas eu le temps de réaliser des simulations du coût de restauration d'une version,
+nous ne pouvons donc pas réellement quantifier cette amplification des lectures pour le moment.
+Cela-dit, si la lecture est finalement un cas d'utilisation qui devient plus important,
+il reste toujours la possibilité, à la manière du repo,
+de compresser les chunks indépendamment lors de l'export vers le DNA-Drive,
+au détriment de l'espace utilisé.
+
+\subsubsection{Restauration d'un seul fichier}
+
+De manière assez similaire à la restauration d'une version complète,
+bien que la seule lecture des métadonnées nous permette d'obtenir les arborescences de chaque version,
+ainsi que de déterminer les chunks qu'il est nécessaire de lire
+afin de restaurer le contenu d'un fichier unique,
+la technique de compression utilisée lors de l'export diminue l'intérêt de ce cas d'utilisation.
+Les lectures seront une fois encore amplifiées, car tous les chunks d'une même version devront être lus.
 
 Toutefois, il est possible que les chunks du fichier en question fassent tous partie d'une petite et même version.
 Dans ce cas l'amplification de lecture restera contenue
-et bien moindre que si on avait eu à restaurer la totalité de la version.
+et potentiellement bien moindre que si on avait eu à restaurer la totalité de la version.
 
 
 \chapter{Détails techniques}
@@ -843,6 +852,11 @@ et bien moindre que si on avait eu à restaurer la totalité de la version.
 \section{Spécificités d'implémentation}
 
 L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go.
+Ce langage a été choisi, car il propose un bon compromis entre performance et temps de développement.
+De plus il est très facilement compilable pour un très grand nombre de systèmes d'exploitation et d'architectures
+et le programme résultant n'est dépendant d'aucun runtime,
+ce qui permet de produire des logiciels ``cross-plateform''.
+Et finalement par curiosité et envie de découvrir et d'apprendre ce langage.
 
 \subsection{Choix techniques}
 
