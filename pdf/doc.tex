@@ -861,7 +861,7 @@ Et finalement par curiosité et envie de découvrir et d'apprendre ce langage.
 \subsection{Choix techniques}
 
 Un certain nombre de choix techniques ont été dictées par le temps limité et la disponibilité de librairies efficaces.
-Notamment, l'encodeur par défaut du langage Go : \verb|gob|,
+Notamment, l'encodeur par défaut du langage Go : \verb|gob|~\cite{pike2011gob},
 a été utilisé à maintes reprises, du fait de sa simplicité de mise en œuvre
 et de sa relativement bonne efficacité en terme d'espace.
 Malheureusement, il n'est pas particulièrement interopérable car,
@@ -891,56 +891,76 @@ tout en étant explicitement prévu pour être ensuite compressé avec l'algorit
 
 \subsection{Structures de données du repo}
 
-% Le fichier *files* correspond au métadonnées de l'arborescence du système de fichier.
-% C'est là que sont stockés les métadonnées des fichiers (comme par exemple leur nom et leur taille)
-% et c'est grâce à ce segment de données qu'on peut retrouver la position d'un fichier dans le fameux *disque virtuel*
+\subsubsection{Files}
+Pour rappel, le fichier \verb|files| correspond aux métadonnées
+de l'arborescence du système de fichier.
+C'est là que sont stockés les données à propos des fichiers, comme leur nom et leur taille
+et c'est grâce à ce segment de données qu'on peut retrouver la position d'un fichier
+dans le disque virtuel.
+DNA-Backup stocke le contenu de ce fichier comme une liste de structures \verb|File|
+(Figure~\ref{fig:type-file-struct}), encodée avec \verb|gob|~\cite{pike2011gob}.
 
-% Conctrètement c'est simplement une liste de structures File :
+\subsubsection{Recipe}
+Le fichier \verb|recipe| est celui qui permet de reconstruire le disque virtuel.
+Go nous autorise à créer des listes de structures hétérogènes grâce aux interfaces,
+il s'agit donc concrètement d'une simple liste de structures de chunks (Figure~\ref{fig:type-chunks-struct}).
+Une fois encore encodée à l'aide de \verb|gob|~\cite{pike2011gob}.
+Un chunk est référencé par son ID, dont la structure est visible Figure~\ref{fig:type-chunkid-struct}.
 
-% \begin{lstlisting}[language=Go]
-% type File struct {
-%     Path string
-%     Size int64
-%     Link string
-% }
-% \end{lstlisting}
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{.45\textwidth}
+\begin{lstlisting}[language=Go]
+type File struct {
+    Path string
+    Size int64
+    Link string
+}
+\end{lstlisting}
+\caption{Structure File}
+\label{fig:type-file-struct}
+\hfill
+\begin{lstlisting}[language=Go]
+type ChunkId struct {
+    Version int
+    Index   uint64
+}
+\end{lstlisting}
+\caption{Structure ChunkId}
+\label{fig:type-chunkid-struct}
+\end{subfigure}
+\hfil
+\begin{subfigure}[t]{.45\textwidth}
+\begin{lstlisting}[language=Go]
+type StoredChunk struct {
+    Id      ChunkId
+}
 
+type DeltaChunk struct {
+    Source  ChunkId
+    Patch   []byte
+    Size    int
+}
 
-% Le fichier *recipe* est celui qui permet de reconstruire le *disque virtuel*. Concrètement on peut le voir comme une liste de *chunks*.
-% Sachant que j'ai cette structure d'identifiant pour un chunk:
+type PartialChunk struct {
+    Value []byte
+}
+\end{lstlisting}
+\caption{Structures des différents types de chunks\protect\footnotemark}
+\label{fig:type-chunks-struct}
+\end{subfigure}
+\caption{Structures de données du repo}
+\label{fig:repo-type-struct}
+\end{figure}
+\footnotetext{\lstinline{PartialChunk} s'appelle en réalité \lstinline{TempChunk} dans le code, pour le moment}
 
+Comme on peut le voir, les \verb|DeltaChunks| contiennent un champ \verb|Patch|.
+Il s'agit de la différence de ce chunk par rapport à celui référencé par le champ \verb|Source|.
+C'est donc la \verb|recipe| qui contient les deltas,
+mais aussi potentiellement des données d'une taille inférieure à la taille d'un chunk,
+par exemple le tout dernier chunk du disque virtuel.
 
-% \begin{lstlisting}[language=Go]
-% type ChunkId struct {
-%     Version int
-%     Index   uint64
-% }
-% \end{lstlisting}
-
-% Et 3 types de chunks différents :
-
-
-% \begin{lstlisting}[language=Go]
-% type StoredChunk struct {
-%     Id      ChunkId
-% }
-
-% type DeltaChunk struct {
-%     Source  ChunkId
-%     Patch   []byte
-%     Size    int
-% }
-
-% type PartialChunk struct {
-%     Value []byte
-% }
-% \end{lstlisting}
-
-% /Le PartialChunk s'appelle pour le moment TempChunk dans mon code mais il faut que je change ça./
-
-% Donc la *recipe* contient bien les les patchs ( delta d'un chunk par rapport à un autre) des DeltaChunks comme dit plus haut, mais aussi potentiellement des chunks d'une taille inférieure à 8Kio (typiquement le tout dernier chunk du disque virtuel, mais il peut y en avoir d'autres).
-
-% Il ne faut pas oublier que ces 2 informations sont stockées sous la forme de différences par rapport à la version précédents (ajouts et suppression de fichers et ajouts ou suppression de chunks). 
+% TODO: parler du stockage incrémental via fdelta
 
 \section{Algorithme du commit}
 
