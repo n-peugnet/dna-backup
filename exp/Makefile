@@ -34,15 +34,18 @@ export DNA_PARAMS  ?= dna_params
 export MAX_VERSION ?= 5
 export SKIP_CHECK  ?= 4
 export COMMITS     ?= commits.$(RANGE)
+
+##################### Exp dirs #####################
 DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
-export GIT_NOPACK  ?= $(abspath $(NOPACK))
 # export BORG        ?= borg
 export TARGZ       ?= targz
 export REAL        ?= real
 export DIFFS       ?= diffs
+##################### Exp dirs #####################
 
+export GIT_NOPACK  ?= $(abspath $(NOPACK))
 export REPO_PATH   ?= repo
 export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
@@ -178,10 +181,10 @@ clean: mostlyclean
 	rm -f summary.*.csv commits
 
 mostlyclean: resultsclean
-	rm -rf $(DATADIRS) $(DATADIRS:%=%.versions)
+	rm -rf $(DATADIRS) $(DNADIRS) $(DATADIRS:%=%.versions) $(DNADIRS:%=%.versions)
 	rm -f run $(DATADIRS:%=%.results) $(DNA_PARAMS) commits.*
 
 resultsclean:
-	rm -f $(SIZEFILES)
+	rm -f $(SIZEFILES) $(DNADIRS:%=%.size)
 
 .FORCE: ;

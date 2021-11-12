@@ -864,7 +864,8 @@ et potentiellement bien moindre que si on avait eu à restaurer la totalité de 
 
 \section{Spécificités d'implémentation}
 
-L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go.
+L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go
+(L'Annexe~\ref{sec:documentation} donne quelques informations supplémentaires pour aider à la compilation et l'utilisation du programme).
 Ce langage a été choisi, car :
 \begin{itemize}
   \item Il propose un bon compromis entre performance et temps de développement.
@@ -1072,28 +1073,12 @@ et sa sortie est compressée avant d'être stockée.
 
 \chapter{Évaluation de performances}
 
-Pour évaluer les performances du système DNA-Backup,
-on utilise le dépôt Git du noyau Linux comme base de donnée de test. Il
-s'agit en effet d'une bonne simulation de modification de dossiers, car
-l'historique contient toutes les modifications qui ont été apportées
-petit à petit à l'ensemble des fichiers.
-
-Un inconvénient de ce jeu de données, en plus de son unicité,
-est de n'être composé quasiment exclusivement que de fichiers texte.
-Ce type de fichier est très fortement compressible,
-ce qui augmente l'importance de l'étape de compression.
-Ce n'est pas spécialement cette étape qui sépare DNA-Backup
-des autres systèmes auxquels nous nous comparons.
-L'utilisation commune de Zlib~\cite{rfc1950} par toutes les solutions testés
-permet heureusement de ne pas trop avantager un système par rapport aux autres.
-
-
 Nous comparons DNA-Backup à des systèmes existants
 afin de quantifier son potentiel intérêt.
 Les évaluations réalisées au cours de ce stage reste toutefois limitées.
 Seul l'espace occupé est pris en compte dans ce comparatif.
 De plus amples expériences pourraient aider à évaluer ce système,
-Notamment en termes de coût des lectures.
+notamment en termes de coût des lectures.
 
 \section{Bases de comparaison}
 
@@ -1162,7 +1147,7 @@ moment de la sauvegarde. C'est un indicateur qui permet de se rendre
 compte du poids que prendrait la sauvegarde de multiples versions sans
 aucune déduplication ou compression.
 
-\begin{table*}[t]
+\begin{table*}[ht]
 \renewcommand\arraystretch{1.5}
 \small
 
@@ -1215,8 +1200,113 @@ Lecture de la zone correspondant à la dernière version \\
 \label{tab:recap-table}
 \end{table*}
 
+\section{Quantité d'octets par version}
 
-\section{Résultats}
+
+Pour évaluer les performances du système DNA-Backup,
+on utilise le dépôt Git du noyau Linux comme base de donnée de test. Il
+s'agit en effet d'une bonne simulation de modification de dossiers, car
+l'historique contient toutes les modifications qui ont été apportées
+petit à petit à l'ensemble des fichiers.
+
+Un inconvénient de ce jeu de données, en plus de son unicité,
+est de n'être composé quasiment exclusivement que de fichiers texte.
+Ce type de fichier est très fortement compressible,
+ce qui augmente l'importance de l'étape de compression.
+Ce n'est pas spécialement cette étape qui sépare DNA-Backup
+des autres systèmes auxquels nous nous comparons.
+L'utilisation commune de Zlib~\cite{rfc1950} par toutes les solutions testés
+permet heureusement de ne pas trop avantager un système par rapport aux autres.
+
+\subsection{Protocole expérimental}
+
+Le protocole se base sur des dépôts Git comme base de données
+de dossiers dont le contenu évolue au cours du temps.
+Le dépôt sélectionné est dans un premier temps cloné avec son dossier \verb|.git| externalisé.
+Dans notre cas, il s'agit de celui du noyau Linux.
+Nous pouvons ensuite extraire une liste de commits en ordre chronologique.
+Laquelle est ensuite filtrée à l'aide de \verb|sort|
+pour n'en garder au maximum qu'un seul par jour.
+La commande utilisée est la suivante :
+
+\begin{lstlisting}[language=sh]
+git log --reverse --date-order --first-parent --pretty=tformat:"%H	%as" | sort --unique --key=2
+\end{lstlisting}
+
+L'utilisation de l'option \verb|--first-parent| est importante,
+car elle permet de ne suivre qu'une seule branche de l'historique
+et ainsi éviter le va-et-vient d'une branche à une autre entre deux commits.
+Pour les expérimentations simulant des commits hebdomadaires et mensuels,
+cette liste est filtrée à nouveau pour n'en garder respectivement
+qu'une ligne sur sept et une ligne sur 30.
+
+Chaque expérimentation va ensuite faire évoluer l'état du dossier du dépôt
+de celui d'un commit de cette liste au suivant.
+Tout en exécutant à chaque fois entre deux, les différents systèmes à comparer.
+Aucune autre valeur que l'espace de stockage n'est mesuré.
+Ce dernier est comptabilisé à l'aide de la commande \verb|du|
+et de son option \verb|--apparent-size|, car on ne veut surtout pas prendre en compte l'``overhead''
+du système de fichier par-dessus lequel les tests sont réalisés.
+
+Tous les scripts permettant d'obtenir les résultats suivants sont disponibles
+et les expérimentations sont reproductibles.
+L'Annexe~\ref{sec:experimentations} apporte une aide minimale sur l'utilisation de ces scripts.
+
+\subsubsection{Méthode de compression des chunks}
+
+Dans un premier temps, nous comparons les performances de DNA-Backup
+entre l'espace utilisé par le repo et celui utilisé par l'export (Table~\ref{tab:commits-daily-repo}).
+Le but ici était principalement de quantifier la perte d'espace
+due à la compression indépendante des chunks.
+Le fichier \verb|hashes| n'est donc pas comptabilisé dans cette expérience.
+
+\begin{table*}[ht]
+\centering
+\begin{subtable}[t]{.65\textwidth}
+  \centering
+  \begin{tabular}{rrrr}
+  \textb{Repo 4k} &
+  \textb{Repo 8k} &
+  \textb{DNA 4k} &
+  \textb{DNA 8k} \\
+  \hline
+  \input{assets/summary.daily.17.repo.tex}
+  \end{tabular}
+  \caption{
+    Comparaison entre la taille du repo (mis à part le fichier hashes)
+    et l'espace pris par l'export DNA-Drive, avec des chunks de 4 et 8 kilo-octets.
+  }
+  \label{tab:commits-daily-repo}
+\end{subtable}
+\hfill
+\begin{subtable}[t]{.30\textwidth}
+  \centering
+  \begin{tabular}{r}
+  \textb{Borg} \\
+  \hline
+  \input{assets/summary.daily.17.borg.tex}
+  \end{tabular}
+  \caption{Logiciel de sauvegardes dédupliqués \emph{Borg}.}
+  \label{tab:commits-daily-borg}
+\end{subtable}
+\caption{Commits journaliers.}
+\label{tab:commits-daily-misc}
+\end{table*}
+
+La comparaison n'est pas tout à fait équitable,
+car lors de l'export, les segments des versions sont alignées à la taille d'une track,
+ici \numprint{1020}~octets.
+Les exports ont donc un handicap, car des bits de bourrage sont potentiellement ajoutés.
+Cependant, on remarque tout de même une très nette réduction d'espace
+lorsque les chunks sont compressés par version plutôt qu'indépendamment.
+La compressions
+
+Dans la suite des expériences, nous ne comptabiliseront pas l'espace occupé par le repo,
+mais uniquement celui occupé par les exports.
+
+\subsection{Résultats}
+
+\subsubsection{Comparaison avec d}
 
 
 \begin{table*}[ht]
@@ -1231,7 +1321,7 @@ Lecture de la zone correspondant à la dernière version \\
 \hline
 \input{assets/summary.daily.17.tex}
 \end{tabularx}
-\caption{Commits journaliers}
+\caption{Commits journaliers.}
 \label{tab:commits-daily}
 \end{table*}
 
@@ -1248,7 +1338,7 @@ Lecture de la zone correspondant à la dernière version \\
 \hline
 \input{assets/summary.weekly.17.tex}
 \end{tabularx}
-\caption{Commits hebdomadaires}
+\caption{Commits hebdomadaires.}
 \label{tab:commits-weekly}
 \end{table*}
 
@@ -1265,7 +1355,7 @@ Lecture de la zone correspondant à la dernière version \\
 \hline
 \input{assets/summary.monthly.17.tex}
 \end{tabularx}
-\caption{Commits Mensuels}
+\caption{Commits Mensuels.}
 \label{tab:commits-monthly}
 \end{table*}
 
@@ -1282,6 +1372,7 @@ Lecture de la zone correspondant à la dernière version \\
 \chapter{Documentation technique}
 
 \section{Documentation du programme}
+\label{sec:documentation}
 
 Le code source de l'implémentation de DNA-Backup réalisée pendant ce stage
 est disponible sur GitHub à l'adresse suivante :
@@ -1329,6 +1420,7 @@ Trois commandes sont disponibles :
 \end{itemize}
 
 \subsection{Expérimentations}
+\label{sec:experimentations}
 
 Le dossier \verb|exp| contient les scripts permettant de reproduire les expériences.
 Les scripts ne sont prévus pour fonctionner que sur Linux, avec Bash et GNUMake.
@@ -1363,5 +1455,24 @@ SKIP_CHECK   = 4
 MAX_VERSION  = 5
 RANGE        = daily
 \end{lstlisting}
+
+Il est aussi possible de sélectionner les tests qui seront exécutés
+et apparaitrons dans les résultats en modifiant leur dossier.
+Voilà les valeurs par défaut de chaque dossier :
+
+\begin{lstlisting}[language=Make]
+NOPACK = nopack
+BORG   =
+TARGZ  = targz
+REAL   = real
+DIFFS  = diffs
+\end{lstlisting}
+
+Par exemple, la commande suivante lancera l'expérience, en y ajoutant Borg et en retirant les diffs Git :
+
+\begin{lstlisting}[language=Make]
+make DIFFS= BORG=borg
+\end{lstlisting}
+
 
 \end{document}
