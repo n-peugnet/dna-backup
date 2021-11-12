@@ -249,6 +249,8 @@ plus performante en densité de stockage.
 \label{fig:goldman-encoding}
 \end{figure}
 
+%TODO: paragraphe sur les intérêts potentiels de ce support.
+
 
 \subsection{Spécificités du DNA-Drive}
 
@@ -275,10 +277,10 @@ ne soient interprétés par l'hôte comme des séquences codantes de son génome
 Dans l'ADN d'un être vivant, ces parties codantes sont délimités par
 deux courtes séquences de nucléotides placées au début et à la fin de la zone à interpréter.
 Il s'agit des codons START et STOP.
-Le codon START indique le début d'une séquence à interpréter.
-C'est donc celui qu'il faut à tout prix éviter d'obtenir une fois les données encodées.
-Le codon STOP, au contraire, définit la fin d'une telle séquence.
-Il est donc intéressant d'en insérer autant que possible pour limiter les effets néfastes
+Le codon START indique le début d'une séquence à interpréter,
+c'est donc celui qu'il faut à tout prix éviter d'obtenir une fois les données encodées.
+Le codon STOP, au contraire, définit la fin d'une telle séquence,
+il est donc intéressant d'en insérer autant que possible pour limiter les effets néfastes
 dans l'éventualité où un codon START aurait malencontreusement été ajouté.
 
 En ce qui concerne la lecture des données, on utilise un séquenceur génétique portatif à
@@ -345,6 +347,8 @@ et \numprint{10000} tracks par pool sont limités respectivement par la complexi
 et la précision limitée des techniques de séquençage actuelles.
 La capacité disponible est donc amenée à évoluer dans le futur avec l'arrivée de technologies plus performantes.
 
+% TODO: peut-être un schéma si j'ai le temps
+
 \section{Problématique}
 
 Il existe donc plusieurs techniques et encodages permettant
@@ -361,6 +365,7 @@ et les 36~min restantes pour la lecture (30~min de préparation et 6~min de séq
 Les lectures ne sont donc déjà pas très rapides,
 mais le point le plus limitant provient très largement des écritures
 qui sont exceptionnellement lentes, sans même parler de leur coût.
+% TODO: revoir cette phrase
 
 Une autre inconvénient du DNA-Drive et de l'ensemble des initiatives
 de stockage de données sur \ac{adn} est l'impossibilité de supprimer
@@ -391,6 +396,7 @@ des technologies de synthèse et de séquençage \ac{adn}.
 L'objectif principal du système d'archivage de fichiers proposé
 est de réduire la quantité de données écrites,
 tout en minimisant la quantité de données à lire pour récupérer les données.
+%TODO: montrer celui qu'on optimise principalement, plus revoir la phrase
 
 Toutes les contraintes citées précédemment nous ont incité
 à nous orienter vers un système de sauvegardes plutôt que vers un véritable système de fichiers.
@@ -402,18 +408,19 @@ De cette manière, l'ensemble des opérations réalisés sur les fichiers pendan
 seront factorisées dans un seul bloc de modification : la nouvelle version.
 Ce n'est effectivement pas la peine d'écrire un fichier
 s'il va être supprimé ou renommé quelques secondes plus tard.
+%TODO: cette phrase ne devrait pas être ici
 
 Afin de minimiser la quantité de données écrites par version, celles-ci sont réalisées de manière incrémentale.
 Chaque nouvelle version est donc en quelque sorte une différence par rapport aux précédentes.
 Ce stockage incrémental est obtenu grâce à une utilisation conjointe de la déduplication et de l'encodage delta.
-De plus, comme aucune donnée ne peut être supprimée,
+Ainsi, comme aucune donnée ne peut être supprimée,
 nous en profitons pour réaliser un système versionné,
 qui nous laisse la possibilité d'accéder aux précédentes sauvegardes.
 
 
 \chapter{Présentation de DNA-Backup}
 
-DNA-Backup, notre proposition, ressemble donc plus à un système de sauvegardes qu'à un système de fichiers.
+DNA-Backup, notre proposition, ressemble plus à un système de sauvegardes qu'à un système de fichiers.
 Chaque nouvelle version vient s'ajouter à la précédente, car il est impossible de supprimer ou de modifier des données
 et on applique un \emph{pipeline} de compression sur les données de chaque version afin d'en minimiser la taille.
 
@@ -421,14 +428,15 @@ et on applique un \emph{pipeline} de compression sur les données de chaque vers
 
 Le pipeline est inspiré de celui de Philip Shilane \etal
 dans leur travail sur la réplication de sauvegardes à travers un lien de faible bande passante~\cite{shilane2012wan}.
-Il est composé d'un étage de déduplication, suivi d'une étape d'encodage delta
-et enfin d'un dernier étage de compression.
+Il est composé d'un étage de \emph{déduplication}, suivi d'un étage d'\emph{encodage delta}
+et enfin d'un dernier étage de \emph{compression}.
+%TODO: découverte, un peu chelou
 Ces trois techniques sont basées sur la découverte de similitudes entre différentes zones du flux de données.
 La déduplication permet de ne pas réécrire plusieurs fois le même bloc de données si ce bloc existe déjà.
 L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc similaire à un bloc existant,
 en n'en écrivant que la différence.
 La compression est également basée sur ces deux principes, mais elle est appliquée à une plus petite échelle.
-Dans DNA-backup, la compression et l'encodage delta sont tous les deux appliqués sur des blocs d'une même taille fixe appelés \emph{chunks}.
+Dans DNA-backup, la déduplication et l'encodage delta sont tous les deux appliqués sur des blocs d'une même taille fixe appelés \emph{chunks}.
 
 Afin d'appliquer de manière efficace les étapes de déduplication et d'encodage delta de notre pipeline,
 il nous faut être capable de rapidement retrouver des chunk identiques ou similaires.
@@ -523,7 +531,7 @@ la capacité du DNA-Drive étant pour le moment bien inférieure à ce qui exist
 
 \section{Fonctionnement général}
 
-Le système part donc du principe qu'on dispose, sur un support de stockage classique,
+Le système part du principe qu'on dispose, sur un support de stockage classique,
 d'une copie des données stockées en \ac{adn} appelée le \emph{repo} (Figure~\ref{fig:big-picture}).
 Sa raison d'être est d'accélérer la création et la restauration d'une version
 en fournissant un accès rapide aux données que contient le DNA-Drive.
@@ -649,7 +657,7 @@ De cette manière, il est très facile d'accéder au contenu d'un chunk précis.
 
 \paragraph{Files}
 Le fichier \verb|files| contient la liste des fichiers ainsi que leur taille.
-C'est grâce à ce fichier qu'on est capable de retrouver
+C'est grâce à lui qu'on est capable de retrouver
 à quel fichier appartient une donnée du disque virtuel d'une version.
 Il ne contient en réalité que la différence apportée à cette liste dans cette version
 par rapport à la précédente.
@@ -679,7 +687,7 @@ car les données qu'il contient peuvent être recalculées à partir du contenu 
 Au lieu de voir le DNA-Drive comme une grille,
 on l'imagine comme une liste de \emph{pools} à une seule dimension (Figure~\ref{fig:data-layout}).
 De cette manière on peut répartir l'espace de stockage
-entre les deux principaux segments de données de DNA-Backup,
+entre les deux principaux segments de données de DNA-Backup :
 les chunks et les métadonnées (recipe + files).
 Comme on peut le remarquer sur la Figure~\ref{tab:repo-data-distribution},
 les métadonnées ont une taille bien inférieure à celle de l'ensemble des chunks,
@@ -697,7 +705,7 @@ Contrairement à la manière dont ils sont stockés dans le repo,
 lors de l'export, les chunks ne sont pas compressés indépendamment,
 mais tous ensembles, par version.
 De cette manière on réduit encore l'espace occupé par les chunks,
-car l'algorithme de compression n'a pas à réécrire plusieurs fois son header
+car l'algorithme de compression n'a pas à réécrire plusieurs fois son ``header''
 et peut réutiliser les motifs de répétition trouvés dans un chunk
 à travers l'ensemble des chunks d'une version.
 Cette technique a pour inconvénient d'avoir besoin de décompresser (et donc lire)
@@ -740,7 +748,7 @@ la totalité des chunks d'une version même si on ne veut en lire qu'un seul.
 Le tout premier pool du DNA-Dire (numéro 0) est réservé aux \emph{header} des versions
 et aux métadonnées globales du repo.
 
-Pour chaque version, il faut conserver la taille que chacun des trois segments
+Pour chaque version, il faut conserver la taille de ses trois segments
 (\verb|chunks|, \verb|recipe| et \verb|files|).
 De la même manière qu'il serait impossible de savoir
 à quel fichier appartient une donnée sans la liste de fichiers,
@@ -760,7 +768,7 @@ l'algorithme utilisé pour la compression utilisé, celui pour les deltas,~etc.
 
 L'export est actuellement réalisé dans un dossier, dans lequel 96~fichiers
 représentant chacun un pool sont créés et remplis avec les données du repo.
-Les écritures sont alignées sur la taille du track, laquelle est configurable.
+Les écritures sont alignées sur la taille d'une track, laquelle est configurable.
 Le repo n'a pas réellement de connaissances de ces valeurs en dehors de l'export.
 DNA-Backup est donc en grande partie indépendant du DNA-Drive
 et pourrait être utilisé avec d'autres supports de stockages,
@@ -792,7 +800,7 @@ Ainsi, même si on ne peut pas immédiatement donner du sens aux données de ces
 il sera possible de les décoder dès que les headers des versions seront restaurés.
 
 Cette opération est longue, mais n'est à réaliser que lorsque l'on veut restaurer la totalité du repo,
-par exemple après une défaillance.
+par exemple après une défaillance ou lors d'une duplication.
 Si le but n'est que de récupérer la dernière version,
 il n'est pas nécessaire de reconstruire le repo en entier.
 
@@ -823,11 +831,11 @@ En effet, comme les chunks sont tous compressés en même temps,
 il n'est pas possible de sélectionner seulement les tracks composant un chunk lors d'une lecture.
 Il faut nécessairement lire la totalité du segment de chunks de cette version
 pour pouvoir le décompresser, et en extraire le chunk voulu.
-On obtient donc une grosse amplification des lectures,
-car il faudra lire une quantité de données beaucoup plus grande de données que juste celles qui composent la version.
+On obtient donc une forte amplification des lectures,
+car il faudra lire une quantité de données beaucoup plus grande que celles qui composent réellement la version.
 
-Nous n'avons pas eu le temps de réaliser des simulations du coût de restauration d'une version,
-nous ne pouvons donc pas réellement quantifier cette amplification des lectures pour le moment.
+Nous ne pouvons pas réellement quantifier cette amplification des lectures pour le moment.
+Il faudrait pour cela réaliser des simulations du coût de restauration d'une version.
 Cela-dit, si la lecture est finalement un cas d'utilisation qui devient plus important,
 il reste toujours la possibilité, à la manière du repo,
 de compresser les chunks indépendamment lors de l'export vers le DNA-Drive,
@@ -852,11 +860,13 @@ et potentiellement bien moindre que si on avait eu à restaurer la totalité de 
 \section{Spécificités d'implémentation}
 
 L'implémentation de DNA-Backup présentée ici a été réalisée sous la forme d'un programme en \ac{cli} codé en Go.
-Ce langage a été choisi, car il propose un bon compromis entre performance et temps de développement.
-De plus il est très facilement compilable pour un très grand nombre de systèmes d'exploitation et d'architectures
-et le programme résultant n'est dépendant d'aucun runtime,
-ce qui permet de produire des logiciels ``cross-plateform''.
-Et finalement par curiosité et envie de découvrir et d'apprendre ce langage.
+Ce langage a été choisi, car :
+\begin{itemize}
+  \item Il propose un bon compromis entre performance et temps de développement.
+  \item Il est très facilement compilable pour un grand nombre de systèmes d'exploitation et d'architectures.
+  \item Le programme résultant n'est dépendant d'aucun runtime, ce qui permet de produire des logiciels ``cross-platform''.
+  \item Par curiosité et envie de découvrir et d'apprendre ce langage.
+\end{itemize}
 
 \subsection{Choix techniques}
 
@@ -880,8 +890,8 @@ Deux algorithmes ont été testés pour l'encodage delta.
 Tout d'abord \verb|bsdiff|~\cite{percival2003naive} qui est la référence actuelle
 quand il s'agit de produire des différences binaires d'une taille minimale.
 C'était par exemple l'algorithme utilisé par le projet Chromium pour distribuer ses mises-à-jour,
-avant qu'ils ne décident d'en créer un parfaitement adapté à leur besoin~\cite{chromium2012courgette}.
-Cependant, \verb|bsdiff| est trop spécifique aux données binaires exécutables,
+jusqu'à ce qu'ils décident d'en créer un parfaitement adapté à leur besoin~\cite{chromium2012courgette}.
+Cependant, \verb|bsdiff| est optimisé pour des données binaires exécutables,
 ce qui en fait un algorithme trop peu généraliste.
 De plus, son fonctionnement inclut une passe de compression sur la différence qu'il crée,
 laquelle est redondante avec celle que nous appliquons nous-même sur les données que nous stockons.
@@ -900,6 +910,8 @@ dans le disque virtuel.
 DNA-Backup stocke le contenu de ce fichier comme une liste de structures \verb|File|
 (Figure~\ref{fig:type-file-struct}), encodée avec \verb|gob|~\cite{pike2011gob}.
 
+%TODO: paragraphe sur les symlinks
+
 \subsubsection{Recipe}
 Le fichier \verb|recipe| est celui qui permet de reconstruire le disque virtuel.
 Go nous autorise à créer des listes de structures hétérogènes grâce aux interfaces,
@@ -913,7 +925,7 @@ Un chunk est référencé par son ID, dont la structure est visible Figure~\ref{
 \begin{lstlisting}[language=Go]
 type File struct {
     Path string
-    Size int64
+    Size int
     Link string
 }
 \end{lstlisting}
@@ -923,7 +935,7 @@ type File struct {
 \begin{lstlisting}[language=Go]
 type ChunkId struct {
     Version int
-    Index   uint64
+    Index   int
 }
 \end{lstlisting}
 \caption{Structure ChunkId}
@@ -992,7 +1004,7 @@ par exemple le tout dernier chunk du disque virtuel.
   \begin{itemize}
   \item
     Application de l'empreinte de Rabin~\cite{rabin1981fingerprinting}
-    sur les données du disque virtuel, avec une fenêtre glissante de la taille d'une chunk,
+    sur les données du disque virtuel, avec une fenêtre glissante de la taille d'un chunk,
     afin de chercher des correspondances de \emph{fingerprint} avec l'index.
   \item
     Lorsqu'une fingerprint est trouvée, le chunk correspondant est alors
@@ -1071,15 +1083,13 @@ comparaison :
 
 Ce système utilise le delta généré par la commande \verb|git diff|
 pour sauvegarder une nouvelle version. Les données à stocker consistent
-donc en une somme de deltas. Pour restaurer les données, il faut
+donc en une somme de deltas. Pour les restaurer, il faut
 appliquer séquentiellement l'ensemble des deltas jusqu'à obtenir l'état
 de la version voulue.
 
 \subsection{Git objects}
 
-Ce système nous permet de simuler un système de fichiers qui ne serait
-pas autorisé à modifier des données sur le support tout en gardant la
-possibilité de modifier les données. Il s'agit de la manière dont Git
+Il s'agit de la manière dont Git
 sauvegarde les données des fichiers d'un dépôt. Le contenu de chaque
 fichier et de chaque dossier est hashé afin d'en obtenir une signature.
 Il est ensuite compressé et stocké sous la forme d'\emph{object}
@@ -1094,6 +1104,10 @@ modification d'un fichier entrainera donc l'ajout de nouveaux
 \emph{objects} pour l'ensemble des dossiers de la branche contenant ce
 fichier. C'est de cette manière que Git est capable de créer un système
 de fichiers modifiable à partir d'objets immuables.
+
+Cette base de comparaison simule un système de fichiers qui ne serait
+pas autorisé à modifier des données sur le support tout en gardant la
+possibilité de les mettre à jour.
 
 \subsection{Tar.gz}
 
