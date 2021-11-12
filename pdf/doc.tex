@@ -1086,14 +1086,10 @@ Quatre autres systèmes de stockage versionnés ont été choisis comme bases de
 (La Table~\ref{tab:recap-table} offre une vision d'ensemble
 pour comparer les différentes fonctionnalités de ces systèmes) :
 \begin{itemize}
-\item
-  \textbf{Git diffs}
-\item
-  \textbf{Git objects}
-\item
-  \textbf{Tar.gz}
-\item
-  \textbf{Taille réelle}
+\item \textbf{Git diffs}
+\item \textbf{Git objects}
+\item \textbf{Tar.gz}
+\item \textbf{Taille réelle}
 \end{itemize}
 
 \subsection{Git diffs}
@@ -1104,10 +1100,31 @@ donc en une somme de deltas. Pour les restaurer, il faut
 appliquer séquentiellement l'ensemble des deltas jusqu'à obtenir l'état
 de la version voulue.
 
+Le delta ainsi obtenu est ensuite compressé à l'aide de Gzip pour en diminuer la taille.
+Cette compression est assez efficace, car elle est réalisée d'un coup sur toutes les modifications.
+La commande utilisée pour générer ces différences est la suivante :
+
+\begin{lstlisting}[language=sh]
+git diff --minimal --binary --unified=0 -l0 | gzip
+\end{lstlisting}
+
+L'option \verb|--minimal| permet de faire en sorte que Git passe plus de temps
+à essayer de trouver le plus petit ensemble de différences.
+L'option \verb|--binary| est là pour forcer Git
+à calculer des différences pour les fichiers binaires.
+Avec \verb|--unified=0| on peut produire des diffs
+qui ne contiennent aucune contextualisation
+et \verb|-l0| désactive la limite du nombre de fichiers
+à prendre en compte pour la détection de renommage.
+Nous nous assurons avec toutes ces options de produire les deltas les plus petits possibles.
+Pour garantir que ces différences sont viables,
+elles sont, au cours de l'expérience, réappliquées au moins une fois
+et le résultat est comparé avec le dossier source.
+
 \subsection{Git objects}
 
 Il s'agit de la manière dont Git
-sauvegarde les données des fichiers d'un dépôt. Le contenu de chaque
+sauvegarde les données des fichiers d'un dépôt~\cite{straub2006git}. Le contenu de chaque
 fichier et de chaque dossier est hashé afin d'en obtenir une signature.
 Il est ensuite compressé et stocké sous la forme d'\emph{object}
 immuable, référencé par la signature obtenue. Si un fichier est modifié,
@@ -1196,7 +1213,7 @@ Lecture de la zone correspondant à la dernière version \\
 
 \end{tabularx}
 
-\caption{Tableau récapitulatif des systèmes de stockages versionnés comparés.}
+\caption{Récapitulatif des systèmes de stockages versionnés comparés.}
 \label{tab:recap-table}
 \end{table*}
 
@@ -1252,6 +1269,8 @@ Tous les scripts permettant d'obtenir les résultats suivants sont disponibles
 et les expérimentations sont reproductibles.
 L'Annexe~\ref{sec:experimentations} apporte une aide minimale sur l'utilisation de ces scripts.
 
+\subsection{Résultats}
+
 \subsubsection{Méthode de compression des chunks}
 
 Dans un premier temps, nous comparons les performances de DNA-Backup
@@ -1261,6 +1280,7 @@ due à la compression indépendante des chunks.
 Le fichier \verb|hashes| n'est donc pas comptabilisé dans cette expérience.
 
 \begin{table*}[ht]
+\small
 \centering
 \begin{subtable}[t]{.65\textwidth}
   \centering
@@ -1274,19 +1294,19 @@ Le fichier \verb|hashes| n'est donc pas comptabilisé dans cette expérience.
   \end{tabular}
   \caption{
     Comparaison entre la taille du repo (mis à part le fichier hashes)
-    et l'espace pris par l'export DNA-Drive, avec des chunks de 4 et 8 kilo-octets.
+    et l'espace pris par l'export DNA-Drive, avec des chunks de 4 et 8~ko.
   }
   \label{tab:commits-daily-repo}
 \end{subtable}
 \hfill
-\begin{subtable}[t]{.30\textwidth}
+\begin{subtable}[t]{.3\textwidth}
   \centering
   \begin{tabular}{r}
   \textb{Borg} \\
   \hline
   \input{assets/summary.daily.17.borg.tex}
   \end{tabular}
-  \caption{Logiciel de sauvegardes dédupliqués \emph{Borg}.}
+  \caption{Logiciel de sauvegardes dédupliqués \emph{Borg}~\cite{waldmann2017borg}, avec le chiffrement désactivé.}
   \label{tab:commits-daily-borg}
 \end{subtable}
 \caption{Commits journaliers.}
@@ -1299,17 +1319,40 @@ ici \numprint{1020}~octets.
 Les exports ont donc un handicap, car des bits de bourrage sont potentiellement ajoutés.
 Cependant, on remarque tout de même une très nette réduction d'espace
 lorsque les chunks sont compressés par version plutôt qu'indépendamment.
-La compressions
+
+Nous pouvons également remarquer que lorsque les chunks sont compressés tous ensemble,
+il devient plus intéressant d'en réduire la taille.
+En effet, plus les chunks sont petits, plus l'on perd d'efficacité
+avec les algorithmes de compression lorsqu'ils sont compressés indépendamment.
 
 Dans la suite des expériences, nous ne comptabiliseront pas l'espace occupé par le repo,
 mais uniquement celui occupé par les exports.
 
-\subsection{Résultats}
 
-\subsubsection{Comparaison avec d}
+\subsubsection{Comparaison avec Borg}
+
+\emph{Borg Backup}~\cite{waldmann2017borg} est un système de sauvegardes dédupliqué populaire
+au fonctionnement assez similaire à DNA-Backup en ce qui concerne la déduplication.
+Cependant, il n'implémente pas d'encodage delta.
+Nous ne l'avons pas ajouté au tableau comparatif
+parce qu'il a été ajouté au banc de test un peu trop tard.
+La Table~\ref{tab:commits-daily-borg} montre le résultat d'une exécution sur des commits journaliers.
+Nous nous attendions à un meilleur résultat,
+venant d'un système de sauvegarde incrémental dédié à cet usage.
+L'espace qu'il occupe est même supérieur aux Git Objects (Table~\ref{tab:commits-daily}).
+Cet écart provient peut-être de métadonnées que Borg pourrait ajouter,
+telles que des sommes de contrôle ou bien des index.
+Dans la suite des expérimentations, Borg ne sera pas ajouté au banc de tests.
+
+Nous ne nous sommes pas trop attardés sur les options que Borg propose.
+Il se peut que certaines permettent de réduire la taille des sauvegardes.
+Nous nous sommes contentés de désactiver l'option de chiffrement du dépôt,
+cette dernière ne pouvant que l'augmenter.
+
 
 
 \begin{table*}[ht]
+\small
 \centering
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textb{DNA 4k} &
@@ -1325,8 +1368,20 @@ mais uniquement celui occupé par les exports.
 \label{tab:commits-daily}
 \end{table*}
 
+\subsubsection{Commits journaliers}
+
+La Table~\ref{tab:commits-daily} montre les résultats de l'expérience
+lorsqu'on crée un commit chaque jour.
+Le jeu de données de test étant un gros projet,
+les modifications réalisées en une journée sont déjà assez conséquentes.
+La colonne \textb{Git diffs} offre une bonne approximation
+de la quantité exacte de données qui ont été modifiées à chaque version.
+
+Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme optimal,
+
 
 \begin{table*}[ht]
+\small
 \centering
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textb{DNA 4k} &
@@ -1342,8 +1397,10 @@ mais uniquement celui occupé par les exports.
 \label{tab:commits-weekly}
 \end{table*}
 
+\subsubsection{Commits hebdomadaires}
 
 \begin{table*}[ht]
+\small
 \centering
 \begin{tabularx}{\textwidth}{@{}RRRRRR}
 \textb{DNA 4k} &
@@ -1358,6 +1415,8 @@ mais uniquement celui occupé par les exports.
 \caption{Commits Mensuels.}
 \label{tab:commits-monthly}
 \end{table*}
+
+\subsubsection{Commits mensuels}
 
 
 % Bibliography
