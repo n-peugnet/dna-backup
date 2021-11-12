@@ -904,7 +904,7 @@ DNA-Backup stocke le contenu de ce fichier comme une liste de structures \verb|F
 Le fichier \verb|recipe| est celui qui permet de reconstruire le disque virtuel.
 Go nous autorise à créer des listes de structures hétérogènes grâce aux interfaces,
 il s'agit donc concrètement d'une simple liste de structures de chunks (Figure~\ref{fig:type-chunks-struct}).
-Une fois encore encodée à l'aide de \verb|gob|~\cite{pike2011gob}.
+Une fois encore, encodée à l'aide de \verb|gob|~\cite{pike2011gob}.
 Un chunk est référencé par son ID, dont la structure est visible Figure~\ref{fig:type-chunkid-struct}.
 
 \begin{figure}[ht]
@@ -966,78 +966,77 @@ par exemple le tout dernier chunk du disque virtuel.
 
 \begin{enumerate}
 \item
-  Chargement des métadonnées du \emph{repo} afin de reconstruire en
+  Chargement des métadonnées du repo afin de reconstruire en
   mémoire l'état de la dernière version :
 
   \begin{itemize}
   \item
-    Reconstruction de la \emph{recipe} à partir des deltas de chaque
+    Reconstruction de la recipe à partir des deltas de chaque
     version.
   \item
     Reconstruction du listage des fichiers à partir des deltas de chaque
-    version (fichier \emph{files}).
+    version (fichier \verb|files|).
   \item
-    Reconstruction en mémoire des \emph{maps} de \emph{fingerprints} et
-    de \emph{sketches} à partir des fichiers \emph{hashes} de chaque
+    Reconstruction en mémoire des index de \emph{fingerprints} et
+    de \emph{sketches} à partir des fichiers \verb|hashes| de chaque
     version.
   \end{itemize}
 \item
-  Listage des fichiers de la \emph{source}.
+  Listage des fichiers de la source.
 \item
   Concaténation de l'ensemble des fichiers de la source en un disque
   virtuel continu.
 \item
-  Lecture du \emph{stream} de ce disque virtuel et découpage en
-  \emph{chunk} (de 8 Kio actuellement).
-\item
-  Pour chaque \emph{chunk} du \emph{stream} :
-
-  \begin{enumerate}
+  Lecture de ce disque virtuel. Tant qu'il reste des données dans le disque virtuel :
+  
+  \begin{itemize}
   \item
-    Calculer sa \emph{fingerprint} (hash classique), si elle est
-    présente dans la \emph{map} : le stocker de manière dé-dupliquée
-    (sous la forme d'identifiant faisant référence au \emph{chunk}
-    trouvé dans la map).
+    Application de l'empreinte de Rabin~\cite{rabin1981fingerprinting}
+    sur les données du disque virtuel, avec une fenêtre glissante de la taille d'une chunk,
+    afin de chercher des correspondances de \emph{fingerprint} avec l'index.
   \item
-    Sinon, calculer son \emph{sketch} (hash de ressemblance), s'il est
-    présent dans la \emph{map}, le stocker sous la forme de delta
-    (calcul de sa différence par rapport au \emph{chunk} trouvé dans la
-    map).
+    Lorsqu'une fingerprint est trouvée, le chunk correspondant est alors
+    stocké de manière dé-dupliquée, sous la forme d'un \verb|StoredChunk|
+    (Figure~\ref{fig:type-chunks-struct})
+    contenant l'identifiant du chunk trouvé dans l'index.
   \item
-    Sinon, le stocker sous la forme de nouveau bloc (ajout de sa
-    \emph{fingerprint} et de son \emph{sketch} dans les \emph{maps} et
-    stockage du contenu complet dans un nouveau \emph{chunk}).
-  \end{enumerate}
+    Si aucune correspondance n'est trouvé après avoir analysé
+    l'équivalent de 3 chunks de données,
+    alors le \emph{sketch} du premier chunk est calculé et cherché dans l'index
+    pour tenter de le stocker en encodage delta, sous la forme d'un \verb|DeltaChunk|
+    (Figure~\ref{fig:type-chunks-struct}).
+  \item
+    S'il n'est pas trouvé, il est alors stocké en tant que nouveau \verb|StoredChunk|
+    et sa \emph{fingerprint} et son \emph{sketch} sont ajoutés aux index.
+  \item
+    Si une correspondance (de fingerprint ou de sketch) arrive entre le deuxième
+    et le troisième chunk, alors, si possible, le reste du deuxième chunk est
+    fusionné avec le premier pour tenter de l'encoder en tant qu'un seul \verb|DeltaChunk|.
+  \end{itemize}
 \item
   Calcul des différences entre la nouvelle version et la précédente pour
-  les métadonnées (\emph{files} et \emph{recipe}) et stockage des deltas
-  ainsi obtenus.
+  les métadonnées (files et recipe) et stockage des deltas ainsi obtenus.
 \end{enumerate}
 
 \section{Algorithme du restore}
 
 \begin{enumerate}
 \item
-  Chargement des métadonnées du \emph{repo} afin de reconstruire en
+  Chargement des métadonnées du repo afin de reconstruire en
   mémoire l'état de la dernière version :
 
   \begin{itemize}
   \item
-    Reconstruction de la \emph{recipe} à partir des deltas de chaque
-    version.
+    Reconstruction de la recipe à partir des deltas de chaque version.
   \item
-    Reconstruction du listage des fichiers à partir des deltas de chaque
-    version.
+    Reconstruction du listage des fichiers à partir des deltas de chaque version.
   \end{itemize}
 \item
-  À partir de la \emph{recipe}, reconstruire le disque virtuel (sous la
-  forme d'un \emph{stream}).
+  À partir de la recipe, reconstruire le disque virtuel.
 \item
-  Découper ce \emph{stream} en fonction du listage des fichiers
-  (\emph{files}) et réécrire les données dans les fichiers
-  correspondants dans le répertoire \emph{destination}.
+  Découper ce disque virtuel en fonction du listage des fichiers
+  et réécrire les données dans les fichiers correspondants dans le répertoire destination.
 \end{enumerate}
-
 
 
 \chapter{Évaluation de performances}
