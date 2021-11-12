@@ -16,7 +16,7 @@
 \DeclareUnicodeCharacter{202F}{\thinspace}
 
 % Define some colors
-\usepackage{color}
+\usepackage{xcolor}
 \definecolor{string}{RGB}{100, 200, 0}
 \definecolor{comment}{RGB}{150, 150, 150}
 \definecolor{identifier}{RGB}{100, 100, 200}
@@ -182,6 +182,13 @@ Ainsi, l'Adénine est appariée à la Thymine et la Guanine à la Cytosine.
 Chaque brin d'\ac{adn} est alors complémentaire de l'autre.
 
 Il est donc possible d'établir un parallèle entre l'information génétique, codée par les 4 nucléotides formant l'\ac{adn}, en base~4, et la donnée informatique, codée par une suite de bits en base~2.
+Utiliser l'\ac{adn} comme support de stockage numérique
+pourrait avoir plusieurs intérêts.
+La densité d'information est assez importante
+($10^{19}$~bit/cm$^3$ contre $10^{16}$ pour une mémoire flash)
+et la durée de vie de la molécule peut atteindre plusieurs centaines d'années,
+contre une cinquantaine d'années maximum pour les bandes magnétiques,
+le support le plus pérenne actuellement.
 
 Plusieurs démonstrations de faisabilité du stockage sur l’\ac{adn} ont déjà été réalisées ces dernières années.
 Les travaux publiés pour l’instant se basent essentiellement sur l’utilisation d’\emph{oligonucléotides}, qui sont des courts segments d’\ac{adn} contenant quelques dizaines de nucléotides.
@@ -248,8 +255,6 @@ plus performante en densité de stockage.
 \caption{Encodage de Goldman~\cite{goldman2013towards}}
 \label{fig:goldman-encoding}
 \end{figure}
-
-%TODO: paragraphe sur les intérêts potentiels de ce support.
 
 
 \subsection{Spécificités du DNA-Drive}
@@ -353,7 +358,8 @@ La capacité disponible est donc amenée à évoluer dans le futur avec l'arriv�
 
 Il existe donc plusieurs techniques et encodages permettant
 de stocker des informations arbitraires sur la molécule d'\ac{adn},
-mais toutes ont en commun quelques inconvénients majeurs.
+mais, malgré les avantages de densité et de durabilité de cette molécule,
+toutes ont en commun quelques inconvénients majeurs.
 Ces inconvénients proviennent pour la plupart des limites actuelles
 des technologies de synthèse et de séquençage.
 Une expérience d'un système automatisé de transmission de données par \ac{adn} datant de 2019~\cite{takahashi2019demonstration}
@@ -394,21 +400,21 @@ et avons donc basé l'ensemble de la réflexion sur les capacités actuelles
 des technologies de synthèse et de séquençage \ac{adn}.
 
 L'objectif principal du système d'archivage de fichiers proposé
-est de réduire la quantité de données écrites,
-tout en minimisant la quantité de données à lire pour récupérer les données.
-%TODO: montrer celui qu'on optimise principalement, plus revoir la phrase
+est de \emph{réduire la quantité de données écrites} et donc synthétisées.
+Cependant, il est tout de même important de minimiser la quantité de données
+à lire pour restaurer les fichiers.
 
 Toutes les contraintes citées précédemment nous ont incité
 à nous orienter vers un système de sauvegardes plutôt que vers un véritable système de fichiers.
 En effet, les vitesses et coûts d'écriture et de lecture ne permettent, pour le moment,
 absolument pas d'en faire un système de fichiers accessible ``à chaud''.
+Ce n'est par exemple pas la peine d'écrire un fichier
+s'il va être supprimé ou renommé quelques secondes plus tard.
 Les cas d'usage envisagés seront donc ceux de sauvegardes sur différentes plages de temps :
 journalières, hebdomadaires ou mensuelles.
 De cette manière, l'ensemble des opérations réalisés sur les fichiers pendant cette plage de temps
 seront factorisées dans un seul bloc de modification : la nouvelle version.
-Ce n'est effectivement pas la peine d'écrire un fichier
-s'il va être supprimé ou renommé quelques secondes plus tard.
-%TODO: cette phrase ne devrait pas être ici
+
 
 Afin de minimiser la quantité de données écrites par version, celles-ci sont réalisées de manière incrémentale.
 Chaque nouvelle version est donc en quelque sorte une différence par rapport aux précédentes.
@@ -430,8 +436,7 @@ Le pipeline est inspiré de celui de Philip Shilane \etal
 dans leur travail sur la réplication de sauvegardes à travers un lien de faible bande passante~\cite{shilane2012wan}.
 Il est composé d'un étage de \emph{déduplication}, suivi d'un étage d'\emph{encodage delta}
 et enfin d'un dernier étage de \emph{compression}.
-%TODO: découverte, un peu chelou
-Ces trois techniques sont basées sur la découverte de similitudes entre différentes zones du flux de données.
+Ces trois techniques sont basées sur l'identification de similitudes entre différentes zones du flux de données.
 La déduplication permet de ne pas réécrire plusieurs fois le même bloc de données si ce bloc existe déjà.
 L'encodage delta permet de ne pas avoir à réécrire entièrement un bloc similaire à un bloc existant,
 en n'en écrivant que la différence.
@@ -910,7 +915,15 @@ dans le disque virtuel.
 DNA-Backup stocke le contenu de ce fichier comme une liste de structures \verb|File|
 (Figure~\ref{fig:type-file-struct}), encodée avec \verb|gob|~\cite{pike2011gob}.
 
-%TODO: paragraphe sur les symlinks
+Cette structure possède également un champ \verb|Link|.
+Celui-ci permet de supporter la fonction de liens symboliques des systèmes de fichiers POSIX.
+DNA-Backup conserve ainsi la valeur des liens
+et ne duplique pas le contenu des fichiers ou des dossiers.
+Si le lien est absolu, il sera correctement reformé lors de la restauration
+et les liens relatifs le restent une fois restaurés.
+Les autres métadonnées des fichiers
+comme les permissions et les dates de création ou de modification
+ne sont pas enregistrées.
 
 \subsubsection{Recipe}
 Le fichier \verb|recipe| est celui qui permet de reconstruire le disque virtuel.
@@ -972,7 +985,11 @@ C'est donc la \verb|recipe| qui contient les deltas,
 mais aussi potentiellement des données d'une taille inférieure à la taille d'un chunk,
 par exemple le tout dernier chunk du disque virtuel.
 
-% TODO: parler du stockage incrémental via fdelta
+Le même algorithme d'encodage delta que celui utilisé pour les chunks,
+\verb|fdelta|~\cite{hipp2006fdelta},
+permet de sauvegarder les informations de ces deux fichiers de manière incrémentale.
+Il est appliqué sur le résultat de l'encodage par \verb|gob|~\cite{pike2011gob}
+et sa sortie est compressée avant d'être stockée.
 
 \section{Algorithme du commit}
 
@@ -1270,7 +1287,45 @@ Lecture de la zone correspondant à la dernière version \\
 % Acronyms
 \include{assets/acronyms.tex}
 
-\chapter{Documentation de la CLI}
+\chapter{Documentation technique}
+
+\section{Documentation du programme}
+
+Le code source de l'implémentation de DNA-Backup réalisé pendant ce stage
+est disponible sur GitHub à l'adresse suivante :
+\url{https://github.com/n-peugnet/dna-backup}.
+Ce programme est un logiciel libre ;
+vous pouvez le redistribuer ou le modifier suivant les termes de la GNU General Public License
+telle que publiée par la Free Software Foundation\footnote{\url{https://www.gnu.org/licenses/gpl-3.0.fr.html}} ;
+soit la version 3 de la licence, soit (à votre gré) toute version ultérieure.
+
+\subsection{Compilation}
+
+Le code doit compiler convenablement sur Linux, MacOS et Windows
+et les tests doivent passer sans problème sur ces trois plateformes.
+Pour nous en assurer, des tests sont lancés par les serveurs
+d'intégration de GitHub\footnote{\url{https://github.com/n-peugnet/dna-backup/actions/workflows/build.yml}}.
+
+\subsubsection{Pré-requis}
+
+\begin{itemize}
+  \item Go >= 1.16
+\end{itemize}
+
+\subsubsection{Instructions}
+
+\begin{lstlisting}[language=sh]
+# Build
+make build
+
+# Test
+make test
+
+# Run
+./dna-backup commit <source-dir> <repository>
+\end{lstlisting}
+
+\subsection{Usage}
 
 DNA-Backup est un programme s'utilisant en \ac{cli}.
 Trois commandes sont disponibles :
