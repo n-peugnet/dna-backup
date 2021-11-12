@@ -14,6 +14,7 @@ priority 1
         there is space left)
 - [ ] import from `dir` format
 - [x] command line with subcommands (like, hmm... git ? for instance).
+- [ ] fix sketch function to match spec
 - [ ] experiences:
     - [x] compare against UDF (this will not be possible, unless we use a real
         CR-ROM) (we used git storage for an approximation)

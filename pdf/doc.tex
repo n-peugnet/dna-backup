@@ -886,7 +886,9 @@ il n'existe que très peu d'implémentations dans d'autres langages.
 De la même manière, les algorithmes de compression et d'encodage delta utilisés dans DNA-Backup
 n'ont pour le moment pas été choisis en fonction de leur efficacité,
 mais plutôt pour des raisons de facilité.
-En ce qui concerne la compression, l'utilisation de \emph{Zlib}~\cite{rfc1950} basé sur DEFLATE~\cite{rfc1951} reste intéressante,
+En ce qui concerne la compression, le choix n'a pas tellement d'importance,
+car l'algorithme peut être facilement remplacé par un autre, plus performant.
+L'utilisation actuelle de \emph{Zlib}~\cite{rfc1950} basé sur DEFLATE~\cite{rfc1951} reste malgré tout intéressante,
 car il s'agit de l'algorithme utilisé par les autres systèmes
 auxquels nous allons nous comparer par la suite.
 Ainsi les résultats ne seront pas biaisés par l'utilisation d'un algorithme plus performant que les autres.
@@ -1070,21 +1072,34 @@ et sa sortie est compressée avant d'être stockée.
 
 \chapter{Évaluation de performances}
 
-Le dossier \verb|exp| contient les scripts permettant de reproduire
-les expériences. Les scripts ne sont prévus pour fonctionner que sur
-Linux.
-
-On utilise le dépôt Git du noyau Linux comme base de donnée de test. Il
+Pour évaluer les performances du système DNA-Backup,
+on utilise le dépôt Git du noyau Linux comme base de donnée de test. Il
 s'agit en effet d'une bonne simulation de modification de dossiers, car
 l'historique contient toutes les modifications qui ont été apportées
 petit à petit à l'ensemble des fichiers.
 
+Un inconvénient de ce jeu de données, en plus de son unicité,
+est de n'être composé quasiment exclusivement que de fichiers texte.
+Ce type de fichier est très fortement compressible,
+ce qui augmente l'importance de l'étape de compression.
+Ce n'est pas spécialement cette étape qui sépare DNA-Backup
+des autres systèmes auxquels nous nous comparons.
+L'utilisation commune de Zlib~\cite{rfc1950} par toutes les solutions testés
+permet heureusement de ne pas trop avantager un système par rapport aux autres.
+
+
+Nous comparons DNA-Backup à des systèmes existants
+afin de quantifier son potentiel intérêt.
+Les évaluations réalisées au cours de ce stage reste toutefois limitées.
+Seul l'espace occupé est pris en compte dans ce comparatif.
+De plus amples expériences pourraient aider à évaluer ce système,
+Notamment en termes de coût des lectures.
+
 \section{Bases de comparaison}
 
-Pour évaluer les performances du système DNA-Backup, quatre autres
-systèmes de stockage versionnés ont été choisis comme base de
-comparaison :
-
+Quatre autres systèmes de stockage versionnés ont été choisis comme bases de comparaison
+(La Table~\ref{tab:recap-table} offre une vision d'ensemble
+pour comparer les différentes fonctionnalités de ces systèmes) :
 \begin{itemize}
 \item
   \textbf{Git diffs}
@@ -1147,9 +1162,7 @@ moment de la sauvegarde. C'est un indicateur qui permet de se rendre
 compte du poids que prendrait la sauvegarde de multiples versions sans
 aucune déduplication ou compression.
 
-\subsection{Tableau récapitulatif}
-
-\begin{table*}[ht]
+\begin{table*}[t]
 \renewcommand\arraystretch{1.5}
 \small
 
@@ -1198,33 +1211,12 @@ Lecture de la zone correspondant à la dernière version \\
 
 \end{tabularx}
 
-\caption{Tableau récapitulatif}
+\caption{Tableau récapitulatif des systèmes de stockages versionnés comparés.}
 \label{tab:recap-table}
 \end{table*}
 
-\section{Nombre d'octets par version}
 
-\subsection{Légende}
-
-\begin{itemize}
-\item
-  \verb|4k_export| : le système DNA-Backup avec des blocs de 4 Kio.
-\item
-  \verb|8k_export| : le système DNA-Backup avec des blocs de 8 Kio.
-\item
-  \verb|diffs| : une somme de diffs Git minimales Gzippées.
-\item
-  \verb|nopack| : le dossier `objects de Git, contenant l'ensemble des
-  données des fichiers et dossiers d'un dépôt.
-\item
-  \verb|targz| : une somme d'archives Tar Gzippées.
-\item
-  \verb|real| : le poids réel de chaque version et donc l'espace
-  nécessaire à stocker l'ensemble des versions de manière
-  non-dédupliquées.
-\end{itemize}
-
-\subsection{Résultats}
+\section{Résultats}
 
 
 \begin{table*}[ht]
@@ -1291,7 +1283,7 @@ Lecture de la zone correspondant à la dernière version \\
 
 \section{Documentation du programme}
 
-Le code source de l'implémentation de DNA-Backup réalisé pendant ce stage
+Le code source de l'implémentation de DNA-Backup réalisée pendant ce stage
 est disponible sur GitHub à l'adresse suivante :
 \url{https://github.com/n-peugnet/dna-backup}.
 Ce programme est un logiciel libre ;
@@ -1336,5 +1328,40 @@ Trois commandes sont disponibles :
   \item \verb|export| : pour générer un export à partir des données du \emph{repo}
 \end{itemize}
 
+\subsection{Expérimentations}
+
+Le dossier \verb|exp| contient les scripts permettant de reproduire les expériences.
+Les scripts ne sont prévus pour fonctionner que sur Linux, avec Bash et GNUMake.
+
+\subsubsection{Aide}
+
+
+\begin{lstlisting}[language=sh]
+# run experiences
+make [SKIP_COMMITS=<count>] [SKIP_CHECK=<count>] [MAX_VERSION=<count>] [RANGE=<range>]
+
+# clean results
+make mostlyclean
+
+# clean all
+make clean
+\end{lstlisting}
+
+\verb|<range>| peut prendre l'une des valeurs suivantes :
+
+\begin{itemize}
+  \item \verb|daily|
+  \item \verb|weekly|
+  \item \verb|monthly|
+\end{itemize}
+
+\subsubsection{Valeurs par défaut}
+
+\begin{lstlisting}[language=Make]
+SKIP_COMMITS = 0
+SKIP_CHECK   = 4
+MAX_VERSION  = 5
+RANGE        = daily
+\end{lstlisting}
 
 \end{document}
