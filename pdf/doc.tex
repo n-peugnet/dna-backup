@@ -1093,6 +1093,7 @@ pour comparer les différentes fonctionnalités de ces systèmes) :
 \end{itemize}
 
 \subsection{Git diffs}
+\label{sec:git-diffs}
 
 Ce système utilise le delta généré par la commande \verb|git diff|
 pour sauvegarder une nouvelle version. Les données à stocker consistent
@@ -1236,6 +1237,7 @@ L'utilisation commune de Zlib~\cite{rfc1950} par toutes les solutions testés
 permet heureusement de ne pas trop avantager un système par rapport aux autres.
 
 \subsection{Protocole expérimental}
+\label{sec:protocole-experimental}
 
 Le protocole se base sur des dépôts Git comme base de données
 de dossiers dont le contenu évolue au cours du temps.
@@ -1332,14 +1334,14 @@ mais uniquement celui occupé par les exports.
 \subsubsection{Comparaison avec Borg}
 
 \emph{Borg Backup}~\cite{waldmann2017borg} est un système de sauvegardes dédupliqué populaire
-au fonctionnement assez similaire à DNA-Backup en ce qui concerne la déduplication.
+au fonctionnement assez similaire à celui de DNA-Backup en ce qui concerne la déduplication.
 Cependant, il n'implémente pas d'encodage delta.
-Nous ne l'avons pas ajouté au tableau comparatif
-parce qu'il a été ajouté au banc de test un peu trop tard.
+Nous ne l'avons pas mentionné dans le tableau comparatif
+parce qu'il a été ajouté au banc de test un peu trop tardivement.
 La Table~\ref{tab:commits-daily-borg} montre le résultat d'une exécution sur des commits journaliers.
 Nous nous attendions à un meilleur résultat,
 venant d'un système de sauvegarde incrémental dédié à cet usage.
-L'espace qu'il occupe est même supérieur aux Git Objects (Table~\ref{tab:commits-daily}).
+L'espace qu'il occupe est même supérieur aux \textbf{Git objects} (Table~\ref{tab:commits-daily}).
 Cet écart provient peut-être de métadonnées que Borg pourrait ajouter,
 telles que des sommes de contrôle ou bien des index.
 Dans la suite des expérimentations, Borg ne sera pas ajouté au banc de tests.
@@ -1374,10 +1376,27 @@ La Table~\ref{tab:commits-daily} montre les résultats de l'expérience
 lorsqu'on crée un commit chaque jour.
 Le jeu de données de test étant un gros projet,
 les modifications réalisées en une journée sont déjà assez conséquentes.
-La colonne \textb{Git diffs} offre une bonne approximation
+La colonne \textbf{Git diffs} offre une bonne approximation
 de la quantité exacte de données qui ont été modifiées à chaque version.
 
-Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme optimal,
+Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme optimal.
+En effet, la différence obtenue avec l'aide de Git
+et de toutes les options spécifiées Section~\ref{sec:git-diffs},
+correspond presque au set de changement minimum nécessaire à décrire cette version.
+Cependant, les versions ainsi obtenues ne bénéficient pas totalement des informations déjà écrites.
+Car elles ne sont produites qu'en différence par rapport à la version précédente
+et pas par rapport à toutes les versions précédentes.
+Avant d'utiliser l'option \verb|--first-parent| décrite Section~\ref{sec:protocole-experimental},
+il est arrivé que DNA-Backup soit meilleur que les diffs Git.
+Effectivement, comme les différences alternaient d'une branche à l'autre,
+elles contenaient en grande partie des modifications annulant les précédentes, et ainsi de suite.
+Tandis que DNA-backup pouvait profiter de la déduplication pour économiser des écritures.
+
+Nous avons décidé de ne pas inclure ces résultats dans le présent rapport,
+car le cas d'usage nous paraissait trop éloigné de la réalité.
+Mais il pourrait tout de même être intéressant de pousser cette expérience plus loin dans le temps
+pour voir si, à terme, la déduplication et l'encodage delta permettent de surpasser les diffs Git
+en rentabilisant au maximum les données déjà présentes sur le support.
 
 
 \begin{table*}[ht]
@@ -1397,8 +1416,6 @@ Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme 
 \label{tab:commits-weekly}
 \end{table*}
 
-\subsubsection{Commits hebdomadaires}
-
 \begin{table*}[ht]
 \small
 \centering
@@ -1416,7 +1433,13 @@ Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme 
 \label{tab:commits-monthly}
 \end{table*}
 
-\subsubsection{Commits mensuels}
+\subsubsection{Commits hebdomadaires et mensuels}
+
+Les résultats hebdomadaires (Figure~\ref{tab:commits-weekly}) et mensuels (Figure~\ref{tab:commits-monthly})
+ne font que confirmer ce qui a été observé précédemment.
+L'écart se creuse avec les diffs Git, mais DNA-Backup reste un bon compromis.
+Car il ne faut pas oublier que pour restaurer la dernière version des diffs Git,
+il est absolument nécessaire de relire la totalité des données qui ont été stockées.
 
 
 % Bibliography
@@ -1478,13 +1501,13 @@ Trois commandes sont disponibles :
   \item \verb|export| : pour générer un export à partir des données du \emph{repo}
 \end{itemize}
 
-\subsection{Expérimentations}
+\section{Scripts des expérimentations}
 \label{sec:experimentations}
 
 Le dossier \verb|exp| contient les scripts permettant de reproduire les expériences.
 Les scripts ne sont prévus pour fonctionner que sur Linux, avec Bash et GNUMake.
 
-\subsubsection{Aide}
+\subsection{Aide}
 
 
 \begin{lstlisting}[language=sh]
@@ -1506,7 +1529,15 @@ make clean
   \item \verb|monthly|
 \end{itemize}
 
-\subsubsection{Valeurs par défaut}
+Il est aussi possible de sélectionner les tests qui seront exécutés
+et apparaitrons dans les résultats en modifiant leur dossier.
+Par exemple, la commande suivante lancera l'expérience, en y ajoutant Borg et en retirant les diffs Git :
+
+\begin{lstlisting}[language=Make]
+make DIFFS= BORG=borg
+\end{lstlisting}
+
+\subsubsection{Valeurs par défaut des options}
 
 \begin{lstlisting}[language=Make]
 SKIP_COMMITS = 0
@@ -1515,9 +1546,7 @@ MAX_VERSION  = 5
 RANGE        = daily
 \end{lstlisting}
 
-Il est aussi possible de sélectionner les tests qui seront exécutés
-et apparaitrons dans les résultats en modifiant leur dossier.
-Voilà les valeurs par défaut de chaque dossier :
+\subsubsection{Valeurs par défaut des dossiers}
 
 \begin{lstlisting}[language=Make]
 NOPACK = nopack
@@ -1525,12 +1554,6 @@ BORG   =
 TARGZ  = targz
 REAL   = real
 DIFFS  = diffs
-\end{lstlisting}
-
-Par exemple, la commande suivante lancera l'expérience, en y ajoutant Borg et en retirant les diffs Git :
-
-\begin{lstlisting}[language=Make]
-make DIFFS= BORG=borg
 \end{lstlisting}
 
 
