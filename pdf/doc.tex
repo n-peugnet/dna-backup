@@ -1083,7 +1083,7 @@ notamment en termes de coût des lectures.
 \section{Bases de comparaison}
 
 Quatre autres systèmes de stockage versionnés ont été choisis comme bases de comparaison
-(La Table~\ref{tab:recap-table} offre une vision d'ensemble
+(la Table~\ref{tab:recap-table} offre une vision d'ensemble
 pour comparer les différentes fonctionnalités de ces systèmes) :
 \begin{itemize}
 \item \textbf{Git diffs}
@@ -1102,8 +1102,8 @@ appliquer séquentiellement l'ensemble des deltas jusqu'à obtenir l'état
 de la version voulue.
 
 Le delta ainsi obtenu est ensuite compressé à l'aide de Gzip pour en diminuer la taille.
-Cette compression est assez efficace, car elle est réalisée d'un coup sur toutes les modifications.
-La commande utilisée pour générer ces différences est la suivante :
+Cette compression est assez efficace, car elle est réalisée d'une seule passe sur toute la version.
+La commande utilisée pour produire ces versions est la suivante :
 
 \begin{lstlisting}[language=sh]
 git diff --minimal --binary --unified=0 -l0 | gzip
@@ -1160,7 +1160,7 @@ d'encodage delta, et ne tire donc pas du tout parti des données déjà
 \subsection{Taille réelle}
 
 Cette base de comparaison n'est en réalité pas un système viable. Elle
-correspond à la taille que prend en réalité le dossier \emph{source} au
+correspond à la taille réelle qu'occupe le dossier \emph{source} au
 moment de la sauvegarde. C'est un indicateur qui permet de se rendre
 compte du poids que prendrait la sauvegarde de multiples versions sans
 aucune déduplication ou compression.
@@ -1244,7 +1244,7 @@ de dossiers dont le contenu évolue au cours du temps.
 Le dépôt sélectionné est dans un premier temps cloné avec son dossier \verb|.git| externalisé.
 Dans notre cas, il s'agit de celui du noyau Linux.
 Nous pouvons ensuite extraire une liste de commits en ordre chronologique.
-Laquelle est ensuite filtrée à l'aide de \verb|sort|
+Laquelle est finalement filtrée à l'aide de \verb|sort|
 pour n'en garder au maximum qu'un seul par jour.
 La commande utilisée est la suivante :
 
@@ -1327,7 +1327,7 @@ il devient plus intéressant d'en réduire la taille.
 En effet, plus les chunks sont petits, plus l'on perd d'efficacité
 avec les algorithmes de compression lorsqu'ils sont compressés indépendamment.
 
-Dans la suite des expériences, nous ne comptabiliseront pas l'espace occupé par le repo,
+Dans la suite des expériences, nous ne comptabiliserons pas l'espace occupé par le repo,
 mais uniquement celui occupé par les exports.
 
 
@@ -1377,13 +1377,13 @@ lorsqu'on crée un commit chaque jour.
 Le jeu de données de test étant un gros projet,
 les modifications réalisées en une journée sont déjà assez conséquentes.
 La colonne \textbf{Git diffs} offre une bonne approximation
-de la quantité exacte de données qui ont été modifiées à chaque version.
+de la quantité de données qui ont été modifiées à chaque version.
 
 Dans notre comparatif, l'espace occupé par les diffs Git est considéré comme optimal.
 En effet, la différence obtenue avec l'aide de Git
-et de toutes les options spécifiées Section~\ref{sec:git-diffs},
+et des options spécifiées Section~\ref{sec:git-diffs},
 correspond presque au set de changement minimum nécessaire à décrire cette version.
-Cependant, les versions ainsi obtenues ne bénéficient pas totalement des informations déjà écrites.
+Cependant, les versions ainsi obtenues ne profitent pas totalement des informations déjà écrites.
 Car elles ne sont produites qu'en différence par rapport à la version précédente
 et pas par rapport à toutes les versions précédentes.
 Avant d'utiliser l'option \verb|--first-parent| décrite Section~\ref{sec:protocole-experimental},
