@@ -1125,7 +1125,7 @@ et le résultat est comparé avec le dossier source.
 \subsection{Git objects}
 
 Il s'agit de la manière dont Git
-sauvegarde les données des fichiers d'un dépôt~\cite{straub2006git}. Le contenu de chaque
+sauvegarde les données des fichiers d'un dépôt~\cite{straub2013git}. Le contenu de chaque
 fichier et de chaque dossier est hashé afin d'en obtenir une signature.
 Il est ensuite compressé et stocké sous la forme d'\emph{object}
 immuable, référencé par la signature obtenue. Si un fichier est modifié,
@@ -1188,7 +1188,7 @@ Niveau fichier &
 & Transversal aux versions & & Transversal aux versions & \\
 \hline
 
-\multirow{2}{=}{\textb{Delta-encoding}} &
+\multirow{2}{=}{\textb{Encodage delta}} &
 Niveau chunk &
 Niveau version &
 \multirow{2}{=}{N/A} &
@@ -1455,9 +1455,70 @@ que ce soit au niveau des jeux de données, des paramètres de DNA-Backup ou des
 En l'état, il est difficile de tirer une conclusion claire, en raison du manque d'éléments de réponse.
 
 
-\chapter{Conclusion}
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
 
-C'EST DLA MERDE !
+L'\ac{adn} en tant que support de stockage des données présente des avantages de durabilité et de densité,
+mais souffre également d'inconvénients majeurs.
+Il est impossible de supprimer ou même de modifier des données existantes
+et les débits de lecture et d'écriture sont plusieurs ordres de grandeurs
+plus faibles que ceux des autres supports d'archivage actuels.
+
+Pour répondre à cette problématique, le système de fichier que nous avons imaginé
+s'efforce de réduire au maximum la quantité de données écrites,
+tout en essayant de limiter l'amplification des lectures.
+Pour cela, on applique sur les données un pipeline de compression basé sur la déduplication et l'encodage delta
+et on limite les métadonnées des fichiers au strict minimum.
+Ces dernières étant stockées à part afin de pouvoir rapidement y accéder
+et de manière incrémentale pour en réduire la taille.
+
+Comme aucune donnée ne peut être supprimée,
+le système est versionné pour offrir un accès aux états précédents.
+Et pour profiter autant que possible des données existantes,
+le pipeline de compression se base non seulement sur les données de la nouvelle version,
+mais aussi celles des versions déjà écrites.
+Cependant, encoder la différence par rapport à un chunk existant
+nécessite d'avoir accès à ses données.
+Pour cette raison, nous décidons de conserver une copie des données du DNA-Drive
+sur un support de stockage classique.
+Ainsi il est possible d'accéder rapidement aux données,
+tout en profitant de la durabilité de l'\ac{adn}.
+On ne voit donc plus vraiment le DNA-Drive comme un support de stockage,
+mais plus comme un système de sauvegardes incrémentales à long terme.
+Il devient alors intéressant pour conserver une copie de données cruciales sur un support stable,
+qui permettra de les restaurer après une défaillance.
+
+L'évaluation des performances d'une version expérimentale de DNA-Backup
+a permis de montrer son potentiel.
+Mais il reste encore beaucoup de travail afin d'obtenir des résultats convaincants.
+Plus d'expérimentations pourraient être menées, rien qu'avec la version actuelle du programme.
+Par exemple en faisant varier plus de paramètres ou en testant avec différents jeux de données.
+En ce qui concerne l'implémentation actuelle il manque encore un certain nombre de fonctionnalités.
+Les plus importantes étant bien-sûr les différents imports depuis le DNA-Drive.
+Mais le superblock n'a pas non plus été implémenté
+et les données qu'il contient n'ont pas encore été précisément définies.
+De manière générale, l'ensemble des structures de données stockées
+sur le DNA-Drive doivent être redéfinies et normalisées,
+afin d'être en mesure de publier une spécification
+que d'autres logiciels pourraient implémenter.
+
+Plusieurs pistes d'amélioration ont été envisagées.
+Notamment l'utilisation d'``extents'' dans la recipe,
+comme le font les systèmes de fichiers récents, afin d'en réduire la taille.
+Ou bien encore le remplacement des algorithmes d'encodage,
+de différence et de compression par des versions plus performantes.
+Il serait aussi possible de s'inspirer encore un peu de Git,
+en tentant de détecter les renommages de fichiers,
+et d'ainsi simplement modifier leur nom dans la liste des fichiers
+et réduire encore la taille des versions.
+Cette fonctionnalité nécessiterait probablement
+de stocker des données supplémentaires dans le repo,
+mais le compromis semble très largement gagnant,
+car il s'agira de données qu'il ne sera pas nécessaire de copier en \ac{adn}.
+Plus globalement, il reste évidemment des optimisations à apporter au code actuel,
+que ce soit en termes de temps d'exécution ou d'utilisation CPU.
+
+
 
 % Bibliography
 \bibliography{doc.bib}
