@@ -39,6 +39,9 @@ priority 1
 priority 2
 ----------
 - [ ] read individual files
+- [ ] exports, do not compress all chunks at once, but like EROFS, compress with
+    fixed size output chunks of a `TrackSize` multiple.
+    This way it could be possible to read only part of the chunks of a version.
 - [ ] refactor `matchStream` as right now it is quite complex
 - [ ] tail packing of `PartialChunks` (this Struct does not exist yet as it is
     in fact just `TempChunks` for now).

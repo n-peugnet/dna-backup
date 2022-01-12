@@ -36,6 +36,7 @@ export SKIP_CHECK  ?= 4
 export COMMITS     ?= commits.$(RANGE)
 
 ##################### Exp dirs #####################
+DNA_1K             ?= dna_1k
 DNA_4K             ?= dna_4k
 DNA_8K             ?= dna_8k
 NOPACK             ?= nopack
@@ -51,7 +52,7 @@ export GIT_PATH    ?= $(abspath git)
 GITC      := git -C $(REPO_PATH)
 
 SPACE     := $() $()
-DNADIRS   := $(DNA_4K) $(DNA_8K)
+DNADIRS   := $(DNA_1K) $(DNA_4K) $(DNA_8K)
 DNAEXPORT := $(DNADIRS:%=%_export)
 DATADIRS  := $(DNAEXPORT) $(DIFFS) $(NOPACK) $(BORG) $(TARGZ) $(REAL)
 SIZEFILES := $(DATADIRS:%=%.size)
@@ -144,6 +145,7 @@ printvars:
 		$(info $V=$($V))))
 
 $(DNA_PARAMS):
+	echo "$(DNA_1K)	-c 1024" > $@
 	echo "$(DNA_4K)	-c 4096" >> $@
 	echo "$(DNA_8K)	-c 8192" >> $@
 
